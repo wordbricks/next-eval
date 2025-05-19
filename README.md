@@ -9,20 +9,21 @@
 
 # NEXT-EVAL: From Web URLs to Structured Tables – Extraction and Evaluation
 
+Welcome to **NEXT-EVAL**, a comprehensive toolkit for the rigorous evaluation and comparison of methods for extracting **tabular data records** from web pages. This framework supports both traditional algorithms and modern Large Language Model (LLM)-based approaches. We provide the necessary components to generate datasets, preprocess web data, evaluate model performance, and conduct standardized benchmarking.
+
+
 **NEXT-EVAL** is an open-source library accompanying the NeurIPS 2025 paper:
 
 > 📄 **NEXT-EVAL: Next Evaluation of Traditional and LLM Web Data Record Extraction**
 > Authors: \[Names to be added]
 > \[Paper Link (to be added)]
 
-This library provides tools for generating web-to-table datasets, applying extraction techniques (both traditional and LLM-based), and evaluating them with a standardized framework. It is intended to advance benchmarking and reproducibility in web data extraction research.
-
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-brightgreen.svg?style=flat)](CONTRIBUTING.md)
 [![Paper](https://img.shields.io/badge/Read%20the%20Paper-blue)](https://arxiv.org/abs/6452467) 
 
-Welcome to **NEXT-EVAL**, a comprehensive toolkit for the rigorous evaluation and comparison of methods for extracting **tabular data records** from web pages. This framework supports both traditional algorithms and modern Large Language Model (LLM)-based approaches. We provide the necessary components to generate datasets, preprocess web data, evaluate model performance, and conduct standardized benchmarking.
 
+This library provides tools for generating web-to-table datasets, applying extraction techniques (both traditional and LLM-based), and evaluating them with a standardized framework. It is intended to advance benchmarking and reproducibility in web data extraction research.
 
 ---
 
