@@ -105,7 +105,7 @@ We use GitHub Pull Requests to manage code contributions.
 
 ## Setting up Your Development Environment
 
-Please refer to the [Installation Guide](README.md#7-installation) in the main README and any specific instructions in `docs/developer_setup.md` for details on setting up your development environment, including installing dependencies and any necessary tools.
+Please refer to the [Installation Guide](README.md#-getting-started)  in the main README and any specific instructions in `docs/developer_setup.md` for details on setting up your development environment, including installing dependencies and any necessary tools.
 
 ## Questions?
 
