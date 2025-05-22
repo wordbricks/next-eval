@@ -1,4 +1,4 @@
-export function preprocessHTML(rawHtml: string): string {
+export function removeCommentScriptStyleFromHTML(rawHtml: string): string {
 	// Remove comments
 	const noComments = rawHtml.replace(/<!--[\s\S]*?-->/g, '');
 	
@@ -7,4 +7,4 @@ export function preprocessHTML(rawHtml: string): string {
 	const noStyles = noScripts.replace(/<style[\s\S]*?<\/style>/gi, '');
 
 	return noStyles;
-}
+} 

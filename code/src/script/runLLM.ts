@@ -132,10 +132,7 @@ const runMain = async (mode: Mode) => {
 	const allUrls = fs.readdirSync(DATA_PATH);
 
 	for (const url of allUrls) {
-		if (url === "results") {
-			continue;
-		}
-		if (url === ".DS_Store") {
+		if (url === "results" || url === ".DS_Store") {
 			continue;
 		}
 		console.log(`Processing ${url}`);

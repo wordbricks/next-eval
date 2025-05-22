@@ -3,7 +3,7 @@
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
-		"clean": "bun run src/script/cleanForLLM.ts",
+		"preprocess": "bun run src/script/preprocessForLLM.ts",
 		"runLLM": "bun run src/script/runLLM.ts",
 		"mdr": "bun run src/script/runMDR.ts",
 		"evaluate": "bun run src/script/evaluate.ts"

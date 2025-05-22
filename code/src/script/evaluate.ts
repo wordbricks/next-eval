@@ -69,17 +69,13 @@ const calculateEvaluationMetrics = (
 // --- Main Loop Modification (Now after function definitions) ---
 //generateFileExistenceReport();
 
-const groundTruthUrlsPath = path.join(DATA_PATH, "results", "ground_truth_urls.json");
-const urlsString = fs.readFileSync(groundTruthUrlsPath, "utf-8");
-const urls: string[] = JSON.parse(urlsString);
-console.log(`URLs with required files ${urls.length}:`, urls);
 
 const groundTruthResponseFileName = "ground_truth.json";
 const predictResponseFileNameList = ["llm_response_slim.json", "llm_response_hier.json", "llm_response_flat.json", "mdr.json"];
 
-console.log("\n--- Average Metrics per LLM File ---");
 for (const predictResponseFileName of predictResponseFileNameList) {
     console.log(`\n--- Processing LLM File: ${predictResponseFileName} ---`);
+    console.log("\n--- Average Metrics per LLM File ---");
 
     let currentFileSumPrecision = 0;
     let currentFileSumRecall = 0;
@@ -88,46 +84,44 @@ for (const predictResponseFileName of predictResponseFileNameList) {
     let currentFileSumHr = 0;
     let numberOfRecords = 0;
 
-    urls.forEach((url, urlIndex) => {
-        //console.log(`  Processing URL ${urlIndex + 1}/${urls.length}: ${url}`); 
+    const allUrls = fs.readdirSync(DATA_PATH);
+    for (const url of allUrls) {
+      if (url === "results" || url === ".DS_Store") {
+        continue;
+      }
+      const recordSpecificDirPath = path.join(DATA_PATH, url);
+      const textMapFlatPath = path.join(recordSpecificDirPath, "text_map_flat.json");
+      const textMapFlatJson: Record<string, any> = JSON.parse(fs.readFileSync(textMapFlatPath, "utf-8"));
 
-        const slugName = slugifyUrl(url);
-        const recordSpecificDirPath = path.join(DATA_PATH, slugName);
-        const textMapFlatPath = path.join(recordSpecificDirPath, "text_map_flat.json");
-        const textMapFlatJson: Record<string, any> = JSON.parse(fs.readFileSync(textMapFlatPath, "utf-8"));
+      const predictResponsePath = path.join(recordSpecificDirPath, predictResponseFileName);
+      const groundTruthResponsePath = path.join(recordSpecificDirPath, groundTruthResponseFileName);
+      const predictLLMResponsePath = fs.readFileSync(predictResponsePath, "utf-8");
+      const groundTruthLLMResponsePath = fs.readFileSync(groundTruthResponsePath, "utf-8");
+      const predictLLMResponseJson: string[][] = JSON.parse(predictLLMResponsePath);
+      const groundTruthLLMResponseJson: string[][] = JSON.parse(groundTruthLLMResponsePath);
 
-        const predictResponsePath = path.join(recordSpecificDirPath, predictResponseFileName);
-        const groundTruthResponsePath = path.join(recordSpecificDirPath, groundTruthResponseFileName);
-        const predictLLMResponsePath = fs.readFileSync(predictResponsePath, "utf-8");
-        const groundTruthLLMResponsePath = fs.readFileSync(groundTruthResponsePath, "utf-8");
-        const predictLLMResponseJson: string[][] = JSON.parse(predictLLMResponsePath);
-        const groundTruthLLMResponseJson: string[][] = JSON.parse(groundTruthLLMResponsePath);
+      const predictRecords = mapResponseToFullXPath(textMapFlatJson, predictLLMResponseJson);
+      const groundTruthRecords = mapResponseToFullXPath(textMapFlatJson, groundTruthLLMResponseJson);
 
-        const predictRecords = mapResponseToFullXPath(textMapFlatJson, predictLLMResponseJson);
-        const groundTruthRecords = mapResponseToFullXPath(textMapFlatJson, groundTruthLLMResponseJson);
+      numberOfRecords += groundTruthRecords?.length ?? 0; 
 
-        numberOfRecords += groundTruthRecords?.length ?? 0; 
+      if (predictRecords) {
+          for (const record of predictRecords) {
+              if (record.length === 0) {
+                currentFileSumHr += 1;
+                break;
+              }
+          }
+      }
 
-        if (predictRecords) {
-            for (const record of predictRecords) {
-                if (record.length === 0) {
-                  currentFileSumHr += 1;
-                  break;
-                }
-            }
-        }
-
-        if (predictRecords && groundTruthRecords) {
-            const evaluationMetrics: EvaluationResult = calculateEvaluationMetrics(predictRecords, groundTruthRecords);
-
-            currentFileSumPrecision += evaluationMetrics.precision;
-            currentFileSumRecall += evaluationMetrics.recall;
-            currentFileCount++;
-            currentFileSumF1 += evaluationMetrics.f1; 
-
-            // console.log(`Evaluation Metrics for ${url}: ${JSON.stringify(evaluationMetrics)}`); // Optional: for detailed logging
-        }
-    });
+      if (predictRecords && groundTruthRecords) {
+          const evaluationMetrics: EvaluationResult = calculateEvaluationMetrics(predictRecords, groundTruthRecords);
+          currentFileSumPrecision += evaluationMetrics.precision;
+          currentFileSumRecall += evaluationMetrics.recall;
+          currentFileCount++;
+          currentFileSumF1 += evaluationMetrics.f1; 
+      }
+    };
 
     const avgPrecision = currentFileCount > 0 ? currentFileSumPrecision / currentFileCount : 0;
     const avgRecall = currentFileCount > 0 ? currentFileSumRecall / currentFileCount : 0;

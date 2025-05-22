@@ -7,5 +7,5 @@ export * from "./calculateOverlap";
 export * from "./getLLMResponse";
 export * from "./parseAndValidate";
 export * from "./launchBrowser";
-export * from "./preprocessHTML";
 export * from "./mapResponseToFullXPath";
+export * from "./removeCommentScriptStyleFromHTML";

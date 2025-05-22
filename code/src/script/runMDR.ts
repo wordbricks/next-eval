@@ -5,7 +5,7 @@ import { parse } from "node-html-parser";
 import { DATA_PATH, MDR_K, MDR_T } from "../constant";
 import type { TagNode } from "../interfaces";
 import {
-  preprocessHTML,
+  removeCommentScriptStyleFromHTML,
   buildTagTree,
   editDistance as calculateNormalizedEditDistance,
 } from "../utils";
@@ -405,7 +405,7 @@ function findOrphanRecords(
 
 function runMDR(htmlPath: string, outputPath: string): void {
   const rawHtml = fs.readFileSync(htmlPath, 'utf-8');
-  const cleanedHtml = preprocessHTML(rawHtml);
+  const cleanedHtml = removeCommentScriptStyleFromHTML(rawHtml);
   const rootDom = parse(cleanedHtml, { lowerCaseTagName: true, comment: false });
   const rootNode = buildTagTree(rootDom.childNodes[0]);
 
@@ -487,12 +487,9 @@ const main = async () => {
     const allUrls = fs.readdirSync(DATA_PATH);
     let processedCount = 0;
     for (const url of allUrls) {
-        if (url === "results") {
-            continue;
-        }
-        if (url === ".DS_Store") {
-            continue;
-        }
+		if (url === "results" || url === ".DS_Store") {
+			continue;
+		}
         const dirPath = path.join(DATA_PATH, url);
         const slimHtmlPath = path.join(dirPath, "syn.html");
         const outputPath = path.join(dirPath, "mdr.json");
