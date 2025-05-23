@@ -3,3 +3,5 @@ bin
 .DS_STORE
 .env
 data
+synthetic
+*.old

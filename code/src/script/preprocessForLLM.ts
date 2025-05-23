@@ -1,31 +1,25 @@
 import fs from "node:fs";
 import path from "node:path";
-import { DATA_PATH } from "../constant";
+import { SYN_DATA_PATH } from "../constant";
 import { getHTMLAndTextMapFromMHTML } from "../utils";
 
 const main = async () => {
-	const allUrls = fs.readdirSync(DATA_PATH);
+	const flatDstDirPath = path.join(SYN_DATA_PATH, "flat");
+	const hierDstDirPath = path.join(SYN_DATA_PATH, "hier");
+	const slimDstDirPath = path.join(SYN_DATA_PATH, "slim");
+	const mhtmlDstDirPath = path.join(SYN_DATA_PATH, "mhtml");
 
-	for (const url of allUrls) {
-		if (url === "results" || url === ".DS_Store") {
-			continue;
-		}
-		const dirPath = path.join(DATA_PATH, url);
-		const mhtmlPath = path.join(dirPath, "syn.mhtml");
-		const outputPath = path.join(dirPath, "cleaned.html");
-		const textMapPath = path.join(dirPath, "text_map.json");
-		const textMapFlatPath = path.join(dirPath, "text_map_flat.json");
-		try {
-			const { html: cleanedHtml, textMap, textMapFlat } = await getHTMLAndTextMapFromMHTML(mhtmlPath);
-			fs.writeFileSync(outputPath, cleanedHtml);
-			fs.writeFileSync(textMapPath, JSON.stringify(textMap, null, 2));
-			fs.writeFileSync(textMapFlatPath, JSON.stringify(textMapFlat, null, 2));
+	for (let index = 1;index<=164;index++ ){
+		const mhtmlPath = path.join(mhtmlDstDirPath, `${index}.mhtml`);
+		const slimPath = path.join(slimDstDirPath, `${index}.html`);
+		const hierPath = path.join(hierDstDirPath, `${index}.json`);
+		const flatPath = path.join(flatDstDirPath, `${index}.json`);
 
-			console.log(`Processing ${url}: Completed file operations.`);
-
-		} catch (err) {
-			console.error(`Error processing ${url}:`, err);
-		}
+		const { html: cleanedHtml, textMap, textMapFlat } = await getHTMLAndTextMapFromMHTML(mhtmlPath);
+		fs.writeFileSync(slimPath, cleanedHtml);
+		fs.writeFileSync(hierPath, JSON.stringify(textMap, null, 2));
+		fs.writeFileSync(flatPath, JSON.stringify(textMapFlat, null, 2));
+		console.log(`Processing ${index}: Completed file operations.`);
 	}
 	console.log("\nAll processing finished.");
 };

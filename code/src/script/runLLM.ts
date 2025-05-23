@@ -7,12 +7,13 @@ import {
 	SYSTEM_HIER_PROMPT,
 	SYSTEM_FLAT_PROMPT
 } from "../prompts";
-import { DATA_PATH, xpathArraySchema } from "../constant";
+import { SYN_DATA_PATH, xpathArraySchema } from "../constant";
 import type { LLMUsage } from "../interfaces";
 import { USER_PROMPT } from "../prompts";
 import { compile, getLLMResponse, parseAndValidateXPaths } from "../utils";
 
 const MAX_RETRY_ATTEMPTS = 3;
+const NUM_GROUPS = 5;
 
 const retryXPathExtraction = async (
 	prompt: string,
@@ -33,35 +34,38 @@ const retryXPathExtraction = async (
 				usage: llmResponse.usage
 			};
 		} catch (error) {
-			console.error(`Error occurred ${error}`);
+			console.error(`Error during XPath extraction (attempt ${currentAttempt}/${maxAttempts}):`, error);
 			lastError = error instanceof Error ? error : new Error(String(error));
 			if (currentAttempt === maxAttempts) {
+				console.error(`XPath extraction failed after ${maxAttempts} attempts.`);
 				throw lastError;
 			}
-			console.log(`Attempt ${currentAttempt} failed, retrying...`);
+			console.log(`Retrying XPath extraction (attempt ${currentAttempt + 1}/${maxAttempts})...`);
 		}
 	}
-	throw lastError;
+	// This line should ideally not be reached if maxAttempts > 0, but TypeScript needs a return/throw.
+	// If maxAttempts is 0 or negative, lastError could be null.
+	throw lastError ?? new Error("XPath extraction failed due to an unknown error with retry logic.");
 };
 
 const processWithLLM = async (
-	slugUrl: string,
-	inputFileName: string,
-	outputFileName: string,
-	usageFileName: string,
+	textMapPath: string, // Full path to the input file
+	outputPath: string, // Full path for the output JSON file
+	usagePath: string, // Full path for the usage JSON file
 	systemPrompt: string,
 	modelName: string = "gemini-2.0-flash-001",
 	temperature: number = 1.0,
 	seed: number = 12345
 ) => {
-	const dirPath = path.join(DATA_PATH, slugUrl);
-	const textMapPath = path.join(dirPath, inputFileName);
-	const outputPath = path.join(dirPath, outputFileName);
-	const usagePath = path.join(dirPath, usageFileName);
+	const displayName = path.basename(textMapPath);
+	if (fs.existsSync(outputPath)) {
+		console.log(`Skipping ${displayName} because its output ${outputPath} already exists`);
+		return;
+	}
 
 	try {
 		if (!fs.existsSync(textMapPath)) {
-			console.log(`No ${textMapPath} found for ${slugUrl}`);
+			console.log(`Input file ${textMapPath} not found.`);
 			return;
 		}
 
@@ -70,78 +74,84 @@ const processWithLLM = async (
 
 		const { xpaths, usage } = await retryXPathExtraction(userPrompt, MAX_RETRY_ATTEMPTS, systemPrompt, modelName, temperature, seed);
 
-		// Save the XPaths response
+		const outputDirPath = path.dirname(outputPath);
+		if (!fs.existsSync(outputDirPath)) {
+			fs.mkdirSync(outputDirPath, { recursive: true });
+		}
 		fs.writeFileSync(outputPath, JSON.stringify(xpaths, null, 2));
 
-		// Save the usage data if available
 		if (usage) {
+			const usageDirPath = path.dirname(usagePath);
+			if (!fs.existsSync(usageDirPath)) {
+				fs.mkdirSync(usageDirPath, { recursive: true });
+			}
 			fs.writeFileSync(usagePath, JSON.stringify(usage, null, 2));
 		}
 
-		console.log(`Processed ${slugUrl} (model: ${modelName}).`);
+		console.log(`Processed ${displayName} (model: ${modelName}). Output: ${outputPath}`);
 	} catch (err) {
-		console.error(`Error processing ${slugUrl} with model ${modelName}:`, err);
+		console.error(`Error processing ${displayName} with model ${modelName}:`, err);
+		// Optionally re-throw or handle more gracefully if this function is part of a larger batch
 	}
 };
 
 type Mode = 'slim' | 'hier' | 'flat';
 
-interface RunConfig {
-	inputFileName: string;
-	outputPrefix: string;
-	usagePrefix: string;
-	systemPrompt: string;
-}
-
-const getConfig = (mode: Mode, seed: number): RunConfig => {
-	const configs: Record<Mode, RunConfig> = {
-		'slim': {
-			inputFileName: "syn.html",
-			outputPrefix: `llm_response_slim_${seed}`,
-			usagePrefix: `llm_usage_slim_${seed}`,
-			systemPrompt: SYSTEM_SLIM_PROMPT,
-		},
-		'hier': {
-			inputFileName: "text_map_hier.json",
-			outputPrefix: `llm_response_hier_${seed}`,
-			usagePrefix: `llm_usage_hier_${seed}`,
-			systemPrompt: SYSTEM_HIER_PROMPT,
-		},
-		'flat': {
-			inputFileName: "text_map_flat.json",
-			outputPrefix: `llm_response_flat_${seed}`,
-			usagePrefix: `llm_usage_flat_${seed}`,
-			systemPrompt: SYSTEM_FLAT_PROMPT,
-		}
+const getPrompt = (mode: Mode): string => {
+	const configs: Record<Mode, string> = {
+		'slim': SYSTEM_SLIM_PROMPT,
+		'hier': SYSTEM_HIER_PROMPT,
+		'flat': SYSTEM_FLAT_PROMPT,
 	};
-
 	return configs[mode];
 };
 
 const SEED = 0;
 const TEMPERATURE = 1.0;
 const MODEL_NAME = "gemini-2.5-pro-preview-03-25";
+const PREFIX = "0522";
+//const MODEL_NAME = "gemini-2.5-pro-preview-05-06";
+//const MODEL_NAME = "gemini-2.5-pro";
 
-const runMain = async (mode: Mode) => {
-	console.log(`Running ${mode} mode with seed: ${SEED}`);
-	const config = getConfig(mode, SEED);
-	const inputFileName = config.inputFileName;
-	const outputFileName = `${config.outputPrefix}.json`;
-	const usageFileName = `${config.usagePrefix}.json`;
-	const systemPrompt = config.systemPrompt;
-	const allUrls = fs.readdirSync(DATA_PATH);
+const processedIndicesPath = path.join(SYN_DATA_PATH, "processed_indices.json");
+const processedIndices: string[] = JSON.parse(fs.readFileSync(processedIndicesPath, "utf-8"));
 
-	for (const url of allUrls) {
-		if (url === "results" || url === ".DS_Store") {
+const runMain = async (mode: Mode, groupNumber: number) => {
+	console.log(`Running ${mode} mode with seed: ${SEED}, group: ${groupNumber}/${NUM_GROUPS}`);
+	const systemPrompt = getPrompt(mode)
+	const modeSpecificInputPath = path.join(SYN_DATA_PATH, mode);
+	const modeSpecificOutputPath = path.join(SYN_DATA_PATH, `${mode}LLM`);
+
+	if (!fs.existsSync(modeSpecificOutputPath)) {
+		fs.mkdirSync(modeSpecificOutputPath, { recursive: true });
+		console.log(`Created output directory: ${modeSpecificOutputPath}`);
+	}
+
+	for (let index = groupNumber - 1 ; index<=164; index += NUM_GROUPS){
+		if (!processedIndices.includes(index.toString())) {
 			continue;
 		}
-		console.log(`Processing ${url}`);
+		const currentInputFilePath = path.join(modeSpecificInputPath, mode == "slim" ? `${index}.html` : `${index}.json`);
+		const currentOutputJsonPath =  path.join(modeSpecificOutputPath, `${index}_${PREFIX}_${SEED}.json`);
+		const currentOutputUsagePath =  path.join(modeSpecificOutputPath, `${index}_${PREFIX}_${SEED}_usage.json`);
+
+		console.log(`Preparing to process ${currentInputFilePath}`);
 		try {
-			await processWithLLM(url, inputFileName, outputFileName, usageFileName, systemPrompt, MODEL_NAME, TEMPERATURE, SEED);
+			await processWithLLM(
+				currentInputFilePath,
+				currentOutputJsonPath,
+				currentOutputUsagePath,
+				systemPrompt,
+				MODEL_NAME,
+				TEMPERATURE,
+				SEED
+			);
 		} catch (error) {
-			console.error(`Error processing slug ${url} in retry pass:`, error);
+			// Errors from processWithLLM are logged there. This catch is for errors during the call setup or re-thrown.
+			console.error(`Unhandled error in runMain loop for file ${currentInputFilePath}:`, error);
 		}
 	}
+	console.log(`Finished processing all targeted files for ${mode} mode, group ${groupNumber}.`);
 };
 
 // Parse command-line arguments
@@ -162,4 +172,21 @@ if (!process.argv[2]) {
 
 const mode = parseMode(process.argv[2]);
 
-runMain(mode); 
+// Get group number from command line arguments (required)
+if (!process.argv[3]) {
+	console.error(`Missing group number argument. Please specify a number between 1 and ${NUM_GROUPS}.`);
+	process.exit(1);
+}
+
+const parseGroup = (groupArg: string): number => {
+	const group = parseInt(groupArg, 10);
+	if (isNaN(group) || group < 1 || group > NUM_GROUPS) {
+		console.error(`Invalid group number. Please use a number between 1 and ${NUM_GROUPS}.`);
+		process.exit(1);
+	}
+	return group;
+};
+
+const group = parseGroup(process.argv[3]);
+
+runMain(mode, group);

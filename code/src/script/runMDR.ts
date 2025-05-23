@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { parse } from "node-html-parser";
 
-import { DATA_PATH, MDR_K, MDR_T } from "../constant";
+import { SYN_DATA_PATH, MDR_K, MDR_T } from "../constant";
 import type { TagNode } from "../interfaces";
 import {
   removeCommentScriptStyleFromHTML,
@@ -484,25 +484,21 @@ function runMDR(htmlPath: string, outputPath: string): void {
 }
 
 const main = async () => {
-    const allUrls = fs.readdirSync(DATA_PATH);
-    let processedCount = 0;
-    for (const url of allUrls) {
-		if (url === "results" || url === ".DS_Store") {
-			continue;
-		}
-        const dirPath = path.join(DATA_PATH, url);
-        const slimHtmlPath = path.join(dirPath, "syn.html");
-        const outputPath = path.join(dirPath, "mdr.json");
-        
-		if (fs.existsSync(slimHtmlPath)) {
+  const slimDirPath = path.join(SYN_DATA_PATH, "slim");
+  const mdrDirPath = path.join(SYN_DATA_PATH, "mdr");
+  let processedCount = 0;
+	for (let index = 1;index<=164;index++ ){
+    const mdrPath = path.join(mdrDirPath, `${index}.json`);
+		const slimPath = path.join(slimDirPath, `${index}.html`);
+		if (fs.existsSync(slimPath)) {
 			try {
-				runMDR(slimHtmlPath, outputPath);
-				processedCount++;
+				runMDR(slimPath, mdrPath);
+        processedCount++;
 			} catch (error) {
-				console.error(`Error processing ${slimHtmlPath}:`, error);
+				console.error(`Error processing ${slimPath}:`, error);
 			}
 		} else {
-			console.warn(`Cleaned HTML file not found for ${url}: ${slimHtmlPath}`);
+			console.warn(`Cleaned HTML file not found for ${index}: ${slimPath}`);
 		}
 	}
 	if (processedCount === 0) {

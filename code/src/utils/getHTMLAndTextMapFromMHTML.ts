@@ -48,7 +48,6 @@ export const getHTMLAndTextMapFromMHTML = async (
 						}
 					}
 				} else {
-
 					node.childNodes.forEach(processTextNodes);
 				}
 			};
@@ -102,20 +101,9 @@ export const getHTMLAndTextMapFromMHTML = async (
 			const elements = doc.getElementsByTagName("*");
 			for (const element of elements) {
 				const attributes = element.attributes;
-				const keepAttributes = [
-					"href",
-					"src",
-					"alt",
-					"title",
-					"lang",
-					"charset",
-				];
-
 				for (let i = attributes.length - 1; i >= 0; i--) {
 					const attr = attributes[i];
-					if (!keepAttributes.includes(attr.name)) {
-						element.removeAttribute(attr.name);
-					}
+					element.removeAttribute(attr.name);
 				}
 			}
 
@@ -127,10 +115,20 @@ export const getHTMLAndTextMapFromMHTML = async (
 	);
 
 	await browser.close();
+	const newTextMap = result.textMap.filter(([_, text]) => {
+		if (text.length > 1) {
+			return true;
+		}
+		const charCode = `${text[0]?.charCodeAt(0).toString(16).padStart(4, '0') ?? "0000"}`;
+		if (charCode === "200c" || charCode === "200b" || charCode === "0022") {
+			return false;
+		}
+		return true; 
+	});//handle whitespace character
 
 	return {
 		html: result.html,
-		textMap: result.textMap.reduce(
+		textMap: newTextMap.reduce(
 			(acc, [xpath, text]) => {
 				// Split the xpath into segments
 				const segments = xpath.split("/").filter(Boolean);
@@ -153,7 +151,7 @@ export const getHTMLAndTextMapFromMHTML = async (
 			},
 			{} as Record<string, any>,
 		),
-		textMapFlat: result.textMap.reduce(
+		textMapFlat: newTextMap.reduce(
 			(acc, [xpath, text]) => {
 				acc[xpath] = text;
 				return acc;

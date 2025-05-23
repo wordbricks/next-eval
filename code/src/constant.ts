@@ -7,6 +7,10 @@ export const DATA_PATH = root
 	? resolve(dirname(root), "src/data/")
 	: "./data";
 
+export const SYN_DATA_PATH = root
+	? resolve(dirname(root), "src/synthetic/")
+	: "./synthetic/";
+
 // MDR (Mining Data Region) constants
 export const MDR_K = 10; // Maximum length of a data region pattern
 export const MDR_T = 0.3; // Similarity threshold for data region detection
