@@ -1,16 +1,10 @@
 import munkres from "munkres-js";
-import { calculateOverlap, slugifyUrl, mapResponseToFullXPath } from "../utils";
+import { calculateOverlap, mapResponseToFullXPath } from "../utils";
 import { EvaluationResult } from "../interfaces/EvaluationResult";
 import path from "path";
 import fs from "fs";
-import { DATA_PATH } from "../constant";
-/**
- * Calculates Precision, Recall, and F1 score for predicted vs. ground truth records.
- * Assumes munkres-js library is installed.
- * @param predictedRecords - Array of predicted records (each record is string[]).
- * @param groundTruthRecords - Array of ground truth records (each record is string[]).
- * @returns An object containing precision, recall, and f1 score.
- */
+import { SYN_DATA_PATH } from "../constant";
+
 const calculateEvaluationMetrics = (
   predictedRecords: string[][],
   groundTruthRecords: string[][]
@@ -39,8 +33,6 @@ const calculateEvaluationMetrics = (
     }
   }
 
-  // Use munkres to find the optimal assignment (indices of matched pairs)
-  // munkres-js handles rectangular matrices
   const K = Math.min(M, N)
   const assignmentIndices: [number, number][] = munkres(costMatrix); // Returns array of pairs [predIndex, gtIndex]
 
@@ -58,7 +50,6 @@ const calculateEvaluationMetrics = (
   });
 
 
-  // Calculate Precision, Recall, F1
   const precision = M > 0 ? maxTotalOverlap / M : 0;
   const recall = N > 0 ? maxTotalOverlap / N : 0;
   const f1 = (precision + recall) > 0 ? (2 * precision * recall) / (precision + recall) : 0;
@@ -69,12 +60,10 @@ const calculateEvaluationMetrics = (
 // --- Main Loop Modification (Now after function definitions) ---
 //generateFileExistenceReport();
 
+const predictKeyList = ["slimLLM", "flatLLM", "hierLLM", "mdr"]
 
-const groundTruthResponseFileName = "ground_truth.json";
-const predictResponseFileNameList = ["llm_response_slim.json", "llm_response_hier.json", "llm_response_flat.json", "mdr.json"];
-
-for (const predictResponseFileName of predictResponseFileNameList) {
-    console.log(`\n--- Processing LLM File: ${predictResponseFileName} ---`);
+for (const predictKey of predictKeyList) {
+    console.log(`\n--- Processing LLM File: ${predictKey} ---`);
     console.log("\n--- Average Metrics per LLM File ---");
 
     let currentFileSumPrecision = 0;
@@ -84,17 +73,12 @@ for (const predictResponseFileName of predictResponseFileNameList) {
     let currentFileSumHr = 0;
     let numberOfRecords = 0;
 
-    const allUrls = fs.readdirSync(DATA_PATH);
-    for (const url of allUrls) {
-      if (url === "results" || url === ".DS_Store") {
-        continue;
-      }
-      const recordSpecificDirPath = path.join(DATA_PATH, url);
-      const textMapFlatPath = path.join(recordSpecificDirPath, "text_map_flat.json");
+    for (let index=1; index<=164; index++) {
+      const textMapFlatPath = path.join(SYN_DATA_PATH, "flat", `${index}.json`)
       const textMapFlatJson: Record<string, any> = JSON.parse(fs.readFileSync(textMapFlatPath, "utf-8"));
 
-      const predictResponsePath = path.join(recordSpecificDirPath, predictResponseFileName);
-      const groundTruthResponsePath = path.join(recordSpecificDirPath, groundTruthResponseFileName);
+      const groundTruthResponsePath = path.join(SYN_DATA_PATH, "groundTruth", `${index}.json`);
+      const predictResponsePath = path.join(SYN_DATA_PATH, predictKey, `${index}.json`);
       const predictLLMResponsePath = fs.readFileSync(predictResponsePath, "utf-8");
       const groundTruthLLMResponsePath = fs.readFileSync(groundTruthResponsePath, "utf-8");
       const predictLLMResponseJson: string[][] = JSON.parse(predictLLMResponsePath);
@@ -129,7 +113,7 @@ for (const predictResponseFileName of predictResponseFileNameList) {
     const avgHR = currentFileCount > 0 ? currentFileSumHr / currentFileCount : 0;
 
     console.log(`Total number of records: ${numberOfRecords}`);
-    console.log(`File: ${predictResponseFileName}`);
+    console.log(`File: ${predictKey}`);
     console.log(`  Average Precision: ${avgPrecision.toFixed(4)}`);
     console.log(`  Average Recall: ${avgRecall.toFixed(4)}`);
     console.log(`  Average F1 Score: ${avgF1.toFixed(4)}`);
