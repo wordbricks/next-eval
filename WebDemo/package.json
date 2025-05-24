@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "bunx @biomejs/biome check --apply ./src"
+    "lint": "bunx @biomejs/biome check --write ./src"
   },
   "dependencies": {
 		"ai": "4.3.2",
