@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import type { HtmlResult } from '../lib/interfaces';
 
 // Helper function to read file as text
@@ -17,7 +18,8 @@ const readFileAsText = (file: File): Promise<string> => {
 const generateXPath = (element: Element | null): string => {
   if (!element) return '';
   // Prioritize id if present and it's reasonably simple (e.g., no spaces, not just a number)
-  if (element.id && /^[a-zA-Z][\w-]*$/.test(element.id)) return `id(\'${element.id}\')`;
+  if (element.id && /^[a-zA-Z][\w-]*$/.test(element.id))
+    return `id(\'${element.id}\')`;
 
   let path = '';
   let currentElement: Element | null = element;
@@ -45,14 +47,14 @@ const generateXPath = (element: Element | null): string => {
 // Helper function to remove script, style tags, and comments from HTML
 const slimHtml = (doc: Document): string => {
   // 1. Initial DOM-based removal of specific tags
-  doc.querySelectorAll("script").forEach((el) => el.remove());
-  doc.querySelectorAll("style").forEach((el) => el.remove());
-  doc.querySelectorAll("meta").forEach((el) => {
-    if (el.getAttribute("charset") === null) {
+  doc.querySelectorAll('script').forEach((el) => el.remove());
+  doc.querySelectorAll('style').forEach((el) => el.remove());
+  doc.querySelectorAll('meta').forEach((el) => {
+    if (el.getAttribute('charset') === null) {
       el.remove();
     }
   });
-  doc.querySelectorAll("link").forEach((el) => el.remove());
+  doc.querySelectorAll('link').forEach((el) => el.remove());
 
   // 2. Convert to string
   const htmlContent = doc.documentElement ? doc.documentElement.outerHTML : '';
@@ -62,19 +64,19 @@ const slimHtml = (doc: Document): string => {
 
   // Perform string-based cleaning (includes comment removal)
   const stringCleanedContent = htmlContent
-    .replace(/<!--[\s\S]*?-->/g, "") // Remove comments
-    .replace(/\n\s*\n/g, "\n")       // Remove multiple consecutive line breaks
-    .replace(/>\s+</g, "><")          // Remove whitespace between tags
-    .replace(/\s+/g, " ")            // Replace multiple spaces with single space
-    .trim();                         // Remove leading/trailing whitespace
+    .replace(/<!--[\s\S]*?-->/g, '') // Remove comments
+    .replace(/\n\s*\n/g, '\n') // Remove multiple consecutive line breaks
+    .replace(/>\s+</g, '><') // Remove whitespace between tags
+    .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+    .trim(); // Remove leading/trailing whitespace
 
   // 3. Create a new document from the string-cleaned content
   const parser = new DOMParser();
-  const tempDoc = parser.parseFromString(stringCleanedContent, "text/html");
+  const tempDoc = parser.parseFromString(stringCleanedContent, 'text/html');
 
   // 4. Remove all attributes from all elements in the new document
   if (tempDoc.documentElement) {
-    const elements = tempDoc.getElementsByTagName("*");
+    const elements = tempDoc.getElementsByTagName('*');
     for (let i = 0; i < elements.length; i++) {
       const element = elements[i];
       const attributes = element.attributes;
@@ -95,28 +97,34 @@ interface TextMapNode {
 }
 
 // Helper function to extract text and build flat/hierarchical maps
-const extractTextWithXPaths = (doc: Document): { textMapFlat: Record<string, string>, textMap: TextMapNode } => {
+const extractTextWithXPaths = (
+  doc: Document,
+): { textMapFlat: Record<string, string>; textMap: TextMapNode } => {
   const textMapFlat: Record<string, string> = {};
   const textMap: TextMapNode = {};
-  const treeWalker = doc.createTreeWalker(doc.documentElement, NodeFilter.SHOW_TEXT, {
-    acceptNode: (node: Node) => {
-      // Only accept non-empty text nodes that are not inside <script> or <style>
-      if (node.nodeValue && node.nodeValue.trim() !== '') {
-        let parent = node.parentElement;
-        while (parent) {
-          if (['SCRIPT', 'STYLE'].includes(parent.tagName)) {
-            return NodeFilter.FILTER_REJECT;
+  const treeWalker = doc.createTreeWalker(
+    doc.documentElement,
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode: (node: Node) => {
+        // Only accept non-empty text nodes that are not inside <script> or <style>
+        if (node.nodeValue && node.nodeValue.trim() !== '') {
+          let parent = node.parentElement;
+          while (parent) {
+            if (['SCRIPT', 'STYLE'].includes(parent.tagName)) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            parent = parent.parentElement;
           }
-          parent = parent.parentElement;
+          return NodeFilter.FILTER_ACCEPT;
         }
-        return NodeFilter.FILTER_ACCEPT;
-      }
-      return NodeFilter.FILTER_REJECT;
-    }
-  });
+        return NodeFilter.FILTER_REJECT;
+      },
+    },
+  );
 
   let currentNode;
-  while (currentNode = treeWalker.nextNode()) {
+  while ((currentNode = treeWalker.nextNode())) {
     const textContent = currentNode.nodeValue?.trim();
     if (textContent && currentNode.parentElement) {
       const xpath = generateXPath(currentNode.parentElement);
@@ -148,7 +156,9 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [processedData, setProcessedData] = useState<HtmlResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [selectedStage, setSelectedStage] = useState<'html' | 'textMapFlat' | 'textMap' | null>(null);
+  const [selectedStage, setSelectedStage] = useState<
+    'html' | 'textMapFlat' | 'textMap' | null
+  >(null);
   const [llmResponse, setLlmResponse] = useState<string | null>(null);
   const [isLlmLoading, setIsLlmLoading] = useState<boolean>(false);
   const [llmErrorMessage, setLlmErrorMessage] = useState<string | null>(null);
@@ -165,8 +175,10 @@ export default function HomePage() {
     }
   };
 
-  const handleTemperatureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setTemperature(parseFloat(event.target.value));
+  const handleTemperatureChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    setTemperature(Number.parseFloat(event.target.value));
   };
 
   const handleProcessFile = async () => {
@@ -213,13 +225,14 @@ export default function HomePage() {
         textMapFlatLength,
         textMapLength,
       });
-
     } catch (error) {
       console.error('Client-side processing error:', error);
       if (error instanceof Error) {
         setErrorMessage(`Processing error: ${error.message}`);
       } else {
-        setErrorMessage('An unknown error occurred during client-side processing.');
+        setErrorMessage(
+          'An unknown error occurred during client-side processing.',
+        );
       }
       setProcessedData(null); // Clear any partial data
     } finally {
@@ -229,7 +242,9 @@ export default function HomePage() {
 
   const handleSendToLlm = async () => {
     if (!selectedStage || !processedData) {
-      setLlmErrorMessage("Please select a processing stage and ensure data is available.");
+      setLlmErrorMessage(
+        'Please select a processing stage and ensure data is available.',
+      );
       return;
     }
 
@@ -253,9 +268,9 @@ export default function HomePage() {
       } else if (selectedStage === 'textMap') {
         dataToSend = processedData.textMap; // Send the object, not stringified
       } else {
-        throw new Error("Invalid stage selected for LLM interaction");
+        throw new Error('Invalid stage selected for LLM interaction');
       }
-      
+
       const requestBody = {
         promptType: promptTypeMap[selectedStage as keyof typeof promptTypeMap],
         data: dataToSend,
@@ -271,8 +286,16 @@ export default function HomePage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to get response from LLM and could not parse error.' }));
-        throw new Error(errorData.message || `LLM API request failed with status ${response.status}`);
+        const errorData = await response
+          .json()
+          .catch(() => ({
+            message:
+              'Failed to get response from LLM and could not parse error.',
+          }));
+        throw new Error(
+          errorData.message ||
+            `LLM API request failed with status ${response.status}`,
+        );
       }
 
       const result = await response.json();
@@ -284,7 +307,9 @@ export default function HomePage() {
       if (error instanceof Error) {
         setLlmErrorMessage(`LLM Error: ${error.message}`);
       } else {
-        setLlmErrorMessage('An unknown error occurred while contacting the LLM.');
+        setLlmErrorMessage(
+          'An unknown error occurred while contacting the LLM.',
+        );
       }
     } finally {
       setIsLlmLoading(false);
@@ -296,9 +321,7 @@ export default function HomePage() {
       <h1 className="text-3xl font-bold text-center my-8">NEXT EVAL</h1>
       {/* File Input Section */}
       <section className="mb-8 p-6 border rounded-lg shadow-md bg-white">
-        <h2 className="text-xl font-semibold mb-4">
-          Upload HTML
-        </h2>
+        <h2 className="text-xl font-semibold mb-4">Upload HTML</h2>
         <div className="flex flex-col space-y-4">
           <input
             type="file"
@@ -336,7 +359,9 @@ export default function HomePage() {
       {isLoading && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-xl">
-            <p className="text-lg font-semibold animate-pulse">Processing file, please wait...</p>
+            <p className="text-lg font-semibold animate-pulse">
+              Processing file, please wait...
+            </p>
             {/* You can add a spinner SVG or component here */}
           </div>
         </div>
@@ -348,15 +373,20 @@ export default function HomePage() {
           <h2 className="text-2xl font-semibold mb-4">Processing Stages</h2>
           {processedData.originalHtmlLength !== undefined && (
             <div className="mb-4 p-3 bg-gray-100 border border-gray-300 rounded-lg text-sm">
-              <p className="font-semibold">Original Full HTML Length: <span className="font-normal">{processedData.originalHtmlLength.toLocaleString()} characters</span></p>
+              <p className="font-semibold">
+                Original Full HTML Length:{' '}
+                <span className="font-normal">
+                  {processedData.originalHtmlLength.toLocaleString()} characters
+                </span>
+              </p>
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Stage 1: Slimming (Cleaned HTML) */}
-            <div 
+            <div
               className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 ${
-                selectedStage === 'html' 
-                  ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500' 
+                selectedStage === 'html'
+                  ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
                   : 'bg-gray-50 hover:bg-blue-50'
               }`}
               onClick={() => setSelectedStage('html')}
@@ -364,10 +394,10 @@ export default function HomePage() {
               tabIndex={0}
               onKeyDown={(e) => e.key === 'Enter' && setSelectedStage('html')}
             >
-              <h3 className="text-lg font-medium mb-1">
-                1. Slimmed HTML
-              </h3>
-              <p className="text-xs text-gray-600 mb-2">Length: {processedData.htmlLength.toLocaleString()} chars</p>
+              <h3 className="text-lg font-medium mb-1">1. Slimmed HTML</h3>
+              <p className="text-xs text-gray-600 mb-2">
+                Length: {processedData.htmlLength.toLocaleString()} chars
+              </p>
               <div className="h-64 overflow-auto bg-white p-2 border rounded">
                 <pre className="text-xs whitespace-pre-wrap">
                   {processedData.html}
@@ -376,19 +406,26 @@ export default function HomePage() {
             </div>
 
             {/* Stage 2: XPath to Text (Flat) */}
-            <div 
+            <div
               className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 ${
-                selectedStage === 'textMapFlat' 
-                  ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500' 
+                selectedStage === 'textMapFlat'
+                  ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
                   : 'bg-gray-50 hover:bg-blue-50'
               }`}
               onClick={() => setSelectedStage('textMapFlat')}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && setSelectedStage('textMapFlat')}
+              onKeyDown={(e) =>
+                e.key === 'Enter' && setSelectedStage('textMapFlat')
+              }
             >
-              <h3 className="text-lg font-medium mb-1">2. XPath to Flat Text Map</h3>
-              <p className="text-xs text-gray-600 mb-2">Length: {processedData.textMapFlatLength.toLocaleString()} chars (JSON string)</p>
+              <h3 className="text-lg font-medium mb-1">
+                2. XPath to Flat Text Map
+              </h3>
+              <p className="text-xs text-gray-600 mb-2">
+                Length: {processedData.textMapFlatLength.toLocaleString()} chars
+                (JSON string)
+              </p>
               <div className="h-64 overflow-auto bg-white p-2 border rounded">
                 <pre className="text-xs whitespace-pre-wrap">
                   {JSON.stringify(processedData.textMapFlat, null, 2)}
@@ -397,19 +434,26 @@ export default function HomePage() {
             </div>
 
             {/* Stage 3: Hierarchical Text Map */}
-            <div 
+            <div
               className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 ${
-                selectedStage === 'textMap' 
-                  ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500' 
+                selectedStage === 'textMap'
+                  ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
                   : 'bg-gray-50 hover:bg-blue-50'
               }`}
               onClick={() => setSelectedStage('textMap')}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && setSelectedStage('textMap')}
+              onKeyDown={(e) =>
+                e.key === 'Enter' && setSelectedStage('textMap')
+              }
             >
-              <h3 className="text-lg font-medium mb-1">3. Xpath to Hierarchical Text Map</h3>
-              <p className="text-xs text-gray-600 mb-2">Length: {processedData.textMapLength.toLocaleString()} chars (JSON string)</p>
+              <h3 className="text-lg font-medium mb-1">
+                3. Xpath to Hierarchical Text Map
+              </h3>
+              <p className="text-xs text-gray-600 mb-2">
+                Length: {processedData.textMapLength.toLocaleString()} chars
+                (JSON string)
+              </p>
               <div className="h-64 overflow-auto bg-white p-2 border rounded">
                 <pre className="text-xs whitespace-pre-wrap">
                   {JSON.stringify(processedData.textMap, null, 2)}
@@ -422,26 +466,38 @@ export default function HomePage() {
 
       {/* LLM Interaction Section */}
       {processedData && !isLoading && (
-         <section className="p-6 border rounded-lg shadow-md bg-white">
+        <section className="p-6 border rounded-lg shadow-md bg-white">
           <h2 className="text-xl font-semibold mb-4">
             LLM Interaction (Gemini 2.5 Pro)
           </h2>
           {!selectedStage ? (
             <div className="text-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
-              Please select one of the processing stages above to interact with LLM.
+              Please select one of the processing stages above to interact with
+              LLM.
             </div>
           ) : (
             <>
               <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="font-semibold">Selected stage for LLM: <span className="font-normal">{
-                  selectedStage === 'html' ? 'Slimmed HTML' :
-                  selectedStage === 'textMapFlat' ? 'XPath to Flat Text Map' :
-                  'Xpath to Hierarchical Text Map'
-                }</span></p>
+                <p className="font-semibold">
+                  Selected stage for LLM:{' '}
+                  <span className="font-normal">
+                    {selectedStage === 'html'
+                      ? 'Slimmed HTML'
+                      : selectedStage === 'textMapFlat'
+                        ? 'XPath to Flat Text Map'
+                        : 'Xpath to Hierarchical Text Map'}
+                  </span>
+                </p>
               </div>
               <div className="mb-6">
-                <label htmlFor="temperature-slider" className="block text-sm font-medium text-gray-700 mb-1">
-                  Temperature: <span className="font-semibold">{temperature.toFixed(1)}</span>
+                <label
+                  htmlFor="temperature-slider"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Temperature:{' '}
+                  <span className="font-semibold">
+                    {temperature.toFixed(1)}
+                  </span>
                 </label>
                 <input
                   id="temperature-slider"
@@ -477,6 +533,34 @@ export default function HomePage() {
                 </button>
               </div>
             </>
+          )}
+          {/* Display LLM Response */}
+          {isLlmLoading && (
+            <div className="mt-6 text-center">
+              <p className="text-lg font-semibold animate-pulse">
+                Waiting for LLM response...
+              </p>
+              {/* You could add a more specific LLM loading spinner here */}
+            </div>
+          )}
+          {llmErrorMessage && (
+            <div
+              className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700"
+              role="alert"
+            >
+              <p className="font-semibold">LLM Error:</p>
+              <pre className="text-sm whitespace-pre-wrap">
+                {llmErrorMessage}
+              </pre>
+            </div>
+          )}
+          {llmResponse && !isLlmLoading && !llmErrorMessage && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-2">LLM Response:</h3>
+              <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md">
+                <pre className="text-sm whitespace-pre-wrap">{llmResponse}</pre>
+              </div>
+            </div>
           )}
         </section>
       )}
