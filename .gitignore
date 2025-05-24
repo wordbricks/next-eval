@@ -2,6 +2,7 @@ node_modules
 bin
 .DS_STORE
 .env
+.next
 data
 synthetic
 *.old

@@ -1,0 +1,31 @@
+{
+  "name": "next-eval",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "bunx @biomejs/biome check --apply ./src"
+  },
+  "dependencies": {
+		"ai": "4.3.2",
+    "react": "^18",
+    "react-dom": "^18",
+		"dotenv": "16.4.7",
+		"mustache": "4.2.0",
+    "next": "latest",
+		"@ai-sdk/google": "1.2.8",
+    "@google/generative-ai": "^0.11.3"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.0.1",
+    "postcss": "^8",
+    "tailwindcss": "^3.3.0",
+    "@biomejs/biome": "^1.6.0"
+  }
+} 
