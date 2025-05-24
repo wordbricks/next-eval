@@ -47,14 +47,20 @@ const generateXPath = (element: Element | null): string => {
 // Helper function to remove script, style tags, and comments from HTML
 const slimHtml = (doc: Document): string => {
   // 1. Initial DOM-based removal of specific tags
-  doc.querySelectorAll('script').forEach((el) => el.remove());
-  doc.querySelectorAll('style').forEach((el) => el.remove());
-  doc.querySelectorAll('meta').forEach((el) => {
+  for (const el of doc.querySelectorAll('script')) {
+    el.remove();
+  }
+  for (const el of doc.querySelectorAll('style')) {
+    el.remove();
+  }
+  for (const el of doc.querySelectorAll('meta')) {
     if (el.getAttribute('charset') === null) {
       el.remove();
     }
-  });
-  doc.querySelectorAll('link').forEach((el) => el.remove());
+  }
+  for (const el of doc.querySelectorAll('link')) {
+    el.remove();
+  }
 
   // 2. Convert to string
   const htmlContent = doc.documentElement ? doc.documentElement.outerHTML : '';
@@ -123,7 +129,8 @@ const extractTextWithXPaths = (
     },
   );
 
-  let currentNode;
+  let currentNode: Node | null = null;
+  // eslint-disable-next-line no-cond-assign
   while ((currentNode = treeWalker.nextNode())) {
     const textContent = currentNode.nodeValue?.trim();
     if (textContent && currentNode.parentElement) {
@@ -260,7 +267,7 @@ export default function HomePage() {
       } as const;
 
       // Prepare data: use stringified version for maps, direct HTML for 'html' stage
-      let dataToSend;
+      let dataToSend: string | Record<string, string> | TextMapNode | undefined;
       if (selectedStage === 'html') {
         dataToSend = processedData.html;
       } else if (selectedStage === 'textMapFlat') {
@@ -286,12 +293,9 @@ export default function HomePage() {
       });
 
       if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({
-            message:
-              'Failed to get response from LLM and could not parse error.',
-          }));
+        const errorData = await response.json().catch(() => ({
+          message: 'Failed to get response from LLM and could not parse error.',
+        }));
         throw new Error(
           errorData.message ||
             `LLM API request failed with status ${response.status}`,
@@ -383,15 +387,14 @@ export default function HomePage() {
           )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Stage 1: Slimming (Cleaned HTML) */}
-            <div
-              className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 ${
+            <button
+              type="button"
+              className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 text-left ${
                 selectedStage === 'html'
                   ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
                   : 'bg-gray-50 hover:bg-blue-50'
               }`}
               onClick={() => setSelectedStage('html')}
-              role="button"
-              tabIndex={0}
               onKeyDown={(e) => e.key === 'Enter' && setSelectedStage('html')}
             >
               <h3 className="text-lg font-medium mb-1">1. Slimmed HTML</h3>
@@ -403,18 +406,17 @@ export default function HomePage() {
                   {processedData.html}
                 </pre>
               </div>
-            </div>
+            </button>
 
             {/* Stage 2: XPath to Text (Flat) */}
-            <div
-              className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 ${
+            <button
+              type="button"
+              className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 text-left ${
                 selectedStage === 'textMapFlat'
                   ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
                   : 'bg-gray-50 hover:bg-blue-50'
               }`}
               onClick={() => setSelectedStage('textMapFlat')}
-              role="button"
-              tabIndex={0}
               onKeyDown={(e) =>
                 e.key === 'Enter' && setSelectedStage('textMapFlat')
               }
@@ -431,18 +433,17 @@ export default function HomePage() {
                   {JSON.stringify(processedData.textMapFlat, null, 2)}
                 </pre>
               </div>
-            </div>
+            </button>
 
             {/* Stage 3: Hierarchical Text Map */}
-            <div
-              className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 ${
+            <button
+              type="button"
+              className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 text-left ${
                 selectedStage === 'textMap'
                   ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
                   : 'bg-gray-50 hover:bg-blue-50'
               }`}
               onClick={() => setSelectedStage('textMap')}
-              role="button"
-              tabIndex={0}
               onKeyDown={(e) =>
                 e.key === 'Enter' && setSelectedStage('textMap')
               }
@@ -459,7 +460,7 @@ export default function HomePage() {
                   {JSON.stringify(processedData.textMap, null, 2)}
                 </pre>
               </div>
-            </div>
+            </button>
           </div>
         </section>
       )}

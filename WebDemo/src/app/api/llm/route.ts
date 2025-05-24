@@ -1,8 +1,8 @@
-import path from 'path';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import dotenv from 'dotenv';
-import fs from 'fs/promises';
 import { type NextRequest, NextResponse } from 'next/server';
 
 dotenv.config(); // Ensure environment variables are loaded
