@@ -8,6 +8,7 @@
         "@google/generative-ai": "^0.11.3",
         "ai": "4.3.2",
         "dotenv": "16.4.7",
+        "munkres-js": "1.2.2",
         "mustache": "4.2.0",
         "next": "latest",
         "react": "^18",
@@ -289,6 +290,8 @@
     "minimatch": ["minimatch@9.0.5", "", { "dependencies": { "brace-expansion": "^2.0.1" } }, "sha512-G6T0ZX48xgozx7587koeX9Ys2NYy6Gmv//P89sEte9V9whIapMNF4idKxnW2QtCcLiTWlb/wfCabAtAFWhhBow=="],
 
     "minipass": ["minipass@7.1.2", "", {}, "sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw=="],
+
+    "munkres-js": ["munkres-js@1.2.2", "", {}, "sha512-0oF4tBDvzx20CYzQ44tTJMfwTBJWXe7cE73Sa/u7Mz7X8jRtyOXOGE9kJBhCfX7Akku3Iy/WHa0sRgqLRq2xaQ=="],
 
     "mustache": ["mustache@4.2.0", "", { "bin": { "mustache": "bin/mustache" } }, "sha512-71ippSywq5Yb7/tVYyGbkBggbU8H3u5Rz56fH60jGFgr8uHwxs+aSKeqmluIVzM0m0kB7xQjKS6qPfd0b2ZoqQ=="],
 

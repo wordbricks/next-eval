@@ -8,10 +8,9 @@ interface LlmApiResponse {
   llmResponse: string;
   systemPromptUsed: string;
   userInputUsed: string;
-  fullSystemPrompt?: string; // Optional: if you want to display the full prompt
-  fullUserInput?: string; // Optional
+  fullSystemPrompt?: string;
+  fullUserInput?: string;
   error?: string;
-  details?: any; // For more detailed error information from the API
 }
 
 const LlmInteraction: React.FC = () => {
@@ -50,7 +49,7 @@ const LlmInteraction: React.FC = () => {
       const data: LlmApiResponse = await response.json();
 
       if (!response.ok || data.error) {
-        console.error('API Error:', data.error, data.details);
+        console.error('API Error:', data.error);
         setError(
           data.error || `Error: ${response.status} ${response.statusText}`,
         );
@@ -66,7 +65,7 @@ const LlmInteraction: React.FC = () => {
       setUserInputContent(
         data.fullUserInput || `User Input File: ${data.userInputUsed}`,
       );
-    } catch (err: any) {
+    } catch (err) {
       console.error('Network or parsing error interacting with LLM API:', err);
       setError(err.message || 'An unexpected error occurred.');
       setLlmResponse('Error fetching response from LLM.');
@@ -102,6 +101,7 @@ const LlmInteraction: React.FC = () => {
       </div>
 
       <button
+        type="button"
         onClick={handleAskLlm}
         disabled={isLoading}
         className="w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-md shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-150 ease-in-out transform hover:scale-105 active:scale-95"
@@ -116,7 +116,9 @@ const LlmInteraction: React.FC = () => {
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
+              <title>Loading indicator</title>
               <circle
                 className="opacity-25"
                 cx="12"

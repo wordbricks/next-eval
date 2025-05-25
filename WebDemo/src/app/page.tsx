@@ -1,174 +1,22 @@
 'use client';
 
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import EvaluationDisplay from '../components/EvaluationDisplay';
 import type { HtmlResult } from '../lib/interfaces';
-
-// Helper function to read file as text
-const readFileAsText = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsText(file);
-  });
-};
-
-// Helper function to generate a simple XPath for an element
-const generateXPath = (element: Element | null): string => {
-  if (!element) return '';
-  // Prioritize id if present and it's reasonably simple (e.g., no spaces, not just a number)
-  if (element.id && /^[a-zA-Z][\w-]*$/.test(element.id))
-    return `id(\'${element.id}\')`;
-
-  let path = '';
-  let currentElement: Element | null = element;
-  while (currentElement && currentElement.nodeType === Node.ELEMENT_NODE) {
-    let siblingIndex = 1;
-    let sibling = currentElement.previousElementSibling;
-    while (sibling) {
-      if (sibling.nodeName === currentElement.nodeName) {
-        siblingIndex++;
-      }
-      sibling = sibling.previousElementSibling;
-    }
-    const tagName = currentElement.nodeName.toLowerCase();
-    const segment = siblingIndex > 1 ? `[${siblingIndex}]` : '';
-    path = `/${tagName}${segment}${path}`;
-    currentElement = currentElement.parentElement;
-  }
-  // Remove leading /html if present to make paths relative to html's direct children (head, body)
-  if (path.startsWith('/html/')) {
-    return path.substring(5); // length of "/html"
-  }
-  return path || '/';
-};
-
-// Helper function to download content as a file
-const handleDownload = (content: string, fileName: string, contentType: string) => {
-  const blob = new Blob([content], { type: contentType });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = fileName;
-  document.body.appendChild(link); // Required for Firefox
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(link.href); // Clean up
-};
-
-// Helper function to remove script, style tags, and comments from HTML
-const slimHtml = (doc: Document): string => {
-  // 1. Initial DOM-based removal of specific tags
-  for (const el of doc.querySelectorAll('script')) {
-    el.remove();
-  }
-  for (const el of doc.querySelectorAll('style')) {
-    el.remove();
-  }
-  for (const el of doc.querySelectorAll('meta')) {
-    if (el.getAttribute('charset') === null) {
-      el.remove();
-    }
-  }
-  for (const el of doc.querySelectorAll('link')) {
-    el.remove();
-  }
-
-  // 2. Convert to string
-  const htmlContent = doc.documentElement ? doc.documentElement.outerHTML : '';
-  if (!htmlContent) {
-    return ''; // Return empty if no content after initial cleaning
-  }
-
-  // Perform string-based cleaning (includes comment removal)
-  const stringCleanedContent = htmlContent
-    .replace(/<!--[\s\S]*?-->/g, '') // Remove comments
-    .replace(/\n\s*\n/g, '\n') // Remove multiple consecutive line breaks
-    .replace(/>\s+</g, '><') // Remove whitespace between tags
-    .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-    .trim(); // Remove leading/trailing whitespace
-
-  // 3. Create a new document from the string-cleaned content
-  const parser = new DOMParser();
-  const tempDoc = parser.parseFromString(stringCleanedContent, 'text/html');
-
-  // 4. Remove all attributes from all elements in the new document
-  if (tempDoc.documentElement) {
-    const elements = tempDoc.getElementsByTagName('*');
-    for (let i = 0; i < elements.length; i++) {
-      const element = elements[i];
-      const attributes = element.attributes;
-      // Iterate backwards because attributes is a live collection
-      for (let j = attributes.length - 1; j >= 0; j--) {
-        const attr = attributes[j];
-        element.removeAttribute(attr.name);
-      }
-    }
-  }
-
-  // 5. Return the final cleaned HTML
-  return tempDoc.documentElement ? tempDoc.documentElement.outerHTML : '';
-};
-
-interface TextMapNode {
-  [key: string]: string | TextMapNode;
-}
-
-// Helper function to extract text and build flat/hierarchical maps
-const extractTextWithXPaths = (
-  doc: Document,
-): { textMapFlat: Record<string, string>; textMap: TextMapNode } => {
-  const textMapFlat: Record<string, string> = {};
-  const textMap: TextMapNode = {};
-  const treeWalker = doc.createTreeWalker(
-    doc.documentElement,
-    NodeFilter.SHOW_TEXT,
-    {
-      acceptNode: (node: Node) => {
-        // Only accept non-empty text nodes that are not inside <script> or <style>
-        if (node.nodeValue && node.nodeValue.trim() !== '') {
-          let parent = node.parentElement;
-          while (parent) {
-            if (['SCRIPT', 'STYLE'].includes(parent.tagName)) {
-              return NodeFilter.FILTER_REJECT;
-            }
-            parent = parent.parentElement;
-          }
-          return NodeFilter.FILTER_ACCEPT;
-        }
-        return NodeFilter.FILTER_REJECT;
-      },
-    },
-  );
-
-  let currentNode: Node | null = null;
-  // eslint-disable-next-line no-cond-assign
-  while ((currentNode = treeWalker.nextNode())) {
-    const textContent = currentNode.nodeValue?.trim();
-    if (textContent && currentNode.parentElement) {
-      const xpath = generateXPath(currentNode.parentElement);
-      textMapFlat[xpath] = textContent;
-
-      // Build hierarchical map (simplified version)
-      // This creates a nested object based on XPath segments.
-      // A more robust solution might be needed for complex XPaths or specific structures.
-      const parts = xpath.substring(1).split('/');
-      let currentLevel = textMap;
-      parts.forEach((part, index) => {
-        const key = part.replace(/\W/g, '_'); // Sanitize part to be a valid key
-        if (index === parts.length - 1) {
-          currentLevel[key] = textContent;
-        } else {
-          if (!currentLevel[key] || typeof currentLevel[key] === 'string') {
-            currentLevel[key] = {};
-          }
-          currentLevel = currentLevel[key] as TextMapNode;
-        }
-      });
-    }
-  }
-  return { textMapFlat, textMap };
-};
+import type { TextMapNode } from '../lib/utils/TextMapNode';
+import {
+  type EvaluationResult,
+  calculateEvaluationMetrics,
+  mapResponseToFullXPath,
+} from '../lib/utils/evaluation';
+import { handleDownload } from '../lib/utils/handleDownload';
+import { processHtmlContent } from '../lib/utils/processHtmlContent';
+import { readFileAsText } from '../lib/utils/readFileAsText';
+import {
+  type ValidatedXpathArray,
+  parseAndValidateXPaths,
+} from '../lib/utils/xpathValidation';
 
 export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -181,6 +29,22 @@ export default function HomePage() {
   const [llmResponse, setLlmResponse] = useState<string | null>(null);
   const [isLlmLoading, setIsLlmLoading] = useState<boolean>(false);
   const [llmErrorMessage, setLlmErrorMessage] = useState<string | null>(null);
+  const [groundTruthXpathList, setGroundTruthXpathList] =
+    useState<ValidatedXpathArray | null>(null);
+  const [predictXpathList, setPredictXpathList] =
+    useState<ValidatedXpathArray | null>(null);
+  const [rawGroundTruthRecords, setRawGroundTruthRecords] = useState<
+    string[][] | null
+  >(null);
+  const [rawPredictRecords, setRawPredictRecords] = useState<string[][] | null>(
+    null,
+  );
+  const [evaluationResult, setEvaluationResult] =
+    useState<EvaluationResult | null>(null);
+  const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
+  const [rawGroundTruthJsonContent, setRawGroundTruthJsonContent] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     if (processedData && !selectedStage) {
@@ -199,7 +63,129 @@ export default function HomePage() {
     }
   };
 
-  const handleProcessFile = async () => {
+  const handleLoadSourceHtml = async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    setProcessedData(null);
+    setLlmResponse(null);
+    setLlmErrorMessage(null);
+    setSelectedStage(null);
+    setGroundTruthXpathList(null); // Reset ground truth list
+    setPredictXpathList(null); // Reset predicted list
+    setRawGroundTruthRecords(null); // Reset raw ground truth
+    setRawPredictRecords(null); // Reset raw predictions
+    setEvaluationResult(null); // Reset evaluation results
+    setRawGroundTruthJsonContent(null); // Reset raw ground truth JSON content
+
+    try {
+      const response = await fetch(
+        '/next-eval/httpsa16zcomportfolio/source.html',
+      );
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch source.html: ${response.status} ${response.statusText}`,
+        );
+      }
+      const htmlString = await response.text();
+      const originalHtmlLength = htmlString.length;
+
+      const processedContent = await processHtmlContent(htmlString);
+
+      setProcessedData({
+        ...processedContent,
+        originalHtmlLength,
+      });
+
+      // Fetch and process groundTruth.json
+      try {
+        const groundTruthResponse = await fetch(
+          '/next-eval/httpsa16zcomportfolio/ground_truth.json',
+        );
+        if (!groundTruthResponse.ok) {
+          console.error(
+            `Failed to fetch groundTruth.json: ${groundTruthResponse.status} ${groundTruthResponse.statusText}`,
+          );
+          // Optionally set an error message for the user if ground truth fails to load
+          setErrorMessage((prev) =>
+            prev
+              ? `${prev}\nWarning: Could not load ground truth XPaths for the example.`
+              : 'Warning: Could not load ground truth XPaths for the example.',
+          );
+          setGroundTruthXpathList(null);
+          setRawGroundTruthRecords(null);
+          setRawGroundTruthJsonContent(null); // Clear if fetch fails
+        } else {
+          const groundTruthContent = await groundTruthResponse.text();
+          setRawGroundTruthJsonContent(groundTruthContent); // Store raw JSON content
+          const validatedGroundTruth =
+            parseAndValidateXPaths(groundTruthContent);
+          if (validatedGroundTruth) {
+            setGroundTruthXpathList(validatedGroundTruth);
+            // Attempt to parse as string[][] for evaluation
+            try {
+              const parsedRecords = JSON.parse(groundTruthContent);
+              if (
+                Array.isArray(parsedRecords) &&
+                parsedRecords.every(
+                  (record) =>
+                    Array.isArray(record) &&
+                    record.every((item) => typeof item === 'string'),
+                )
+              ) {
+                setRawGroundTruthRecords(parsedRecords as string[][]);
+              } else {
+                console.warn(
+                  'Ground truth content is not in string[][] format after parsing JSON.',
+                );
+                setRawGroundTruthRecords(null);
+                // Optionally add to error message if strict format is always expected
+              }
+            } catch (e) {
+              console.warn(
+                'Failed to parse groundTruthContent as JSON for raw records:',
+                e,
+              );
+              setRawGroundTruthRecords(null);
+            }
+          } else {
+            console.warn(
+              'Failed to parse or validate groundTruth.json. Setting groundTruthXpathList to null.',
+            );
+            setGroundTruthXpathList(null);
+            setRawGroundTruthRecords(null);
+            setRawGroundTruthJsonContent(null); // Clear on error
+            setErrorMessage((prev) =>
+              prev
+                ? `${prev}\nWarning: Ground truth XPaths for the example are invalid or empty.`
+                : 'Warning: Ground truth XPaths for the example are invalid or empty.',
+            );
+          }
+        }
+        console.log('groundTruthXpathList', groundTruthXpathList);
+      } catch (gtError) {
+        console.error('Error loading or processing groundTruth.json:', gtError);
+        setGroundTruthXpathList(null);
+        setRawGroundTruthRecords(null);
+        setRawGroundTruthJsonContent(null); // Clear on error
+        setErrorMessage((prev) =>
+          prev
+            ? `${prev}\nError: Could not load ground truth XPaths for the example.`
+            : 'Error: Could not load ground truth XPaths for the example.',
+        );
+      }
+    } catch (error) {
+      console.error('Error loading source.html:', error);
+      if (error instanceof Error) {
+        setErrorMessage(`Error loading source.html: ${error.message}`);
+      } else {
+        setErrorMessage('An unknown error occurred while loading source.html.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleProcessFile = useCallback(async () => {
     if (!selectedFile) {
       setErrorMessage('Please select an HTML file first.');
       return;
@@ -212,36 +198,22 @@ export default function HomePage() {
     setLlmResponse(null);
     setLlmErrorMessage(null);
     setSelectedStage(null);
+    setGroundTruthXpathList(null); // Reset ground truth for user-uploaded file
+    setPredictXpathList(null); // Reset predictions for user-uploaded file
+    setRawGroundTruthRecords(null);
+    setRawPredictRecords(null);
+    setEvaluationResult(null);
+    setRawGroundTruthJsonContent(null); // Reset raw ground truth JSON content for user-uploaded file
 
     try {
       const htmlString = await readFileAsText(selectedFile);
       const originalHtmlLength = htmlString.length;
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(htmlString, 'text/html');
 
-      // 1. Slim the HTML
-      const cleanedHtml = slimHtml(doc);
-      const htmlLength = cleanedHtml.length;
-
-      // We need to re-parse the cleaned HTML to ensure XPaths are generated from the modified structure
-      const cleanedDoc = parser.parseFromString(cleanedHtml, 'text/html');
-
-      // 2. Extract text and XPaths
-      const { textMapFlat, textMap } = extractTextWithXPaths(cleanedDoc);
-
-      const textMapFlatString = JSON.stringify(textMapFlat, null, 2);
-      const textMapFlatLength = textMapFlatString.length;
-      const textMapString = JSON.stringify(textMap, null, 2);
-      const textMapLength = textMapString.length;
+      const processedContent = await processHtmlContent(htmlString);
 
       setProcessedData({
-        html: cleanedHtml,
-        textMapFlat,
-        textMap,
+        ...processedContent,
         originalHtmlLength,
-        htmlLength,
-        textMapFlatLength,
-        textMapLength,
       });
     } catch (error) {
       console.error('Client-side processing error:', error);
@@ -256,7 +228,10 @@ export default function HomePage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [
+    selectedFile,
+    // readFileAsText and processHtmlContent are stable and don't need to be in deps
+  ]);
 
   const handleSendToLlm = async () => {
     if (!selectedStage || !processedData) {
@@ -269,6 +244,9 @@ export default function HomePage() {
     setIsLlmLoading(true);
     setLlmErrorMessage(null);
     setLlmResponse(null); // Clear previous response
+    setPredictXpathList(null); // Clear previous LLM-generated XPaths
+    setRawPredictRecords(null); // Clear previous raw LLM XPaths
+    setEvaluationResult(null); // Clear previous evaluation
 
     try {
       const promptTypeMap = {
@@ -291,7 +269,7 @@ export default function HomePage() {
 
       const requestBody = {
         promptType: promptTypeMap[selectedStage as keyof typeof promptTypeMap],
-        data: dataToSend,
+        data: JSON.stringify(dataToSend, null, 2),
       };
 
       const response = await fetch('/next-eval/api/llm', {
@@ -313,11 +291,68 @@ export default function HomePage() {
       }
 
       const result = await response.json();
-      // Assuming the LLM response is in a specific part of the result, e.g., result.llmResponse
-      // Adjust this based on your actual API response structure
-      setLlmResponse(result.llmResponse || JSON.stringify(result, null, 2));
+      const rawLlmOutput = result.llmResponse; // Assuming this is the direct string output for XPaths
+
+      setLlmResponse(rawLlmOutput || JSON.stringify(result, null, 2));
+
+      // Attempt to parse and validate the rawLlmOutput if it's a string intended to be XPaths
+      if (rawLlmOutput && typeof rawLlmOutput === 'string') {
+        const validatedPredXPaths = parseAndValidateXPaths(rawLlmOutput);
+        if (validatedPredXPaths) {
+          setPredictXpathList(validatedPredXPaths);
+          // Attempt to parse rawLlmOutput as string[][] for evaluation
+          try {
+            const parsedRecords = JSON.parse(rawLlmOutput);
+            if (
+              Array.isArray(parsedRecords) &&
+              parsedRecords.every(
+                (record) =>
+                  Array.isArray(record) &&
+                  record.every((item) => typeof item === 'string'),
+              )
+            ) {
+              setRawPredictRecords(parsedRecords as string[][]);
+            } else {
+              console.warn(
+                'LLM response (rawLlmOutput) is not in string[][] format after parsing JSON.',
+              );
+              setRawPredictRecords(null);
+            }
+          } catch (e) {
+            console.warn(
+              'Failed to parse rawLlmOutput as JSON for raw records:',
+              e,
+            );
+            setRawPredictRecords(null);
+          }
+        } else {
+          setPredictXpathList(null);
+          setRawPredictRecords(null);
+          console.warn(
+            'LLM response (rawLlmOutput) could not be validated as XPath list.',
+          );
+          // Optionally, extend llmErrorMessage or set a specific message
+          setLlmErrorMessage((prev) =>
+            prev
+              ? `${prev}\nInfo: LLM output was not in the expected XPath list format.`
+              : 'Info: LLM output was not in the expected XPath list format.',
+          );
+        }
+      } else {
+        setPredictXpathList(null);
+        setRawPredictRecords(null);
+        if (rawLlmOutput) {
+          // It exists but it's not a string
+          console.warn(
+            'LLM response (rawLlmOutput) is not a string, cannot parse as XPaths directly.',
+          );
+        }
+      }
+      console.log('predictXpathList', predictXpathList);
     } catch (error) {
       console.error('Error sending to LLM:', error);
+      setPredictXpathList(null); // Ensure reset on error
+      setRawPredictRecords(null); // Ensure reset on error
       if (error instanceof Error) {
         setLlmErrorMessage(`LLM Error: ${error.message}`);
       } else {
@@ -330,13 +365,83 @@ export default function HomePage() {
     }
   };
 
+  useEffect(() => {
+    if (selectedFile && !isLoading) {
+      handleProcessFile();
+    }
+  }, [selectedFile, isLoading, handleProcessFile]);
+
+  // Effect to run evaluation when necessary data is available
+  useEffect(() => {
+    if (
+      rawGroundTruthRecords &&
+      rawPredictRecords &&
+      processedData?.textMapFlat
+    ) {
+      setIsEvaluating(true);
+      setEvaluationResult(null); // Clear previous results
+
+      try {
+        const textMapFlatForEval = processedData.textMapFlat as Record<
+          string,
+          string
+        >;
+
+        const mappedGtRecords = mapResponseToFullXPath(
+          textMapFlatForEval,
+          rawGroundTruthRecords,
+        );
+        const mappedPredRecords = mapResponseToFullXPath(
+          textMapFlatForEval,
+          rawPredictRecords,
+        );
+
+        // TODO: The calculateEvaluationMetrics currently returns dummy data.
+        // You'll need to implement the actual logic in src/lib/utils/evaluation.ts
+        const metrics = calculateEvaluationMetrics(
+          mappedPredRecords,
+          mappedGtRecords,
+        );
+        setEvaluationResult(metrics);
+      } catch (evalError) {
+        console.error('Error during evaluation:', evalError);
+        setErrorMessage((prev) =>
+          prev
+            ? `${prev}\nError: Could not calculate evaluation metrics.`
+            : 'Error: Could not calculate evaluation metrics.',
+        );
+        setEvaluationResult(null);
+      } finally {
+        setIsEvaluating(false);
+      }
+    } else {
+      // If any of the necessary data is missing, ensure evaluationResult is null
+      // and not in evaluating state.
+      // This handles cases where one of the lists becomes null later.
+      if (evaluationResult !== null) setEvaluationResult(null);
+      if (isEvaluating) setIsEvaluating(false);
+    }
+  }, [
+    rawGroundTruthRecords,
+    rawPredictRecords,
+    processedData?.textMapFlat,
+    evaluationResult,
+    isEvaluating,
+  ]);
+
   return (
     <main className="container mx-auto p-4 max-w-[1200px]">
-      <h1 className="text-3xl font-bold text-center my-8">NEXT-EVAL: Next Evaluation of Traditional and LLM Web Data Record Extraction</h1>
+      <h1 className="text-3xl font-bold text-center my-8">
+        NEXT-EVAL: Next Evaluation of Traditional and LLM Web Data Record
+        Extraction
+      </h1>
       {/* File Input Section */}
       <section className="mb-8 p-6 border rounded-lg shadow-md bg-white">
         <h2 className="text-xl font-semibold mb-4">Upload HTML</h2>
         <div className="flex flex-col space-y-4">
+          <p className="text-sm text-gray-600">
+            Option 1: Upload your own HTML file.
+          </p>
           <input
             type="file"
             aria-label="Upload HTML or MHTML file"
@@ -352,6 +457,21 @@ export default function HomePage() {
             onChange={handleFileChange}
             disabled={isLoading}
           />
+          <p className="text-sm text-gray-600 mt-4">
+            Option 2: Load a pre-defined example HTML.
+          </p>
+          <button
+            type="button"
+            onClick={handleLoadSourceHtml}
+            disabled={isLoading}
+            aria-label="Load source.html example"
+            className="px-6 py-2 bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading
+              ? 'Loading Example...'
+              : 'Load Example HTML (source.html)'}
+          </button>
+
           <button
             type="button" // Changed from submit to button to prevent default form submission
             onClick={handleProcessFile}
@@ -368,6 +488,34 @@ export default function HomePage() {
           </p>
         )}
       </section>
+
+      {/* Display Ground Truth JSON Section - MOVED HERE */}
+      {rawGroundTruthJsonContent && !isLoading && (
+        <section className="mb-8 p-6 border rounded-lg shadow-md bg-white">
+          <h2 className="text-xl font-semibold mb-4">
+            Ground Truth XPaths (JSON)
+          </h2>
+          <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
+            <pre className="text-sm whitespace-pre-wrap">
+              {rawGroundTruthJsonContent}
+            </pre>
+          </div>
+          <button
+            type="button"
+            onClick={() =>
+              handleDownload(
+                rawGroundTruthJsonContent,
+                'ground_truth.json',
+                'application/json',
+              )
+            }
+            className="px-4 py-2 bg-indigo-500 text-white text-sm font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
+            aria-label="Download ground_truth.json"
+          >
+            Download ground_truth.json
+          </button>
+        </section>
+      )}
 
       {/* Loading Indicator - more prominent */}
       {isLoading && (
@@ -399,6 +547,7 @@ export default function HomePage() {
             {/* Stage 1: Slimming (Cleaned HTML) */}
             <button
               type="button"
+              tabIndex={0}
               className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 text-left ${
                 selectedStage === 'html'
                   ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
@@ -407,7 +556,9 @@ export default function HomePage() {
               onClick={() => setSelectedStage('html')}
               onKeyDown={(e) => e.key === 'Enter' && setSelectedStage('html')}
             >
-              <h3 className="text-lg font-medium mb-1">1. Slimmed HTML (attributes removed) </h3>
+              <h3 className="text-lg font-medium mb-1">
+                1. Slimmed HTML (attributes removed){' '}
+              </h3>
               <p className="text-xs text-gray-600 mb-2">
                 Length: {processedData.htmlLength.toLocaleString()} chars
               </p>
@@ -418,7 +569,13 @@ export default function HomePage() {
               </div>
               <button
                 type="button"
-                onClick={() => handleDownload(processedData.html, 'slimmed_html.html', 'text/html')}
+                onClick={() =>
+                  handleDownload(
+                    processedData.html,
+                    'slimmed_html.html',
+                    'text/html',
+                  )
+                }
                 className="mt-2 px-3 py-1 bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
                 aria-label="Download slimmed HTML"
               >
@@ -429,6 +586,7 @@ export default function HomePage() {
             {/* Stage 3: Hierarchical Text Map - MOVED TO STAGE 2 */}
             <button
               type="button"
+              tabIndex={0}
               className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 text-left ${
                 selectedStage === 'textMap'
                   ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
@@ -453,7 +611,13 @@ export default function HomePage() {
               </div>
               <button
                 type="button"
-                onClick={() => handleDownload(JSON.stringify(processedData.textMap, null, 2), 'hierarchical_map.json', 'application/json')}
+                onClick={() =>
+                  handleDownload(
+                    JSON.stringify(processedData.textMap, null, 2),
+                    'hierarchical_map.json',
+                    'application/json',
+                  )
+                }
                 className="mt-2 px-3 py-1 bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
                 aria-label="Download hierarchical JSON map"
               >
@@ -464,6 +628,7 @@ export default function HomePage() {
             {/* Stage 2: XPath to Text (Flat) - MOVED TO STAGE 3 */}
             <button
               type="button"
+              tabIndex={0}
               className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 text-left ${
                 selectedStage === 'textMapFlat'
                   ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
@@ -488,7 +653,13 @@ export default function HomePage() {
               </div>
               <button
                 type="button"
-                onClick={() => handleDownload(JSON.stringify(processedData.textMapFlat, null, 2), 'flat_map.json', 'application/json')}
+                onClick={() =>
+                  handleDownload(
+                    JSON.stringify(processedData.textMapFlat, null, 2),
+                    'flat_map.json',
+                    'application/json',
+                  )
+                }
                 className="mt-2 px-3 py-1 bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
                 aria-label="Download flat JSON map"
               >
@@ -573,22 +744,35 @@ export default function HomePage() {
               {(() => {
                 try {
                   const parsed = JSON.parse(llmResponse);
-                  if (parsed && typeof parsed === 'object' && 'content' in parsed && 'usage' in parsed) {
+                  if (
+                    parsed &&
+                    typeof parsed === 'object' &&
+                    'content' in parsed &&
+                    'usage' in parsed
+                  ) {
                     return (
                       <>
                         <div className="mb-4">
-                          <h4 className="text-md font-semibold mb-1 text-gray-700">Usage:</h4>
+                          <h4 className="text-md font-semibold mb-1 text-gray-700">
+                            Usage:
+                          </h4>
                           <div className="max-h-48 overflow-auto bg-gray-50 p-3 border rounded-md">
                             <pre className="text-sm whitespace-pre-wrap">
-                              {typeof parsed.usage === 'string' ? parsed.usage : JSON.stringify(parsed.usage, null, 2)}
+                              {typeof parsed.usage === 'string'
+                                ? parsed.usage
+                                : JSON.stringify(parsed.usage, null, 2)}
                             </pre>
                           </div>
                         </div>
                         <div>
-                          <h4 className="text-md font-semibold mb-1 text-gray-700">Content:</h4>
+                          <h4 className="text-md font-semibold mb-1 text-gray-700">
+                            Content:
+                          </h4>
                           <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md">
                             <pre className="text-sm whitespace-pre-wrap">
-                              {typeof parsed.content === 'string' ? parsed.content : JSON.stringify(parsed.content, null, 2)}
+                              {typeof parsed.content === 'string'
+                                ? parsed.content
+                                : JSON.stringify(parsed.content, null, 2)}
                             </pre>
                           </div>
                         </div>
@@ -596,13 +780,16 @@ export default function HomePage() {
                     );
                   }
                 } catch (e) {
-                  // Not a valid JSON or not in the expected format, fall through to default display
-                  console.warn("LLM response is not a parseable JSON or not in the expected format for splitting. Displaying raw response:", e);
+                  console.warn(
+                    'LLM response is not a parseable JSON or not in the expected format for splitting. Displaying raw response:',
+                    e,
+                  );
                 }
-                // Default display (original behavior if parsing fails or format is unexpected)
                 return (
                   <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md">
-                    <pre className="text-sm whitespace-pre-wrap">{llmResponse}</pre>
+                    <pre className="text-sm whitespace-pre-wrap">
+                      {llmResponse}
+                    </pre>
                   </div>
                 );
               })()}
@@ -610,6 +797,15 @@ export default function HomePage() {
           )}
         </section>
       )}
+      {processedData &&
+        !isLoading &&
+        groundTruthXpathList &&
+        predictXpathList && (
+          <EvaluationDisplay
+            evaluationResult={evaluationResult}
+            isLoading={isEvaluating}
+          />
+        )}
     </main>
   );
 }

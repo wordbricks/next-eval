@@ -613,7 +613,6 @@ type Output = string[][];
 `;
 // --- End Embedded Prompt Contents ---
 
-
 const promptContentMap: Record<PromptType, string> = {
   slim: SYSTEM_LLM_SLIM_MD,
   flat: SYSTEM_LLM_FLAT_MD,
@@ -634,23 +633,15 @@ interface LLMResponse {
   usage?: LLMUsage;
   error?: string;
   systemPromptUsed?: string;
-  userInputUsed?: string; // This will now describe the data used
-  fullSystemPrompt?: string;
-  fullUserInput?: string; // This will now be the stringified data
-  details?: any;
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const {
-      promptType,
-      modelName = GEMINI_PRO_2_5_PREVIEW_03,
-      data,
-    } = (await req.json()) as {
+    const { promptType, data } = (await req.json()) as {
       promptType: PromptType;
-      modelName?: string;
-      data?: any;
+      data: string;
     };
+    const modelName = GEMINI_PRO_2_5_PREVIEW_03;
 
     if (!promptType || !promptContentMap[promptType]) {
       return NextResponse.json(
@@ -658,13 +649,6 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-
-    if (!data) {
-      return NextResponse.json({ error: 'No data provided' } as LLMResponse, {
-        status: 400,
-      });
-    }
-
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
     if (!apiKey) {
@@ -680,13 +664,12 @@ export async function POST(req: NextRequest) {
     const systemPromptContent = promptContentMap[promptType];
 
     // Directly combine system prompt and the input data
-    const stringifiedData = JSON.stringify(data, null, 2);
-    const combinedPrompt = `${systemPromptContent}\n\nInput Data:\n${stringifiedData}`;
+    const combinedPrompt = `${systemPromptContent}\n\nInput Data:\n${data}`;
 
     const temperature = 1.0;
 
     const { text, usage } = await generateText({
-      model: google(modelName) as any, // Using 'as any' to bypass potential type errors
+      model: google(modelName),
       prompt: combinedPrompt,
       temperature: temperature,
     });
@@ -709,13 +692,10 @@ export async function POST(req: NextRequest) {
           }
         : undefined,
       systemPromptUsed: `Embedded ${promptType}`,
-      userInputUsed: 'Direct input data from selected stage',
-      fullSystemPrompt: systemPromptContent,
-      fullUserInput: stringifiedData,
     };
 
     return NextResponse.json(responsePayload);
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in /api/llm:', error);
     let errorMessage = 'An unknown error occurred';
     if (error.message) {
@@ -724,9 +704,8 @@ export async function POST(req: NextRequest) {
     if (error.cause) {
       errorMessage += ` - Cause: ${JSON.stringify(error.cause)}`;
     }
-    return NextResponse.json(
-      { error: errorMessage, details: error } as LLMResponse,
-      { status: 500 },
-    );
+    return NextResponse.json({ error: errorMessage } as LLMResponse, {
+      status: 500,
+    });
   }
 }
