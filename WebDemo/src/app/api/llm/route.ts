@@ -42,12 +42,10 @@ export async function POST(req: NextRequest) {
     const {
       promptType,
       modelName = GEMINI_PRO_2_5_PREVIEW_03,
-      temperature = 0.7,
       data,
     } = (await req.json()) as {
       promptType: PromptType;
       modelName?: string;
-      temperature?: number;
       data?: any;
     };
 
@@ -102,6 +100,8 @@ export async function POST(req: NextRequest) {
     // Directly combine system prompt and the input data
     const stringifiedData = JSON.stringify(data, null, 2);
     const combinedPrompt = `${systemPromptContent}\n\nInput Data:\n${stringifiedData}`;
+
+    const temperature = 1.0;
 
     const { text, usage } = await generateText({
       model: google(modelName) as any, // Using 'as any' to bypass potential type errors

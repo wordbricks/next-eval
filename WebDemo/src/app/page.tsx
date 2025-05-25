@@ -169,7 +169,12 @@ export default function HomePage() {
   const [llmResponse, setLlmResponse] = useState<string | null>(null);
   const [isLlmLoading, setIsLlmLoading] = useState<boolean>(false);
   const [llmErrorMessage, setLlmErrorMessage] = useState<string | null>(null);
-  const [temperature, setTemperature] = useState<number>(0.7);
+
+  useEffect(() => {
+    if (processedData && !selectedStage) {
+      setSelectedStage('textMapFlat');
+    }
+  }, [processedData, selectedStage]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -180,12 +185,6 @@ export default function HomePage() {
     } else {
       setSelectedFile(null);
     }
-  };
-
-  const handleTemperatureChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    setTemperature(Number.parseFloat(event.target.value));
   };
 
   const handleProcessFile = async () => {
@@ -281,10 +280,9 @@ export default function HomePage() {
       const requestBody = {
         promptType: promptTypeMap[selectedStage as keyof typeof promptTypeMap],
         data: dataToSend,
-        temperature: temperature,
       };
 
-      const response = await fetch('/api/llm', {
+      const response = await fetch('/next-eval/api/llm', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -321,8 +319,8 @@ export default function HomePage() {
   };
 
   return (
-    <main className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold text-center my-8">NEXT EVAL</h1>
+    <main className="container mx-auto p-4 max-w-[1200px]">
+      <h1 className="text-3xl font-bold text-center my-8">NEXT-EVAL: Next Evaluation of Traditional and LLM Web Data Record Extraction</h1>
       {/* File Input Section */}
       <section className="mb-8 p-6 border rounded-lg shadow-md bg-white">
         <h2 className="text-xl font-semibold mb-4">Upload HTML</h2>
@@ -397,7 +395,7 @@ export default function HomePage() {
               onClick={() => setSelectedStage('html')}
               onKeyDown={(e) => e.key === 'Enter' && setSelectedStage('html')}
             >
-              <h3 className="text-lg font-medium mb-1">1. Slimmed HTML</h3>
+              <h3 className="text-lg font-medium mb-1">1. Slimmed HTML (attributes removed) </h3>
               <p className="text-xs text-gray-600 mb-2">
                 Length: {processedData.htmlLength.toLocaleString()} chars
               </p>
@@ -408,34 +406,7 @@ export default function HomePage() {
               </div>
             </button>
 
-            {/* Stage 2: XPath to Text (Flat) */}
-            <button
-              type="button"
-              className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 text-left ${
-                selectedStage === 'textMapFlat'
-                  ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
-                  : 'bg-gray-50 hover:bg-blue-50'
-              }`}
-              onClick={() => setSelectedStage('textMapFlat')}
-              onKeyDown={(e) =>
-                e.key === 'Enter' && setSelectedStage('textMapFlat')
-              }
-            >
-              <h3 className="text-lg font-medium mb-1">
-                2. XPath to Flat Text Map
-              </h3>
-              <p className="text-xs text-gray-600 mb-2">
-                Length: {processedData.textMapFlatLength.toLocaleString()} chars
-                (JSON string)
-              </p>
-              <div className="h-64 overflow-auto bg-white p-2 border rounded">
-                <pre className="text-xs whitespace-pre-wrap">
-                  {JSON.stringify(processedData.textMapFlat, null, 2)}
-                </pre>
-              </div>
-            </button>
-
-            {/* Stage 3: Hierarchical Text Map */}
+            {/* Stage 3: Hierarchical Text Map - MOVED TO STAGE 2 */}
             <button
               type="button"
               className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 text-left ${
@@ -449,7 +420,7 @@ export default function HomePage() {
               }
             >
               <h3 className="text-lg font-medium mb-1">
-                3. Xpath to Hierarchical Text Map
+                2. Hierarchical JSON (Nested text map)
               </h3>
               <p className="text-xs text-gray-600 mb-2">
                 Length: {processedData.textMapLength.toLocaleString()} chars
@@ -458,6 +429,33 @@ export default function HomePage() {
               <div className="h-64 overflow-auto bg-white p-2 border rounded">
                 <pre className="text-xs whitespace-pre-wrap">
                   {JSON.stringify(processedData.textMap, null, 2)}
+                </pre>
+              </div>
+            </button>
+
+            {/* Stage 2: XPath to Text (Flat) - MOVED TO STAGE 3 */}
+            <button
+              type="button"
+              className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 text-left ${
+                selectedStage === 'textMapFlat'
+                  ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
+                  : 'bg-gray-50 hover:bg-blue-50'
+              }`}
+              onClick={() => setSelectedStage('textMapFlat')}
+              onKeyDown={(e) =>
+                e.key === 'Enter' && setSelectedStage('textMapFlat')
+              }
+            >
+              <h3 className="text-lg font-medium mb-1">
+                3. Flat JSON (text map)
+              </h3>
+              <p className="text-xs text-gray-600 mb-2">
+                Length: {processedData.textMapFlatLength.toLocaleString()} chars
+                (JSON string)
+              </p>
+              <div className="h-64 overflow-auto bg-white p-2 border rounded">
+                <pre className="text-xs whitespace-pre-wrap">
+                  {JSON.stringify(processedData.textMapFlat, null, 2)}
                 </pre>
               </div>
             </button>
@@ -484,33 +482,11 @@ export default function HomePage() {
                   <span className="font-normal">
                     {selectedStage === 'html'
                       ? 'Slimmed HTML'
-                      : selectedStage === 'textMapFlat'
-                        ? 'XPath to Flat Text Map'
-                        : 'Xpath to Hierarchical Text Map'}
+                      : selectedStage === 'textMap'
+                        ? 'Hierarchical JSON (Nested text map)'
+                        : 'Flat JSON (text map)'}
                   </span>
                 </p>
-              </div>
-              <div className="mb-6">
-                <label
-                  htmlFor="temperature-slider"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Temperature:{' '}
-                  <span className="font-semibold">
-                    {temperature.toFixed(1)}
-                  </span>
-                </label>
-                <input
-                  id="temperature-slider"
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={temperature}
-                  onChange={handleTemperatureChange}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                  disabled={isLlmLoading}
-                />
               </div>
               <div className="flex justify-between items-center">
                 <button
@@ -558,9 +534,42 @@ export default function HomePage() {
           {llmResponse && !isLlmLoading && !llmErrorMessage && (
             <div className="mt-6">
               <h3 className="text-lg font-semibold mb-2">LLM Response:</h3>
-              <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md">
-                <pre className="text-sm whitespace-pre-wrap">{llmResponse}</pre>
-              </div>
+              {(() => {
+                try {
+                  const parsed = JSON.parse(llmResponse);
+                  if (parsed && typeof parsed === 'object' && 'content' in parsed && 'usage' in parsed) {
+                    return (
+                      <>
+                        <div className="mb-4">
+                          <h4 className="text-md font-semibold mb-1 text-gray-700">Usage:</h4>
+                          <div className="max-h-48 overflow-auto bg-gray-50 p-3 border rounded-md">
+                            <pre className="text-sm whitespace-pre-wrap">
+                              {typeof parsed.usage === 'string' ? parsed.usage : JSON.stringify(parsed.usage, null, 2)}
+                            </pre>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-md font-semibold mb-1 text-gray-700">Content:</h4>
+                          <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md">
+                            <pre className="text-sm whitespace-pre-wrap">
+                              {typeof parsed.content === 'string' ? parsed.content : JSON.stringify(parsed.content, null, 2)}
+                            </pre>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  }
+                } catch (e) {
+                  // Not a valid JSON or not in the expected format, fall through to default display
+                  console.warn("LLM response is not a parseable JSON or not in the expected format for splitting. Displaying raw response:", e);
+                }
+                // Default display (original behavior if parsing fails or format is unexpected)
+                return (
+                  <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md">
+                    <pre className="text-sm whitespace-pre-wrap">{llmResponse}</pre>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </section>

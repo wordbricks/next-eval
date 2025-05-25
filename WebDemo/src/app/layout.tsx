@@ -5,9 +5,12 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Next-eval',
+  title: 'NEXT-EVAL: Next Evaluation of Traditional and LLM Web Data Record Extraction',
   description:
-    'Process HTML and MHTML files, extract text, and interact with LLMs.',
+    'A comprehensive framework for evaluating and benchmarking web data record extraction methods, comparing traditional algorithms and LLMs with systematic dataset generation from MHTML, structure-aware metrics, and various input preprocessing strategies like Flat JSON for optimal LLM performance.',
+  icons: {
+    icon: '/next-eval/favicon.ico',
+  },
 };
 
 export default function RootLayout({
