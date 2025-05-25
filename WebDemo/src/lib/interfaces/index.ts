@@ -4,6 +4,7 @@ export interface HtmlResult {
   html: string;
   textMap: NestedTextMap; // Hierarchical text map
   textMapFlat: { [key: string]: string }; // Flat XPath to text map
+  originalHtml: string;
   originalHtmlLength: number;
   htmlLength: number;
   textMapFlatLength: number;

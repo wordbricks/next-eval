@@ -1,7 +1,7 @@
 'use client';
 
 import type React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import EvaluationDisplay from '../components/EvaluationDisplay';
 import type { HtmlResult } from '../lib/interfaces';
 import type { TextMapNode } from '../lib/utils/TextMapNode';
@@ -45,6 +45,9 @@ export default function HomePage() {
   const [rawGroundTruthJsonContent, setRawGroundTruthJsonContent] = useState<
     string | null
   >(null);
+  const [selectedSyntheticIndex, setSelectedSyntheticIndex] =
+    useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (processedData && !selectedStage) {
@@ -58,130 +61,9 @@ export default function HomePage() {
       setSelectedFile(file);
       setErrorMessage(null); // Clear previous errors
       setProcessedData(null); // Clear previous data
+      setSelectedSyntheticIndex(''); // Reset synthetic data selection
     } else {
       setSelectedFile(null);
-    }
-  };
-
-  const handleLoadSourceHtml = async () => {
-    setIsLoading(true);
-    setErrorMessage(null);
-    setProcessedData(null);
-    setLlmResponse(null);
-    setLlmErrorMessage(null);
-    setSelectedStage(null);
-    setGroundTruthXpathList(null); // Reset ground truth list
-    setPredictXpathList(null); // Reset predicted list
-    setRawGroundTruthRecords(null); // Reset raw ground truth
-    setRawPredictRecords(null); // Reset raw predictions
-    setEvaluationResult(null); // Reset evaluation results
-    setRawGroundTruthJsonContent(null); // Reset raw ground truth JSON content
-
-    try {
-      const response = await fetch(
-        '/next-eval/httpsa16zcomportfolio/source.html',
-      );
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch source.html: ${response.status} ${response.statusText}`,
-        );
-      }
-      const htmlString = await response.text();
-      const originalHtmlLength = htmlString.length;
-
-      const processedContent = await processHtmlContent(htmlString);
-
-      setProcessedData({
-        ...processedContent,
-        originalHtmlLength,
-      });
-
-      // Fetch and process groundTruth.json
-      try {
-        const groundTruthResponse = await fetch(
-          '/next-eval/httpsa16zcomportfolio/ground_truth.json',
-        );
-        if (!groundTruthResponse.ok) {
-          console.error(
-            `Failed to fetch groundTruth.json: ${groundTruthResponse.status} ${groundTruthResponse.statusText}`,
-          );
-          // Optionally set an error message for the user if ground truth fails to load
-          setErrorMessage((prev) =>
-            prev
-              ? `${prev}\nWarning: Could not load ground truth XPaths for the example.`
-              : 'Warning: Could not load ground truth XPaths for the example.',
-          );
-          setGroundTruthXpathList(null);
-          setRawGroundTruthRecords(null);
-          setRawGroundTruthJsonContent(null); // Clear if fetch fails
-        } else {
-          const groundTruthContent = await groundTruthResponse.text();
-          setRawGroundTruthJsonContent(groundTruthContent); // Store raw JSON content
-          const validatedGroundTruth =
-            parseAndValidateXPaths(groundTruthContent);
-          if (validatedGroundTruth) {
-            setGroundTruthXpathList(validatedGroundTruth);
-            // Attempt to parse as string[][] for evaluation
-            try {
-              const parsedRecords = JSON.parse(groundTruthContent);
-              if (
-                Array.isArray(parsedRecords) &&
-                parsedRecords.every(
-                  (record) =>
-                    Array.isArray(record) &&
-                    record.every((item) => typeof item === 'string'),
-                )
-              ) {
-                setRawGroundTruthRecords(parsedRecords as string[][]);
-              } else {
-                console.warn(
-                  'Ground truth content is not in string[][] format after parsing JSON.',
-                );
-                setRawGroundTruthRecords(null);
-                // Optionally add to error message if strict format is always expected
-              }
-            } catch (e) {
-              console.warn(
-                'Failed to parse groundTruthContent as JSON for raw records:',
-                e,
-              );
-              setRawGroundTruthRecords(null);
-            }
-          } else {
-            console.warn(
-              'Failed to parse or validate groundTruth.json. Setting groundTruthXpathList to null.',
-            );
-            setGroundTruthXpathList(null);
-            setRawGroundTruthRecords(null);
-            setRawGroundTruthJsonContent(null); // Clear on error
-            setErrorMessage((prev) =>
-              prev
-                ? `${prev}\nWarning: Ground truth XPaths for the example are invalid or empty.`
-                : 'Warning: Ground truth XPaths for the example are invalid or empty.',
-            );
-          }
-        }
-        console.log('groundTruthXpathList', groundTruthXpathList);
-      } catch (gtError) {
-        console.error('Error loading or processing groundTruth.json:', gtError);
-        setGroundTruthXpathList(null);
-        setRawGroundTruthRecords(null);
-        setRawGroundTruthJsonContent(null); // Clear on error
-        setErrorMessage((prev) =>
-          prev
-            ? `${prev}\nError: Could not load ground truth XPaths for the example.`
-            : 'Error: Could not load ground truth XPaths for the example.',
-        );
-      }
-    } catch (error) {
-      console.error('Error loading source.html:', error);
-      if (error instanceof Error) {
-        setErrorMessage(`Error loading source.html: ${error.message}`);
-      } else {
-        setErrorMessage('An unknown error occurred while loading source.html.');
-      }
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -213,6 +95,7 @@ export default function HomePage() {
 
       setProcessedData({
         ...processedContent,
+        originalHtml: htmlString,
         originalHtmlLength,
       });
     } catch (error) {
@@ -366,10 +249,10 @@ export default function HomePage() {
   };
 
   useEffect(() => {
-    if (selectedFile && !isLoading) {
+    if (selectedFile) {
       handleProcessFile();
     }
-  }, [selectedFile, isLoading, handleProcessFile]);
+  }, [selectedFile, handleProcessFile]);
 
   // Effect to run evaluation when necessary data is available
   useEffect(() => {
@@ -429,6 +312,164 @@ export default function HomePage() {
     isEvaluating,
   ]);
 
+  // useEffect to automatically load synthetic data when index changes
+  useEffect(() => {
+    if (selectedSyntheticIndex && selectedSyntheticIndex !== '') {
+      handleLoadSyntheticData();
+    }
+    // Adding handleLoadSyntheticData to dependency array if it's stable or wrapped in useCallback
+    // For now, assuming it's stable or its dependencies are correctly managed.
+    // If handleLoadSyntheticData itself causes state changes that re-trigger this effect
+    // unintentionally, it might need to be wrapped in useCallback or its own dependencies reviewed.
+  }, [selectedSyntheticIndex]); // Consider adding handleLoadSyntheticData if it's memoized
+
+  const handleLoadSyntheticData = async () => {
+    // Debounce or ensure it's not called excessively if selectedSyntheticIndex changes rapidly
+    // For a select dropdown, this is usually fine.
+    if (!selectedSyntheticIndex) {
+      // This case might occur if the effect runs when selectedSyntheticIndex is reset to ''
+      // We can choose to clear data or do nothing.
+      // For now, let's ensure we only proceed if an index is actually selected.
+      // The validation inside handleLoadSyntheticData will also catch empty/invalid index if it proceeds.
+      return;
+    }
+
+    const index = parseInt(selectedSyntheticIndex, 10);
+    if (isNaN(index) || index < 1 || index > 164) {
+      setErrorMessage(
+        'Invalid index. Please enter a number between 1 and 164.',
+      );
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage(null);
+    setProcessedData(null);
+    setLlmResponse(null);
+    setLlmErrorMessage(null);
+    setSelectedStage(null);
+    setGroundTruthXpathList(null);
+    setPredictXpathList(null);
+    setRawGroundTruthRecords(null);
+    setRawPredictRecords(null);
+    setEvaluationResult(null);
+    setRawGroundTruthJsonContent(null);
+
+    const htmlPath = `/next-eval/synthetic/html/${index}.html`;
+    const groundTruthPath = `/next-eval/synthetic/groundTruth/${index}.json`;
+
+    try {
+      // Fetch and process HTML
+      const htmlResponse = await fetch(htmlPath);
+      if (!htmlResponse.ok) {
+        throw new Error(
+          `Failed to fetch ${htmlPath}: ${htmlResponse.status} ${htmlResponse.statusText}`,
+        );
+      }
+      const htmlString = await htmlResponse.text();
+      const originalHtmlLength = htmlString.length;
+      const processedContent = await processHtmlContent(htmlString);
+      setProcessedData({
+        ...processedContent,
+        originalHtml: htmlString,
+        originalHtmlLength,
+      });
+
+      // Fetch and process groundTruth.json
+      try {
+        const groundTruthResponse = await fetch(groundTruthPath);
+        if (!groundTruthResponse.ok) {
+          console.error(
+            `Failed to fetch ${groundTruthPath}: ${groundTruthResponse.status} ${groundTruthResponse.statusText}`,
+          );
+          setErrorMessage((prev) =>
+            prev
+              ? `${prev}\nWarning: Could not load ground truth XPaths for index ${index}.`
+              : `Warning: Could not load ground truth XPaths for index ${index}.`,
+          );
+          setGroundTruthXpathList(null);
+          setRawGroundTruthRecords(null);
+          setRawGroundTruthJsonContent(null);
+        } else {
+          const groundTruthContent = await groundTruthResponse.text();
+          setRawGroundTruthJsonContent(groundTruthContent);
+          const validatedGroundTruth =
+            parseAndValidateXPaths(groundTruthContent);
+          if (validatedGroundTruth) {
+            setGroundTruthXpathList(validatedGroundTruth);
+            try {
+              const parsedRecords = JSON.parse(groundTruthContent);
+              if (
+                Array.isArray(parsedRecords) &&
+                parsedRecords.every(
+                  (record) =>
+                    Array.isArray(record) &&
+                    record.every((item) => typeof item === 'string'),
+                )
+              ) {
+                setRawGroundTruthRecords(parsedRecords as string[][]);
+              } else {
+                console.warn(
+                  `Ground truth content from ${groundTruthPath} is not in string[][] format after parsing JSON.`,
+                );
+                setRawGroundTruthRecords(null);
+              }
+            } catch (e) {
+              console.warn(
+                `Failed to parse groundTruthContent from ${groundTruthPath} as JSON for raw records:`,
+                e,
+              );
+              setRawGroundTruthRecords(null);
+            }
+          } else {
+            console.warn(
+              `Failed to parse or validate ${groundTruthPath}. Setting groundTruthXpathList to null.`,
+            );
+            setGroundTruthXpathList(null);
+            setRawGroundTruthRecords(null);
+            setRawGroundTruthJsonContent(null);
+            setErrorMessage((prev) =>
+              prev
+                ? `${prev}\nWarning: Ground truth XPaths for index ${index} are invalid or empty.`
+                : `Warning: Ground truth XPaths for index ${index} are invalid or empty.`,
+            );
+          }
+        }
+      } catch (gtError) {
+        console.error(
+          `Error loading or processing ${groundTruthPath}:`,
+          gtError,
+        );
+        setGroundTruthXpathList(null);
+        setRawGroundTruthRecords(null);
+        setRawGroundTruthJsonContent(null);
+        setErrorMessage((prev) =>
+          prev
+            ? `${prev}\nError: Could not load ground truth XPaths for index ${index}.`
+            : `Error: Could not load ground truth XPaths for index ${index}.`,
+        );
+      }
+    } catch (error) {
+      console.error(`Error loading synthetic data for index ${index}:`, error);
+      if (error instanceof Error) {
+        setErrorMessage(
+          `Error loading synthetic data for index ${index}: ${error.message}`,
+        );
+      } else {
+        setErrorMessage(
+          `An unknown error occurred while loading synthetic data for index ${index}.`,
+        );
+      }
+      // Clear partial data on main error
+      setProcessedData(null);
+      setRawGroundTruthJsonContent(null);
+      setGroundTruthXpathList(null);
+      setRawGroundTruthRecords(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <main className="container mx-auto p-4 max-w-[1200px]">
       <h1 className="text-3xl font-bold text-center my-8">
@@ -437,50 +478,71 @@ export default function HomePage() {
       </h1>
       {/* File Input Section */}
       <section className="mb-8 p-6 border rounded-lg shadow-md bg-white">
-        <h2 className="text-xl font-semibold mb-4">Upload HTML</h2>
-        <div className="flex flex-col space-y-4">
-          <p className="text-sm text-gray-600">
-            Option 1: Upload your own HTML file.
-          </p>
-          <input
-            type="file"
-            aria-label="Upload HTML or MHTML file"
-            className="block w-full text-sm text-slate-500
-              file:mr-4 file:py-2 file:px-4
-              file:rounded-full file:border-0
-              file:text-sm file:font-semibold
-              file:bg-violet-50 file:text-violet-700
-              hover:file:bg-violet-100
-              focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2
-            "
-            accept=".html"
-            onChange={handleFileChange}
-            disabled={isLoading}
-          />
-          <p className="text-sm text-gray-600 mt-4">
-            Option 2: Load a pre-defined example HTML.
-          </p>
-          <button
-            type="button"
-            onClick={handleLoadSourceHtml}
-            disabled={isLoading}
-            aria-label="Load source.html example"
-            className="px-6 py-2 bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading
-              ? 'Loading Example...'
-              : 'Load Example HTML (source.html)'}
-          </button>
+        <h2 className="text-xl font-semibold mb-4">Upload HTML or Load Synthetic Data</h2>
+        <div className="flex flex-col md:flex-row md:space-x-6 md:space-y-0 space-y-6">
+          {/* Option 1: Upload your own HTML file */}
+          <div className="md:w-1/2 flex flex-col">
+            <p className="text-sm font-medium text-gray-700 mb-2">
+              Option 1: Upload your own HTML file.
+            </p>
+            <input
+              type="file"
+              aria-label="Upload HTML or MHTML file"
+              className="block w-full text-sm text-slate-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-full file:border-0
+                file:text-sm file:font-semibold
+                file:bg-violet-50 file:text-violet-700
+                hover:file:bg-violet-100
+                focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2
+                p-2 border border-gray-300 rounded-md shadow-sm"
+              accept=".html"
+              onChange={handleFileChange}
+              disabled={isLoading}
+              ref={fileInputRef}
+            />
+          </div>
 
-          <button
-            type="button" // Changed from submit to button to prevent default form submission
-            onClick={handleProcessFile}
-            disabled={isLoading || !selectedFile}
-            aria-label="Submit file for processing"
-            className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? 'Processing...' : 'Process File'}
-          </button>
+          {/* Option 2: Load Synthetic Data by Index */}
+          <div className="md:w-1/2 flex flex-col md:border-l md:pl-6 border-gray-200">
+            <p className="text-sm font-medium text-gray-700 mb-2">
+              Option 2: Load synthetic data by index (1-164).
+            </p>
+            <label
+              htmlFor="syntheticIndexSelect"
+              className="block text-sm font-medium text-gray-700 mb-1 sr-only"
+            >
+              Select Synthetic Data:
+            </label>
+            <select
+              id="syntheticIndexSelect"
+              name="syntheticIndexSelect"
+              value={selectedSyntheticIndex}
+              onChange={(e) => {
+                const newSyntheticIndex = e.target.value;
+                setSelectedSyntheticIndex(newSyntheticIndex);
+                if (newSyntheticIndex) {
+                  // If a synthetic option is chosen (not the default "-- Select --")
+                  setSelectedFile(null); // Clear the selected file state
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = ''; // Clear the file input visually
+                  }
+                }
+              }}
+              className="block w-full text-sm text-slate-500 border-gray-300 rounded-md shadow-sm
+                         focus:ring-indigo-500 focus:border-indigo-500
+                         p-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
+              disabled={isLoading}
+              aria-label="Select synthetic data by index (1-164)"
+            >
+              <option value="">-- Select Synthetic Data --</option>
+              {Array.from({ length: 164 }, (_, i) => (
+                <option key={i + 1} value={i + 1}>
+                  Synthetic {i + 1}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         {errorMessage && (
           <p className="mt-4 text-sm text-red-600" role="alert">
@@ -489,32 +551,129 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* Display Ground Truth JSON Section - MOVED HERE */}
-      {rawGroundTruthJsonContent && !isLoading && (
-        <section className="mb-8 p-6 border rounded-lg shadow-md bg-white">
-          <h2 className="text-xl font-semibold mb-4">
-            Ground Truth XPaths (JSON)
-          </h2>
-          <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
-            <pre className="text-sm whitespace-pre-wrap">
-              {rawGroundTruthJsonContent}
-            </pre>
-          </div>
-          <button
-            type="button"
-            onClick={() =>
-              handleDownload(
-                rawGroundTruthJsonContent,
-                'ground_truth.json',
-                'application/json',
-              )
-            }
-            className="px-4 py-2 bg-indigo-500 text-white text-sm font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
-            aria-label="Download ground_truth.json"
-          >
-            Download ground_truth.json
-          </button>
-        </section>
+      {/* Conditional rendering for side-by-side or individual display */}
+      {processedData && processedData.originalHtml && rawGroundTruthJsonContent && !isLoading ? (
+        <div className="flex flex-col md:flex-row md:space-x-4 mb-8">
+          <section className="w-full md:w-1/2 p-6 border rounded-lg shadow-md bg-white mb-4 md:mb-0">
+            <h2 className="text-xl font-semibold mb-4">Original HTML Content</h2>
+            {processedData.originalHtmlLength !== undefined && (
+              <p className="text-sm text-gray-600 mb-2">
+                Length: {processedData.originalHtmlLength.toLocaleString()} characters
+              </p>
+            )}
+            <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
+              <pre className="text-sm whitespace-pre-wrap">
+                {processedData.originalHtml}
+              </pre>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (processedData.originalHtml) {
+                  handleDownload(
+                    processedData.originalHtml,
+                    'original_source.html',
+                    'text/html',
+                  );
+                }
+              }}
+              className="px-4 py-2 bg-indigo-500 text-white text-sm font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
+              aria-label="Download original_source.html"
+              disabled={!processedData.originalHtml}
+            >
+              Download Original HTML
+            </button>
+          </section>
+
+          <section className="w-full md:w-1/2 p-6 border rounded-lg shadow-md bg-white">
+            <h2 className="text-xl font-semibold mb-4">
+              Ground Truth XPaths (JSON)
+            </h2>
+            <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
+              <pre className="text-sm whitespace-pre-wrap">
+                {rawGroundTruthJsonContent}
+              </pre>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                handleDownload(
+                  rawGroundTruthJsonContent,
+                  'ground_truth.json',
+                  'application/json',
+                )
+              }
+              className="px-4 py-2 bg-indigo-500 text-white text-sm font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
+              aria-label="Download ground_truth.json"
+            >
+              Download ground_truth.json
+            </button>
+          </section>
+        </div>
+      ) : (
+        <>
+          {/* Display Original HTML Content Section (if only this is available) */}
+          {processedData && processedData.originalHtml && !isLoading && (
+            <section className="mb-8 p-6 border rounded-lg shadow-md bg-white">
+              <h2 className="text-xl font-semibold mb-4">Original HTML Content</h2>
+              {processedData.originalHtmlLength !== undefined && (
+                <p className="text-sm text-gray-600 mb-2">
+                  Length: {processedData.originalHtmlLength.toLocaleString()} characters
+                </p>
+              )}
+              <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
+                <pre className="text-sm whitespace-pre-wrap">
+                  {processedData.originalHtml}
+                </pre>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (processedData.originalHtml) {
+                    handleDownload(
+                      processedData.originalHtml,
+                      'original_source.html',
+                      'text/html',
+                    );
+                  }
+                }}
+                className="px-4 py-2 bg-indigo-500 text-white text-sm font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
+                aria-label="Download original_source.html"
+                disabled={!processedData.originalHtml}
+              >
+                Download Original HTML
+              </button>
+            </section>
+          )}
+
+          {/* Display Ground Truth JSON Section (if only this is available) */}
+          {rawGroundTruthJsonContent && !isLoading && (
+            <section className="mb-8 p-6 border rounded-lg shadow-md bg-white">
+              <h2 className="text-xl font-semibold mb-4">
+                Ground Truth XPaths (JSON)
+              </h2>
+              <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
+                <pre className="text-sm whitespace-pre-wrap">
+                  {rawGroundTruthJsonContent}
+                </pre>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  handleDownload(
+                    rawGroundTruthJsonContent,
+                    'ground_truth.json',
+                    'application/json',
+                  )
+                }
+                className="px-4 py-2 bg-indigo-500 text-white text-sm font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
+                aria-label="Download ground_truth.json"
+              >
+                Download ground_truth.json
+              </button>
+            </section>
+          )}
+        </>
       )}
 
       {/* Loading Indicator - more prominent */}
@@ -533,61 +692,56 @@ export default function HomePage() {
       {processedData && !isLoading && (
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Processing Stages</h2>
-          {processedData.originalHtmlLength !== undefined && (
-            <div className="mb-4 p-3 bg-gray-100 border border-gray-300 rounded-lg text-sm">
-              <p className="font-semibold">
-                Original Full HTML Length:{' '}
-                <span className="font-normal">
-                  {processedData.originalHtmlLength.toLocaleString()} characters
-                </span>
-              </p>
-            </div>
-          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Stage 1: Slimming (Cleaned HTML) */}
-            <button
-              type="button"
+            {/* Stage 1: Slimmed HTML (Cleaned HTML) */}
+            <div
+              role="button"
               tabIndex={0}
-              className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 text-left ${
+              className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 text-left flex flex-col justify-between ${
                 selectedStage === 'html'
                   ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
                   : 'bg-gray-50 hover:bg-blue-50'
               }`}
               onClick={() => setSelectedStage('html')}
               onKeyDown={(e) => e.key === 'Enter' && setSelectedStage('html')}
+              aria-label="Select Slimmed HTML stage"
             >
-              <h3 className="text-lg font-medium mb-1">
-                1. Slimmed HTML (attributes removed){' '}
-              </h3>
-              <p className="text-xs text-gray-600 mb-2">
-                Length: {processedData.htmlLength.toLocaleString()} chars
-              </p>
-              <div className="h-64 overflow-auto bg-white p-2 border rounded mb-2">
-                <pre className="text-xs whitespace-pre-wrap">
-                  {processedData.html}
-                </pre>
+              <div>
+                <h3 className="text-lg font-medium mb-1">
+                  1. Slimmed HTML (attributes removed){' '}
+                </h3>
+                <p className="text-xs text-gray-600 mb-2">
+                  Length: {processedData.htmlLength.toLocaleString()} chars
+                </p>
+                <div className="h-64 overflow-auto bg-white p-2 border rounded mb-2">
+                  <pre className="text-xs whitespace-pre-wrap">
+                    {processedData.html}
+                  </pre>
+                </div>
               </div>
               <button
                 type="button"
-                onClick={() =>
+                onClick={(e) => {
+                  e.stopPropagation();
                   handleDownload(
                     processedData.html,
                     'slimmed_html.html',
                     'text/html',
-                  )
-                }
-                className="mt-2 px-3 py-1 bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
+                  );
+                }}
+                className="mt-2 px-3 py-1 bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out self-start"
                 aria-label="Download slimmed HTML"
               >
                 Download HTML
               </button>
-            </button>
+            </div>
 
             {/* Stage 3: Hierarchical Text Map - MOVED TO STAGE 2 */}
-            <button
-              type="button"
+            <div
+              role="button"
               tabIndex={0}
-              className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 text-left ${
+              className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 text-left flex flex-col justify-between ${
                 selectedStage === 'textMap'
                   ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
                   : 'bg-gray-50 hover:bg-blue-50'
@@ -596,40 +750,44 @@ export default function HomePage() {
               onKeyDown={(e) =>
                 e.key === 'Enter' && setSelectedStage('textMap')
               }
+              aria-label="Select Hierarchical JSON stage"
             >
-              <h3 className="text-lg font-medium mb-1">
-                2. Hierarchical JSON (Nested text map)
-              </h3>
-              <p className="text-xs text-gray-600 mb-2">
-                Length: {processedData.textMapLength.toLocaleString()} chars
-                (JSON string)
-              </p>
-              <div className="h-64 overflow-auto bg-white p-2 border rounded mb-2">
-                <pre className="text-xs whitespace-pre-wrap">
-                  {JSON.stringify(processedData.textMap, null, 2)}
-                </pre>
+              <div>
+                <h3 className="text-lg font-medium mb-1">
+                  2. Hierarchical JSON (Nested text map)
+                </h3>
+                <p className="text-xs text-gray-600 mb-2">
+                  Length: {processedData.textMapLength.toLocaleString()} chars
+                  (JSON string)
+                </p>
+                <div className="h-64 overflow-auto bg-white p-2 border rounded mb-2">
+                  <pre className="text-xs whitespace-pre-wrap">
+                    {JSON.stringify(processedData.textMap, null, 2)}
+                  </pre>
+                </div>
               </div>
               <button
                 type="button"
-                onClick={() =>
+                onClick={(e) => {
+                  e.stopPropagation();
                   handleDownload(
                     JSON.stringify(processedData.textMap, null, 2),
                     'hierarchical_map.json',
                     'application/json',
-                  )
-                }
-                className="mt-2 px-3 py-1 bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
+                  );
+                }}
+                className="mt-2 px-3 py-1 bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out self-start"
                 aria-label="Download hierarchical JSON map"
               >
                 Download Hierarchical JSON
               </button>
-            </button>
+            </div>
 
             {/* Stage 2: XPath to Text (Flat) - MOVED TO STAGE 3 */}
-            <button
-              type="button"
+            <div
+              role="button"
               tabIndex={0}
-              className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 text-left ${
+              className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 text-left flex flex-col justify-between ${
                 selectedStage === 'textMapFlat'
                   ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
                   : 'bg-gray-50 hover:bg-blue-50'
@@ -638,34 +796,38 @@ export default function HomePage() {
               onKeyDown={(e) =>
                 e.key === 'Enter' && setSelectedStage('textMapFlat')
               }
+              aria-label="Select Flat JSON stage"
             >
-              <h3 className="text-lg font-medium mb-1">
-                3. Flat JSON (text map)
-              </h3>
-              <p className="text-xs text-gray-600 mb-2">
-                Length: {processedData.textMapFlatLength.toLocaleString()} chars
-                (JSON string)
-              </p>
-              <div className="h-64 overflow-auto bg-white p-2 border rounded mb-2">
-                <pre className="text-xs whitespace-pre-wrap">
-                  {JSON.stringify(processedData.textMapFlat, null, 2)}
-                </pre>
+              <div>
+                <h3 className="text-lg font-medium mb-1">
+                  3. Flat JSON (text map)
+                </h3>
+                <p className="text-xs text-gray-600 mb-2">
+                  Length: {processedData.textMapFlatLength.toLocaleString()}{' '}
+                  chars (JSON string)
+                </p>
+                <div className="h-64 overflow-auto bg-white p-2 border rounded mb-2">
+                  <pre className="text-xs whitespace-pre-wrap">
+                    {JSON.stringify(processedData.textMapFlat, null, 2)}
+                  </pre>
+                </div>
               </div>
               <button
                 type="button"
-                onClick={() =>
+                onClick={(e) => {
+                  e.stopPropagation();
                   handleDownload(
                     JSON.stringify(processedData.textMapFlat, null, 2),
                     'flat_map.json',
                     'application/json',
-                  )
-                }
-                className="mt-2 px-3 py-1 bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
+                  );
+                }}
+                className="mt-2 px-3 py-1 bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out self-start"
                 aria-label="Download flat JSON map"
               >
                 Download Flat JSON
               </button>
-            </button>
+            </div>
           </div>
         </section>
       )}
