@@ -44,6 +44,18 @@ const generateXPath = (element: Element | null): string => {
   return path || '/';
 };
 
+// Helper function to download content as a file
+const handleDownload = (content: string, fileName: string, contentType: string) => {
+  const blob = new Blob([content], { type: contentType });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = fileName;
+  document.body.appendChild(link); // Required for Firefox
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href); // Clean up
+};
+
 // Helper function to remove script, style tags, and comments from HTML
 const slimHtml = (doc: Document): string => {
   // 1. Initial DOM-based removal of specific tags
@@ -399,11 +411,19 @@ export default function HomePage() {
               <p className="text-xs text-gray-600 mb-2">
                 Length: {processedData.htmlLength.toLocaleString()} chars
               </p>
-              <div className="h-64 overflow-auto bg-white p-2 border rounded">
+              <div className="h-64 overflow-auto bg-white p-2 border rounded mb-2">
                 <pre className="text-xs whitespace-pre-wrap">
                   {processedData.html}
                 </pre>
               </div>
+              <button
+                type="button"
+                onClick={() => handleDownload(processedData.html, 'slimmed_html.html', 'text/html')}
+                className="mt-2 px-3 py-1 bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
+                aria-label="Download slimmed HTML"
+              >
+                Download HTML
+              </button>
             </button>
 
             {/* Stage 3: Hierarchical Text Map - MOVED TO STAGE 2 */}
@@ -426,11 +446,19 @@ export default function HomePage() {
                 Length: {processedData.textMapLength.toLocaleString()} chars
                 (JSON string)
               </p>
-              <div className="h-64 overflow-auto bg-white p-2 border rounded">
+              <div className="h-64 overflow-auto bg-white p-2 border rounded mb-2">
                 <pre className="text-xs whitespace-pre-wrap">
                   {JSON.stringify(processedData.textMap, null, 2)}
                 </pre>
               </div>
+              <button
+                type="button"
+                onClick={() => handleDownload(JSON.stringify(processedData.textMap, null, 2), 'hierarchical_map.json', 'application/json')}
+                className="mt-2 px-3 py-1 bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
+                aria-label="Download hierarchical JSON map"
+              >
+                Download Hierarchical JSON
+              </button>
             </button>
 
             {/* Stage 2: XPath to Text (Flat) - MOVED TO STAGE 3 */}
@@ -453,11 +481,19 @@ export default function HomePage() {
                 Length: {processedData.textMapFlatLength.toLocaleString()} chars
                 (JSON string)
               </p>
-              <div className="h-64 overflow-auto bg-white p-2 border rounded">
+              <div className="h-64 overflow-auto bg-white p-2 border rounded mb-2">
                 <pre className="text-xs whitespace-pre-wrap">
                   {JSON.stringify(processedData.textMapFlat, null, 2)}
                 </pre>
               </div>
+              <button
+                type="button"
+                onClick={() => handleDownload(JSON.stringify(processedData.textMapFlat, null, 2), 'flat_map.json', 'application/json')}
+                className="mt-2 px-3 py-1 bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
+                aria-label="Download flat JSON map"
+              >
+                Download Flat JSON
+              </button>
             </button>
           </div>
         </section>
