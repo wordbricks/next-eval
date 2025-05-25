@@ -1,3 +1,7 @@
 {
-  "maxDuration": 300
-} 
+    "functions": {
+      "src/app/api/llm/route.ts": {
+        "maxDuration": 300
+      }
+    }
+  }
