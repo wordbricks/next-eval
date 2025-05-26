@@ -108,7 +108,7 @@ If you use NEXT-EVAL in your research, please cite:
 ```bibtex
 @inproceedings{next-eval2025,
   title={NEXT-EVAL: Next Evaluation of Traditional and LLM Web Data Record Extraction},
-  author={TBA},
+  author={arXiv},
   year={2025}
 }
 ```
