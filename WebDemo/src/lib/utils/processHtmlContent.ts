@@ -1,4 +1,4 @@
-import type { TextMapNode } from './TextMapNode'; // TextMapNode is part of the return type of extractTextWithXPaths
+import type { NestedTextMap } from '../interfaces'; // TextMapNode is part of the return type of extractTextWithXPaths
 import { extractTextWithXPaths } from './extractTextWithXPaths';
 import { slimHtml } from './slimHtml';
 
@@ -8,7 +8,7 @@ export const processHtmlContent = async (
 ): Promise<{
   html: string;
   textMapFlat: Record<string, string>;
-  textMap: TextMapNode;
+  textMap: NestedTextMap;
   htmlLength: number;
   textMapFlatLength: number;
   textMapLength: number;

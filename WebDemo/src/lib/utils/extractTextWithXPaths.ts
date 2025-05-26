@@ -1,12 +1,12 @@
-import type { TextMapNode } from './TextMapNode';
+import type { NestedTextMap } from '../interfaces';
 import { generateXPath } from './generateXPath';
 
 // Helper function to extract text and build flat/hierarchical maps
 export const extractTextWithXPaths = (
   doc: Document,
-): { textMapFlat: Record<string, string>; textMap: TextMapNode } => {
+): { textMapFlat: Record<string, string>; textMap: NestedTextMap } => {
   const textMapFlat: Record<string, string> = {};
-  const textMap: TextMapNode = {};
+  const textMap: NestedTextMap = {};
   const treeWalker = doc.createTreeWalker(
     doc.documentElement,
     NodeFilter.SHOW_TEXT,
@@ -46,7 +46,7 @@ export const extractTextWithXPaths = (
           if (!currentLevel[key] || typeof currentLevel[key] === 'string') {
             currentLevel[key] = {};
           }
-          currentLevel = currentLevel[key] as TextMapNode;
+          currentLevel = currentLevel[key] as { [key: string]: NestedTextMap };
         }
       });
     }

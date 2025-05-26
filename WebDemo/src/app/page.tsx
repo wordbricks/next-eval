@@ -13,41 +13,70 @@ import {
   parseAndValidateXPaths,
 } from '../lib/utils/xpathValidation';
 
+interface LlmStageResponse {
+  content: string | null;
+  usage: string | null;
+  error: string | null;
+  predictXpathList: ValidatedXpathArray | null;
+  evaluationResult: EvaluationResult | null; // Kept for potential future use
+  numPredictedRecords: number | null;
+  numHallucination: number | null;
+  isLoading: boolean;
+  isEvaluating: boolean;
+}
+
+type LlmAllResponses = {
+  html: LlmStageResponse;
+  textMap: LlmStageResponse;
+  textMapFlat: LlmStageResponse;
+};
+
+const initialLlmStageResponse: LlmStageResponse = {
+  content: null,
+  usage: null,
+  error: null,
+  predictXpathList: null,
+  evaluationResult: null,
+  numPredictedRecords: null,
+  numHallucination: null,
+  isLoading: false,
+  isEvaluating: false,
+};
+
 export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false); // For file processing
   const [processedData, setProcessedData] = useState<HtmlResult | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [selectedStage, setSelectedStage] = useState<
-    'html' | 'textMapFlat' | 'textMap' | null
-  >(null);
-  const [llmResponseContent, setLlmResponseContent] = useState<string | null>(null);
-  const [llmResponseUsage, setLlmResponseUsage] = useState<string | null>(null);
-  const [isLlmLoading, setIsLlmLoading] = useState<boolean>(false);
-  const [llmErrorMessage, setLlmErrorMessage] = useState<string | null>(null);
-  const [predictXpathList, setPredictXpathList] =
-    useState<ValidatedXpathArray | null>(null);
-  const [evaluationResult, setEvaluationResult] =
-    useState<EvaluationResult | null>(null);
-  const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
-  const [numPredictedRecords, setNumPredictedRecords] = useState<number | null>(
-    null,
-  );
-  const [numHallucination, setNumHallucination] = useState<number | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null); // For file processing errors
+
+  const [llmResponses, setLlmResponses] = useState<LlmAllResponses>({
+    html: { ...initialLlmStageResponse },
+    textMap: { ...initialLlmStageResponse },
+    textMapFlat: { ...initialLlmStageResponse },
+  });
+  const [overallLlmFetching, setOverallLlmFetching] = useState<boolean>(false); // For the "Send All to Gemini" button
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (processedData && !selectedStage) {
-      setSelectedStage('textMapFlat');
-    }
-  }, [processedData, selectedStage]);
+  // useEffect(() => {
+  //   if (processedData && !selectedStage) { // selectedStage is removed
+  //     setSelectedStage('textMapFlat');
+  //   }
+  // }, [processedData, selectedStage]); // selectedStage removed
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      setErrorMessage(null); // Clear previous errors
-      setProcessedData(null); // Clear previous data
+      setErrorMessage(null); 
+      setProcessedData(null); 
+      // Reset LLM responses when a new file is selected
+      setLlmResponses({
+        html: { ...initialLlmStageResponse },
+        textMap: { ...initialLlmStageResponse },
+        textMapFlat: { ...initialLlmStageResponse },
+      });
+      setOverallLlmFetching(false);
     } else {
       setSelectedFile(null);
     }
@@ -62,12 +91,13 @@ export default function HomePage() {
     setIsLoading(true);
     setErrorMessage(null);
     setProcessedData(null);
-    setLlmResponseContent(null);
-    setLlmResponseUsage(null);
-    setLlmErrorMessage(null);
-    setSelectedStage(null);
-    setPredictXpathList(null);
-    setEvaluationResult(null);
+    // Reset LLM states as well
+    setLlmResponses({
+      html: { ...initialLlmStageResponse },
+      textMap: { ...initialLlmStageResponse },
+      textMapFlat: { ...initialLlmStageResponse },
+    });
+    setOverallLlmFetching(false);
 
     try {
       const htmlString = await readFileAsText(selectedFile);
@@ -89,105 +119,116 @@ export default function HomePage() {
           'An unknown error occurred during client-side processing.',
         );
       }
-      setProcessedData(null); // Clear any partial data
+      setProcessedData(null); 
     } finally {
       setIsLoading(false);
     }
-  }, [
-    selectedFile,
-    // readFileAsText and processHtmlContent are stable and don't need to be in deps
-  ]);
+  }, [selectedFile]);
 
   const handleSendToLlm = async () => {
-    if (!selectedStage || !processedData) {
-      setLlmErrorMessage(
-        'Please select a processing stage and ensure data is available.',
-      );
+    if (!processedData) {
+      // This should ideally not happen if button is disabled correctly
+      console.error('Processed data not available for LLM request.');
+      // Optionally set a general error message for LLM section
       return;
     }
 
-    setIsLlmLoading(true);
-    setLlmErrorMessage(null);
-    setLlmResponseContent(null);
-    setLlmResponseUsage(null);
-    setPredictXpathList(null); // Clear previous LLM-generated XPaths
-    setEvaluationResult(null); // Clear previous evaluation
+    setOverallLlmFetching(true);
+    // Initialize/reset states for all stages
+    setLlmResponses((prev) => ({
+      html: { ...initialLlmStageResponse, isLoading: true },
+      textMap: { ...initialLlmStageResponse, isLoading: true },
+      textMapFlat: { ...initialLlmStageResponse, isLoading: true },
+    }));
 
-    try {
-      const promptTypeMap = {
-        html: 'slim',
-        textMapFlat: 'flat',
-        textMap: 'hierarchical',
-      } as const;
+    const stagesMetaData = [
+      {
+        key: 'html' as keyof LlmAllResponses,
+        data: processedData.html,
+        promptType: 'slim',
+      },
+      {
+        key: 'textMap' as keyof LlmAllResponses,
+        data: processedData.textMap,
+        promptType: 'hierarchical',
+      },
+      {
+        key: 'textMapFlat' as keyof LlmAllResponses,
+        data: processedData.textMapFlat,
+        promptType: 'flat',
+      },
+    ];
 
-      // Prepare data: use stringified version for maps, direct HTML for 'html' stage
-      let dataToSend: string | Record<string, string> | NestedTextMap | undefined;
-      if (selectedStage === 'html') {
-        dataToSend = processedData.html;
-      } else if (selectedStage === 'textMapFlat') {
-        dataToSend = processedData.textMapFlat; // Send the object, not stringified
-      } else if (selectedStage === 'textMap') {
-        dataToSend = processedData.textMap; // Send the object, not stringified
-      } else {
-        throw new Error('Invalid stage selected for LLM interaction');
-      }
+    const requests = stagesMetaData.map(async (stage) => {
+      try {
+        const requestBody = {
+          promptType: stage.promptType,
+          data: JSON.stringify(stage.data, null, 2), // Data is stringified here
+        };
 
-      const requestBody = {
-        promptType: promptTypeMap[selectedStage as keyof typeof promptTypeMap],
-        data: JSON.stringify(dataToSend, null, 2),
-      };
+        const response = await fetch('/next-eval/api/llm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        });
 
-      const response = await fetch('/next-eval/api/llm', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({
+            message: `LLM API request for ${stage.key} failed with status ${response.status} and could not parse error.`,
+          }));
+          throw new Error(
+            errorData.message ||
+              `LLM API request for ${stage.key} failed with status ${response.status}`,
+          );
+        }
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          message: 'Failed to get response from LLM and could not parse error.',
+        const result = await response.json();
+        if ('content' in result && 'usage' in result) {
+          const validatedPredXPaths = parseAndValidateXPaths(result.content);
+          setLlmResponses((prev) => ({
+            ...prev,
+            [stage.key]: {
+              ...prev[stage.key],
+              content: result.content,
+              usage: result.usage,
+              predictXpathList: validatedPredXPaths,
+              error: null,
+              isLoading: false,
+              // Reset evaluation metrics and state for fresh evaluation
+              numPredictedRecords: null,
+              numHallucination: null,
+              evaluationResult: null,
+              isEvaluating: false,
+            },
+          }));
+        } else {
+          throw new Error(
+            `Unexpected response structure for ${stage.key}: ${JSON.stringify(result, null, 2)}`,
+          );
+        }
+      } catch (error) {
+        console.error(`Error sending to LLM for stage ${stage.key}:`, error);
+        setLlmResponses((prev) => ({
+          ...prev,
+          [stage.key]: {
+            ...prev[stage.key],
+            error: error instanceof Error ? error.message : String(error),
+            content: null,
+            usage: null,
+            predictXpathList: null,
+            isLoading: false,
+            // Also reset metrics and eval state on error
+            numPredictedRecords: null,
+            numHallucination: null,
+            evaluationResult: null,
+            isEvaluating: false,
+          },
         }));
-        throw new Error(
-          errorData.message ||
-            `LLM API request failed with status ${response.status}`,
-        );
       }
+    });
 
-      const result = await response.json();
-      console.log('result', result);
-      if (
-        'content' in result &&
-        'usage' in result
-      ) {
-        const { content: llmContent, usage: llmUsage } = result;
-        const validatedPredXPaths = parseAndValidateXPaths(llmContent);
-        console.log('validatedPredXPaths', validatedPredXPaths);
-        setLlmResponseContent(llmContent);
-        setLlmResponseUsage(llmUsage);
-        setPredictXpathList(validatedPredXPaths);
-      } else {
-        // Fallback if structure is not as expected but response was 'ok'
-        setLlmResponseContent(
-          `Unexpected response structure: ${JSON.stringify(result, null, 2)}`,
-        );
-        setLlmResponseUsage('Unknown');
-        setPredictXpathList(null); // Ensure evaluation clears
-      }
-    } catch (error) {
-      console.error(`Error sending to LLM: ${error}`);
-      setPredictXpathList(null); // Ensure reset on error
-      if (error instanceof Error) {
-        setLlmErrorMessage(`LLM Error: ${error.message}`);
-      } else {
-        setLlmErrorMessage(
-          'An unknown error occurred while contacting the LLM.',
-        );
-      }
-    } finally {
-      setIsLlmLoading(false);
-    }
+    await Promise.allSettled(requests);
+    setOverallLlmFetching(false);
   };
 
   useEffect(() => {
@@ -195,76 +236,142 @@ export default function HomePage() {
       handleProcessFile();
     }
   }, [selectedFile, handleProcessFile]);
-
-  // Effect to run evaluation when necessary data is available
+  
   useEffect(() => {
-    if (
-      // groundTruthXpathList && // No longer available for synthetic
-      predictXpathList &&
-      processedData?.textMapFlat
-    ) {
-      setIsEvaluating(true);
-      setEvaluationResult(null); // Clear previous broader results
-      setNumPredictedRecords(null); // Clear previous specific metrics
-      setNumHallucination(null); // Clear previous specific metrics
+    if (!processedData?.textMapFlat) {
+      setLlmResponses(prev => {
+        let needsUpdate = false;
+        const newResponses = { ...prev };
+        (Object.keys(newResponses) as Array<keyof LlmAllResponses>).forEach(stageKey => {
+          if (
+            newResponses[stageKey].numPredictedRecords !== null ||
+            newResponses[stageKey].numHallucination !== null ||
+            newResponses[stageKey].isEvaluating
+          ) {
+            needsUpdate = true;
+            newResponses[stageKey] = {
+              ...newResponses[stageKey],
+              numPredictedRecords: null,
+              numHallucination: null,
+              evaluationResult: null,
+              isEvaluating: false,
+            };
+          }
+        });
+        return needsUpdate ? newResponses : prev;
+      });
+      return;
+    }
 
-      try {
-        const textMapFlatForEval = processedData.textMapFlat as Record<
-          string,
-          string
-        >;
-        const localNumPredictedRecords = predictXpathList.length;
-        const mappedPredRecords = mapResponseToFullXPath(
-          textMapFlatForEval,
-          predictXpathList,
-        );
-        let localNumHallucination = 0;
-        for (const record of mappedPredRecords) {
-          if (record.length === 0) {
-            localNumHallucination += 1;
+    const textMapFlatForEval = processedData.textMapFlat as Record<string, string>;
+    let updateScheduled = false;
+
+    setLlmResponses(prevResponses => {
+      const newResponses = { ...prevResponses };
+
+      (Object.keys(newResponses) as Array<keyof LlmAllResponses>).forEach(stageKey => {
+        const stageData = newResponses[stageKey];
+
+        // Step 1: If we have new XPaths, aren't loading/evaluating, and metrics are not yet computed, set to isEvaluating
+        if (
+          stageData.predictXpathList &&
+          !stageData.isLoading &&
+          !stageData.isEvaluating &&
+          stageData.numPredictedRecords === null // Only if metrics are not yet computed
+        ) {
+          newResponses[stageKey] = {
+            ...stageData,
+            isEvaluating: true,
+             // Clear any previous evaluation-specific errors
+            error: stageData.error?.includes('Evaluation Error:') 
+                ? stageData.error.split('\n').filter(line => !line.startsWith("Evaluation Error:")).join('\n') || null 
+                : stageData.error,
+          };
+          updateScheduled = true;
+        } 
+        // Step 2: If isEvaluating is true, perform the evaluation
+        else if (stageData.isEvaluating && !stageData.isLoading) {
+          try {
+            if (!stageData.predictXpathList) {
+              // This case should ideally be prevented by the reset in handleSendToLlm or if LLM call fails
+              // but as a safeguard, if predictXpathList is gone while we are in isEvaluating, reset.
+              newResponses[stageKey] = {
+                ...stageData,
+                isEvaluating: false,
+                numPredictedRecords: null,
+                numHallucination: null,
+                evaluationResult: null,
+                error: `${stageData.error ? stageData.error + '\n' : ''}Evaluation Error: XPaths disappeared during evaluation. Resetting metrics.`,
+              };
+              updateScheduled = true;
+              return; // continue to next stageKey in forEach
+            }
+
+            const localNumPredictedRecords = stageData.predictXpathList.length;
+            const mappedPredRecords = mapResponseToFullXPath(
+              textMapFlatForEval,
+              stageData.predictXpathList,
+            );
+            let localNumHallucination = 0;
+            for (const record of mappedPredRecords) {
+              if (record.length === 0) {
+                localNumHallucination += 1;
+              }
+            }
+            newResponses[stageKey] = {
+              ...stageData,
+              numPredictedRecords: localNumPredictedRecords,
+              numHallucination: localNumHallucination,
+              isEvaluating: false,
+              // Evaluation successful, error remains as is (or cleared in step 1 if it was an eval error)
+            };
+            updateScheduled = true;
+          } catch (evalError) {
+            console.error(`Error during evaluation for ${stageKey}:`, evalError);
+            newResponses[stageKey] = {
+              ...stageData,
+              error: `${stageData.error ? stageData.error + '\n' : ''}Evaluation Error: ${evalError instanceof Error ? evalError.message : String(evalError)}`,
+              numPredictedRecords: null,
+              numHallucination: null,
+              isEvaluating: false,
+            };
+            updateScheduled = true;
           }
         }
-        setNumPredictedRecords(localNumPredictedRecords);
-        setNumHallucination(localNumHallucination);
-      } catch (evalError) {
-        console.error('Error during evaluation:', evalError);
-        setErrorMessage((prev) =>
-          prev
-            ? `${prev}\nError: Could not calculate evaluation metrics.`
-            : 'Error: Could not calculate evaluation metrics.',
-        );
-        setEvaluationResult(null);
-        setNumPredictedRecords(null); // Ensure clear on error
-        setNumHallucination(null); // Ensure clear on error
-      } finally {
-        setIsEvaluating(false);
-      }
-    } else {
-      // If any of the necessary data is missing, ensure evaluationResult is null
-      // and not in evaluating state.
-      if (evaluationResult !== null) setEvaluationResult(null);
-      if (numPredictedRecords !== null) setNumPredictedRecords(null);
-      if (numHallucination !== null) setNumHallucination(null);
-      if (isEvaluating) setIsEvaluating(false);
-    }
-  }, [
-    // groundTruthXpathList, // Removed
-    predictXpathList,
-    processedData?.textMapFlat,
-    // evaluationResult, // Removed from deps as it's set by this effect
-    // isEvaluating, // Removed from deps as it's set by this effect
-  ]);
+        // Step 3: If predictXpathList becomes null (e.g. error during LLM fetch after successful fetch),
+        // and we are not currently loading/evaluating, ensure metrics are cleared.
+        // This is a cleanup step.
+        else if (
+          !stageData.predictXpathList && 
+          !stageData.isLoading && 
+          !stageData.isEvaluating && 
+          (stageData.numPredictedRecords !== null || stageData.numHallucination !== null)
+        ) {
+          newResponses[stageKey] = {
+            ...stageData,
+            numPredictedRecords: null,
+            numHallucination: null,
+            evaluationResult: null, // Kept for consistency
+            isEvaluating: false, 
+          };
+          updateScheduled = true;
+        }
+      });
+
+      return updateScheduled ? newResponses : prevResponses;
+    });
+  }, [llmResponses, processedData?.textMapFlat]);
 
   const handleLoadSyntheticData = async () => {
     setIsLoading(true);
     setErrorMessage(null);
     setProcessedData(null);
-    setLlmResponseContent(null);
-    setLlmResponseUsage(null);
-    setLlmErrorMessage(null);
-    setSelectedStage(null);
-    setPredictXpathList(null);
-    setEvaluationResult(null);
+    setLlmResponses({ // Reset LLM states
+      html: { ...initialLlmStageResponse },
+      textMap: { ...initialLlmStageResponse },
+      textMapFlat: { ...initialLlmStageResponse },
+    });
+    setOverallLlmFetching(false);
 
     const htmlPath = "/next-eval/sample.html";
 
@@ -330,7 +437,7 @@ export default function HomePage() {
                 p-2 border border-gray-300 rounded-md shadow-sm"
               accept=".html"
               onChange={handleFileChange}
-              disabled={isLoading}
+              disabled={isLoading || overallLlmFetching}
               ref={fileInputRef}
             />
           </div>
@@ -351,7 +458,7 @@ export default function HomePage() {
               type="button"
               onClick={handleLoadSyntheticData}
               className="w-full px-6 py-2 bg-teal-500 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isLoading}
+              disabled={isLoading || overallLlmFetching}
               aria-label="Load sample HTML data"
             >
               Load Sample HTML
@@ -455,16 +562,8 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Stage 1: Slimmed HTML (Cleaned HTML) */}
             <div
-              role="button"
-              tabIndex={0}
-              className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 text-left flex flex-col justify-between ${
-                selectedStage === 'html'
-                  ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
-                  : 'bg-gray-50 hover:bg-blue-50'
-              }`}
-              onClick={() => setSelectedStage('html')}
-              onKeyDown={(e) => e.key === 'Enter' && setSelectedStage('html')}
-              aria-label="Select Slimmed HTML stage"
+              className="p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between"
+              aria-label="Slimmed HTML stage content"
             >
               <div>
                 <h3 className="text-lg font-medium mb-1">
@@ -498,18 +597,8 @@ export default function HomePage() {
 
             {/* Stage 3: Hierarchical Text Map - MOVED TO STAGE 2 */}
             <div
-              role="button"
-              tabIndex={0}
-              className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 text-left flex flex-col justify-between ${
-                selectedStage === 'textMap'
-                  ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
-                  : 'bg-gray-50 hover:bg-blue-50'
-              }`}
-              onClick={() => setSelectedStage('textMap')}
-              onKeyDown={(e) =>
-                e.key === 'Enter' && setSelectedStage('textMap')
-              }
-              aria-label="Select Hierarchical JSON stage"
+              className="p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between"
+              aria-label="Hierarchical JSON stage content"
             >
               <div>
                 <h3 className="text-lg font-medium mb-1">
@@ -544,18 +633,8 @@ export default function HomePage() {
 
             {/* Stage 2: XPath to Text (Flat) - MOVED TO STAGE 3 */}
             <div
-              role="button"
-              tabIndex={0}
-              className={`p-4 border rounded-lg shadow cursor-pointer transition-all duration-200 text-left flex flex-col justify-between ${
-                selectedStage === 'textMapFlat'
-                  ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
-                  : 'bg-gray-50 hover:bg-blue-50'
-              }`}
-              onClick={() => setSelectedStage('textMapFlat')}
-              onKeyDown={(e) =>
-                e.key === 'Enter' && setSelectedStage('textMapFlat')
-              }
-              aria-label="Select Flat JSON stage"
+              className="p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between"
+              aria-label="Flat JSON stage content"
             >
               <div>
                 <h3 className="text-lg font-medium mb-1">
@@ -593,144 +672,148 @@ export default function HomePage() {
 
       {/* LLM Interaction Section */}
       {processedData && !isLoading && (
-        <section className="p-6 border rounded-lg shadow-md bg-white">
+        <section className="mt-8 p-6 border rounded-lg shadow-md bg-white">
           <h2 className="text-xl font-semibold mb-4">
-            LLM Interaction (Gemini 2.5 Pro)
+            LLM Interaction (Gemini 2.5 Pro) - All Stages
           </h2>
-          {!selectedStage ? (
-            <div className="text-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
-              Please select one of the processing stages above to interact with
-              LLM.
-            </div>
-          ) : (
-            <>
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="font-semibold">
-                  Selected stage for LLM:{' '}
-                  <span className="font-normal">
-                    {selectedStage === 'html'
-                      ? 'Slimmed HTML'
-                      : selectedStage === 'textMap'
-                        ? 'Hierarchical JSON (Nested text map)'
-                        : 'Flat JSON (text map)'}
-                  </span>
-                </p>
-              </div>
-              <div className="flex justify-between items-center">
-                <button
-                  type="button"
-                  onClick={handleSendToLlm}
-                  aria-label="Send prompt to LLM"
-                  className="w-full sm:w-auto px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={!selectedStage || isLlmLoading}
-                >
-                  {isLlmLoading ? 'Sending...' : 'Send to Gemini'}
-                </button>
-                <button
-                  type="button"
-                  aria-label="Clear selection"
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-                  onClick={() => {
-                    setSelectedStage(null);
-                  }}
-                >
-                  Clear Selection
-                </button>
-              </div>
-            </>
-          )}
-          {/* Display LLM Response */}
-          {isLlmLoading && (
+          <div className="flex justify-center items-center mb-6">
+            <button
+              type="button"
+              onClick={handleSendToLlm}
+              aria-label="Send all processed stages to LLM"
+              className="w-full sm:w-auto px-8 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!processedData || overallLlmFetching}
+            >
+              {overallLlmFetching
+                ? 'Sending to Gemini...'
+                : 'Send All Stages to Gemini'}
+            </button>
+          </div>
+
+          {/* Display LLM Responses in a Grid */}
+          {overallLlmFetching && 
+            !llmResponses.html.content && !llmResponses.textMap.content && !llmResponses.textMapFlat.content && (
             <div className="mt-6 text-center">
               <p className="text-lg font-semibold animate-pulse">
-                Waiting for LLM response...
+                Waiting for LLM responses...
               </p>
-              {/* You could add a more specific LLM loading spinner here */}
             </div>
           )}
-          {llmErrorMessage && (
-            <div
-              className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700"
-              role="alert"
-            >
-              <p className="font-semibold">LLM Error:</p>
-              <pre className="text-sm whitespace-pre-wrap">
-                {llmErrorMessage}
-              </pre>
-            </div>
-          )}
-          {llmResponseContent && !isLlmLoading && !llmErrorMessage && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold mb-2">LLM Response:</h3>
-              <>
-                {llmResponseUsage && (
-                  <div className="mb-4">
-                    <h4 className="text-md font-semibold mb-1 text-gray-700">
-                      Usage:
-                    </h4>
-                    <div className="max-h-48 overflow-auto bg-gray-50 p-3 border rounded-md">
-                      <pre className="text-sm whitespace-pre-wrap">
-                        {typeof llmResponseUsage === 'string'
-                          ? llmResponseUsage
-                          : JSON.stringify(llmResponseUsage, null, 2)}
-                      </pre>
-                    </div>
+
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            {(Object.keys(llmResponses) as Array<keyof LlmAllResponses>).map(
+              (stageKey) => {
+                const stageResponse = llmResponses[stageKey];
+                const stageTitles: Record<keyof LlmAllResponses, string> = {
+                  html: 'Slimmed HTML Response',
+                  textMap: 'Hierarchical JSON Response',
+                  textMapFlat: 'Flat JSON Response',
+                };
+
+                return (
+                  <div
+                    key={stageKey}
+                    className="p-4 border rounded-lg shadow-sm bg-gray-50 flex flex-col"
+                  >
+                    <h3 className="text-lg font-semibold mb-3 text-gray-800 border-b pb-2">
+                      {stageTitles[stageKey]}
+                    </h3>
+                    {stageResponse.isLoading && (
+                      <p className="text-md font-medium text-blue-600 animate-pulse">
+                        Loading response...
+                      </p>
+                    )}
+                    {stageResponse.error && (
+                      <div
+                        className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm"
+                        role="alert"
+                      >
+                        <p className="font-semibold">Error:</p>
+                        <pre className="whitespace-pre-wrap break-all">
+                          {stageResponse.error}
+                        </pre>
+                      </div>
+                    )}
+                    {!stageResponse.isLoading && stageResponse.content && !stageResponse.error && (
+                      <>
+                        {stageResponse.usage && (
+                          <div className="mb-3">
+                            <h4 className="text-sm font-semibold mb-1 text-gray-600">
+                              Usage:
+                            </h4>
+                            <div className="max-h-32 overflow-auto bg-white p-2 border rounded-md text-xs">
+                              <pre className="whitespace-pre-wrap">
+                                {typeof stageResponse.usage === 'string'
+                                  ? stageResponse.usage
+                                  : JSON.stringify(
+                                      stageResponse.usage,
+                                      null,
+                                      2,
+                                    )}
+                              </pre>
+                            </div>
+                          </div>
+                        )}
+                        <div className="mb-3">
+                          <h4 className="text-sm font-semibold mb-1 text-gray-600">
+                            Content:
+                          </h4>
+                          <div className="h-64 overflow-auto bg-white p-2 border rounded-md text-xs">
+                            <pre className="whitespace-pre-wrap">
+                              {stageResponse.content}
+                            </pre>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-semibold mb-1 text-gray-600">
+                            Evaluation Metrics:
+                          </h4>
+                          <div className="p-2 bg-blue-50 border border-blue-100 rounded-md space-y-1 text-xs">
+                            {stageResponse.isEvaluating && (
+                              <p className="text-blue-500 animate-pulse">
+                                Calculating metrics...
+                              </p>
+                            )}
+                            {!stageResponse.isEvaluating && stageResponse.predictXpathList && (
+                              <>
+                                {stageResponse.numPredictedRecords !== null && (
+                                  <p>
+                                    <span className="font-semibold">
+                                      Predicted Records:
+                                    </span>{' '}
+                                    {stageResponse.numPredictedRecords}
+                                  </p>
+                                )}
+                                {stageResponse.numHallucination !== null && (
+                                  <p>
+                                    <span className="font-semibold">
+                                      Potential Hallucinations:
+                                    </span>{' '}
+                                    {stageResponse.numHallucination} (
+                                    {stageResponse.numPredictedRecords &&
+                                    stageResponse.numPredictedRecords > 0
+                                      ? `${((stageResponse.numHallucination / stageResponse.numPredictedRecords) * 100).toFixed(2)}%`
+                                      : 'N/A'}
+                                    )
+                                  </p>
+                                )}
+                              </>
+                            )}
+                            {!stageResponse.isEvaluating && !stageResponse.predictXpathList && !stageResponse.error && stageResponse.content &&(
+                               <p className="text-gray-500">Metrics not available (no valid XPaths predicted or error in content).</p>
+                            )}
+                             {!stageResponse.isEvaluating && !stageResponse.content && !stageResponse.isLoading && (
+                                <p className="text-gray-500">No content to evaluate.</p>
+                             )}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
-                )}
-                <div>
-                  <h4 className="text-md font-semibold mb-1 text-gray-700">
-                    Content:
-                  </h4>
-                  <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md">
-                    <pre className="text-sm whitespace-pre-wrap">
-                      {llmResponseContent}
-                    </pre>
-                  </div>
-                </div>
-              </>
-            </div>
-          )}
-          {/* Display Evaluation Metrics from LLM Response */}
-          {!isLlmLoading && !llmErrorMessage && predictXpathList && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold mb-2 text-gray-800">
-                Evaluation Metrics (from LLM Response):
-              </h3>
-              <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
-                {numPredictedRecords !== null && (
-                  <p className="text-sm">
-                    <span className="font-semibold">
-                      Number of Predicted XPath Records:
-                    </span>{' '}
-                    {numPredictedRecords}
-                  </p>
-                )}
-                {numHallucination !== null && (
-                  <p className="text-sm">
-                    <span className="font-semibold">
-                      Number of Potential Hallucinations (empty mappings):
-                    </span>{' '}
-                    {numHallucination} (Rate:{' '}
-                    {numPredictedRecords && numPredictedRecords > 0
-                      ? `${((numHallucination / numPredictedRecords) * 100).toFixed(2)}%`
-                      : 'N/A'}
-                    )
-                  </p>
-                )}
-                {(numPredictedRecords === null || numHallucination === null) &&
-                  !isEvaluating && (
-                    <p className="text-sm text-gray-500">
-                      Evaluation metrics are being calculated or are not available.
-                    </p>
-                  )}
-                {isEvaluating && (
-                  <p className="text-sm text-blue-500 animate-pulse">
-                    Calculating evaluation metrics...
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
+                );
+              },
+            )}
+          </div>
         </section>
       )}
     </main>
