@@ -499,23 +499,6 @@ export default function HomePage() {
               {processedData.originalHtml}
             </pre>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              if (processedData.originalHtml) {
-                handleDownload(
-                  processedData.originalHtml,
-                  'original_source.html',
-                  'text/html',
-                );
-              }
-            }}
-            className="px-4 py-2 bg-indigo-500 text-white text-sm font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
-            aria-label="Download original_source.html"
-            disabled={!processedData.originalHtml}
-          >
-            Download Original HTML
-          </button>
         </section>
       ) : (
         <>
@@ -536,23 +519,6 @@ export default function HomePage() {
                   {processedData.originalHtml}
                 </pre>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (processedData.originalHtml) {
-                    handleDownload(
-                      processedData.originalHtml,
-                      'original_source.html',
-                      'text/html',
-                    );
-                  }
-                }}
-                className="px-4 py-2 bg-indigo-500 text-white text-sm font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
-                aria-label="Download original_source.html"
-                disabled={!processedData.originalHtml}
-              >
-                Download Original HTML
-              </button>
             </section>
           )}
         </>
