@@ -645,7 +645,6 @@ export async function POST(req: NextRequest) {
         { status: 500 },
       );
     }
-
     const systemPromptContent = promptContentMap[promptType];
 
     // Directly combine system prompt and the input data

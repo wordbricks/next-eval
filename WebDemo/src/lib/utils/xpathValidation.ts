@@ -22,7 +22,6 @@ export const parseAndValidateXPaths = (
     ) {
       cleanedContent = cleanedContent.slice(3, -3).trim(); // "```".length is 3
     }
-
     const parsedData = JSON.parse(cleanedContent);
     const validationResult = xpathArraySchema.safeParse(parsedData);
 
@@ -46,7 +45,7 @@ export const parseAndValidateXPaths = (
         coercedValidationResult.error.flatten(),
       );
     }
-    return null; // Return null if validation fails after all attempts
+    return null;
   } catch (error) {
     // Catch errors from JSON.parse or other unexpected issues
     console.error(
