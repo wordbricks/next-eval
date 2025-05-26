@@ -2,11 +2,7 @@
 
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type {
-  EvaluationResult,
-  HtmlResult,
-  NestedTextMap,
-} from '../lib/interfaces';
+import type { EvaluationResult, HtmlResult } from '../lib/interfaces';
 import { handleDownload } from '../lib/utils/handleDownload';
 // import { calculateEvaluationMetrics } from '../lib/utils/evaluation';
 import { mapResponseToFullXPath } from '../lib/utils/mapResponseToFullXpath';
@@ -246,24 +242,24 @@ export default function HomePage() {
       setLlmResponses((prev) => {
         let needsUpdate = false;
         const newResponses = { ...prev };
-        (Object.keys(newResponses) as Array<keyof LlmAllResponses>).forEach(
-          (stageKey) => {
-            if (
-              newResponses[stageKey].numPredictedRecords !== null ||
-              newResponses[stageKey].numHallucination !== null ||
-              newResponses[stageKey].isEvaluating
-            ) {
-              needsUpdate = true;
-              newResponses[stageKey] = {
-                ...newResponses[stageKey],
-                numPredictedRecords: null,
-                numHallucination: null,
-                evaluationResult: null,
-                isEvaluating: false,
-              };
-            }
-          },
-        );
+        for (const stageKey of Object.keys(newResponses) as Array<
+          keyof LlmAllResponses
+        >) {
+          if (
+            newResponses[stageKey].numPredictedRecords !== null ||
+            newResponses[stageKey].numHallucination !== null ||
+            newResponses[stageKey].isEvaluating
+          ) {
+            needsUpdate = true;
+            newResponses[stageKey] = {
+              ...newResponses[stageKey],
+              numPredictedRecords: null,
+              numHallucination: null,
+              evaluationResult: null,
+              isEvaluating: false,
+            };
+          }
+        }
         return needsUpdate ? newResponses : prev;
       });
       return;
@@ -278,108 +274,107 @@ export default function HomePage() {
     setLlmResponses((prevResponses) => {
       const newResponses = { ...prevResponses };
 
-      (Object.keys(newResponses) as Array<keyof LlmAllResponses>).forEach(
-        (stageKey) => {
-          const stageData = newResponses[stageKey];
+      for (const stageKey of Object.keys(newResponses) as Array<
+        keyof LlmAllResponses
+      >) {
+        const stageData = newResponses[stageKey];
 
-          // Step 1: If we have new XPaths, aren't loading/evaluating, and metrics are not yet computed, set to isEvaluating
-          if (
-            stageData.predictXpathList &&
-            !stageData.isLoading &&
-            !stageData.isEvaluating &&
-            stageData.numPredictedRecords === null // Only if metrics are not yet computed
-          ) {
-            newResponses[stageKey] = {
-              ...stageData,
-              isEvaluating: true,
-              // Clear any previous evaluation-specific errors
-              error: stageData.error?.includes('Evaluation Error:')
-                ? stageData.error
-                    .split('\n')
-                    .filter((line) => !line.startsWith('Evaluation Error:'))
-                    .join('\n') || null
-                : stageData.error,
-            };
-            updateScheduled = true;
-          }
-          // Step 2: If isEvaluating is true, perform the evaluation
-          else if (stageData.isEvaluating && !stageData.isLoading) {
-            try {
-              if (!stageData.predictXpathList) {
-                // This case should ideally be prevented by the reset in handleSendToLlm or if LLM call fails
-                // but as a safeguard, if predictXpathList is gone while we are in isEvaluating, reset.
-                newResponses[stageKey] = {
-                  ...stageData,
-                  isEvaluating: false,
-                  numPredictedRecords: null,
-                  numHallucination: null,
-                  evaluationResult: null,
-                  error: `${stageData.error ? `${stageData.error}\n` : ''}Evaluation Error: XPaths disappeared during evaluation. Resetting metrics.`,
-                };
-                updateScheduled = true;
-                return; // continue to next stageKey in forEach
-              }
-
-              const localNumPredictedRecords =
-                stageData.predictXpathList.length;
-              const mappedPredRecords = mapResponseToFullXPath(
-                textMapFlatForEval,
-                stageData.predictXpathList,
-              );
-              let localNumHallucination = 0;
-              for (const record of mappedPredRecords) {
-                if (record.length === 0) {
-                  localNumHallucination += 1;
-                }
-              }
+        // Step 1: If we have new XPaths, aren't loading/evaluating, and metrics are not yet computed, set to isEvaluating
+        if (
+          stageData.predictXpathList &&
+          !stageData.isLoading &&
+          !stageData.isEvaluating &&
+          stageData.numPredictedRecords === null // Only if metrics are not yet computed
+        ) {
+          newResponses[stageKey] = {
+            ...stageData,
+            isEvaluating: true,
+            // Clear any previous evaluation-specific errors
+            error: stageData.error?.includes('Evaluation Error:')
+              ? stageData.error
+                  .split('\n')
+                  .filter((line) => !line.startsWith('Evaluation Error:'))
+                  .join('\n') || null
+              : stageData.error,
+          };
+          updateScheduled = true;
+        }
+        // Step 2: If isEvaluating is true, perform the evaluation
+        else if (stageData.isEvaluating && !stageData.isLoading) {
+          try {
+            if (!stageData.predictXpathList) {
+              // This case should ideally be prevented by the reset in handleSendToLlm or if LLM call fails
+              // but as a safeguard, if predictXpathList is gone while we are in isEvaluating, reset.
               newResponses[stageKey] = {
                 ...stageData,
-                numPredictedRecords: localNumPredictedRecords,
-                numHallucination: localNumHallucination,
                 isEvaluating: false,
-                // Evaluation successful, error remains as is (or cleared in step 1 if it was an eval error)
-              };
-              updateScheduled = true;
-            } catch (evalError) {
-              console.error(
-                `Error during evaluation for ${stageKey}:`,
-                evalError,
-              );
-              newResponses[stageKey] = {
-                ...stageData,
-                error: `${stageData.error ? `${stageData.error}\n` : ''}Evaluation Error: ${evalError instanceof Error ? evalError.message : String(evalError)}`,
                 numPredictedRecords: null,
                 numHallucination: null,
-                isEvaluating: false,
+                evaluationResult: null,
+                error: `${stageData.error ? `${stageData.error}\n` : ''}Evaluation Error: XPaths disappeared during evaluation. Resetting metrics.`,
               };
               updateScheduled = true;
+              return; // continue to next stageKey in forEach
             }
-          }
-          // Step 3: If predictXpathList becomes null (e.g. error during LLM fetch after successful fetch),
-          // and we are not currently loading/evaluating, ensure metrics are cleared.
-          // This is a cleanup step.
-          else if (
-            !stageData.predictXpathList &&
-            !stageData.isLoading &&
-            !stageData.isEvaluating &&
-            (stageData.numPredictedRecords !== null ||
-              stageData.numHallucination !== null)
-          ) {
+
+            const localNumPredictedRecords = stageData.predictXpathList.length;
+            const mappedPredRecords = mapResponseToFullXPath(
+              textMapFlatForEval,
+              stageData.predictXpathList,
+            );
+            let localNumHallucination = 0;
+            for (const record of mappedPredRecords) {
+              if (record.length === 0) {
+                localNumHallucination += 1;
+              }
+            }
             newResponses[stageKey] = {
               ...stageData,
+              numPredictedRecords: localNumPredictedRecords,
+              numHallucination: localNumHallucination,
+              isEvaluating: false,
+              // Evaluation successful, error remains as is (or cleared in step 1 if it was an eval error)
+            };
+            updateScheduled = true;
+          } catch (evalError) {
+            console.error(
+              `Error during evaluation for ${stageKey}:`,
+              evalError,
+            );
+            newResponses[stageKey] = {
+              ...stageData,
+              error: `${stageData.error ? `${stageData.error}\n` : ''}Evaluation Error: ${evalError instanceof Error ? evalError.message : String(evalError)}`,
               numPredictedRecords: null,
               numHallucination: null,
-              evaluationResult: null, // Kept for consistency
               isEvaluating: false,
             };
             updateScheduled = true;
           }
-        },
-      );
+        }
+        // Step 3: If predictXpathList becomes null (e.g. error during LLM fetch after successful fetch),
+        // and we are not currently loading/evaluating, ensure metrics are cleared.
+        // This is a cleanup step.
+        else if (
+          !stageData.predictXpathList &&
+          !stageData.isLoading &&
+          !stageData.isEvaluating &&
+          (stageData.numPredictedRecords !== null ||
+            stageData.numHallucination !== null)
+        ) {
+          newResponses[stageKey] = {
+            ...stageData,
+            numPredictedRecords: null,
+            numHallucination: null,
+            evaluationResult: null, // Kept for consistency
+            isEvaluating: false,
+          };
+          updateScheduled = true;
+        }
+      }
 
       return updateScheduled ? newResponses : prevResponses;
     });
-  }, [llmResponses, processedData?.textMapFlat]);
+  }, [processedData?.textMapFlat]);
 
   const handleLoadSyntheticData = async () => {
     setIsLoading(true);
