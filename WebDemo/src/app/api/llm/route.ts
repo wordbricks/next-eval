@@ -2,6 +2,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import dotenv from 'dotenv';
 import { type NextRequest, NextResponse } from 'next/server';
+import { type LLMResponse } from '../../../lib/interfaces';
 
 dotenv.config(); // Ensure environment variables are loaded
 
@@ -619,21 +620,6 @@ const promptContentMap: Record<PromptType, string> = {
   hierarchical: SYSTEM_LLM_HIER_MD,
 };
 
-// USER_INPUT_FILE is no longer needed here as we directly use the data.
-
-// Define the expected structure for the LLM response based on your example
-interface LLMUsage {
-  promptTokens: number;
-  completionTokens: number;
-  totalTokens: number;
-}
-interface LLMResponse {
-  content: string;
-  role: 'user' | 'assistant' | 'system' | 'tool';
-  usage?: LLMUsage;
-  error?: string;
-  systemPromptUsed?: string;
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -665,34 +651,32 @@ export async function POST(req: NextRequest) {
 
     // Directly combine system prompt and the input data
     const combinedPrompt = `${systemPromptContent}\n\nInput Data:\n${data}`;
-
     const temperature = 1.0;
 
-    const { text, usage } = await generateText({
-      model: google(modelName),
-      prompt: combinedPrompt,
-      temperature: temperature,
-    });
+   const { text, usage } = await generateText({
+     model: google(modelName),
+     prompt: combinedPrompt,
+     temperature: temperature,
+   });
 
-    if (!text) {
-      return NextResponse.json(
-        { error: 'No response from Gemini' } as LLMResponse,
-        { status: 500 },
-      );
-    }
+   if (!text) {
+     return NextResponse.json(
+       { error: 'No response from Gemini' } as LLMResponse,
+       { status: 500 },
+     );
+   }
 
-    const responsePayload: LLMResponse = {
-      content: text,
-      role: 'assistant',
-      usage: usage
-        ? {
-            promptTokens: usage.promptTokens,
-            completionTokens: usage.completionTokens,
-            totalTokens: usage.totalTokens,
-          }
-        : undefined,
-      systemPromptUsed: `Embedded ${promptType}`,
-    };
+   const responsePayload: LLMResponse = {
+     content: text,
+     usage: usage
+       ? {
+           promptTokens: usage.promptTokens,
+           completionTokens: usage.completionTokens,
+           totalTokens: usage.totalTokens,
+         }
+       : undefined,
+     systemPromptUsed: `Embedded ${promptType}`,
+   };
 
     return NextResponse.json(responsePayload);
   } catch (error) {

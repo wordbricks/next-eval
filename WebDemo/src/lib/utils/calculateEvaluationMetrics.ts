@@ -1,5 +1,5 @@
 import munkres from 'munkres-js';
-import type { EvaluationResult } from '../interfaces/index';
+import type { EvaluationResult } from '../interfaces';
 
 export const calculateOverlap = (
   record1: string[],
@@ -25,15 +25,43 @@ export const calculateEvaluationMetrics = (
   const M = predictedRecords.length; // Number of predicted records
   const N = groundTruthRecords.length; // Number of ground-truth records
 
+  const numValidPredictedRecords = predictedRecords.filter(
+    (record) => record.length > 0,
+  ).length;
+
   // Handle edge cases: no records predicted or no ground truth
   if (M === 0 && N === 0) {
-    return { precision: 1, recall: 1, f1: 1, totalOverlap: 0, matches: 0 }; // Both empty, perfect match?
+    return {
+      precision: 1,
+      recall: 1,
+      f1: 1,
+      totalOverlap: 0,
+      matches: 0,
+      validPredictedRecords: 0,
+      totalPredictedRecords: 0,
+    }; // Both empty, perfect match?
   }
   if (M === 0) {
-    return { precision: 0, recall: 0, f1: 0, totalOverlap: 0, matches: 0 }; // Nothing predicted
+    return {
+      precision: 0,
+      recall: 0,
+      f1: 0,
+      totalOverlap: 0,
+      matches: 0,
+      validPredictedRecords: 0,
+      totalPredictedRecords: 0,
+    }; // Nothing predicted
   }
   if (N === 0) {
-    return { precision: 0, recall: 0, f1: 0, totalOverlap: 0, matches: 0 }; // Nothing in ground truth (implies nothing should be predicted)
+    return {
+      precision: 0,
+      recall: 0,
+      f1: 0,
+      totalOverlap: 0,
+      matches: 0,
+      validPredictedRecords: numValidPredictedRecords,
+      totalPredictedRecords: M,
+    }; // Nothing in ground truth (implies nothing should be predicted)
   }
 
   // Create the cost matrix (cost = 1 - overlap)
@@ -77,5 +105,7 @@ export const calculateEvaluationMetrics = (
     f1,
     totalOverlap: maxTotalOverlap,
     matches: matchedCount,
+    validPredictedRecords: numValidPredictedRecords,
+    totalPredictedRecords: M,
   };
 };

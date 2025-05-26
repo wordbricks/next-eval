@@ -2,14 +2,9 @@
 
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import EvaluationDisplay from '../components/EvaluationDisplay';
-import type { HtmlResult } from '../lib/interfaces';
-import type { TextMapNode } from '../lib/utils/TextMapNode';
-import {
-  type EvaluationResult,
-  calculateEvaluationMetrics,
-  mapResponseToFullXPath,
-} from '../lib/utils/evaluation';
+import type { HtmlResult, EvaluationResult, NestedTextMap } from '../lib/interfaces';
+// import { calculateEvaluationMetrics } from '../lib/utils/evaluation';
+import { mapResponseToFullXPath } from '../lib/utils/mapResponseToFullXpath';
 import { handleDownload } from '../lib/utils/handleDownload';
 import { processHtmlContent } from '../lib/utils/processHtmlContent';
 import { readFileAsText } from '../lib/utils/readFileAsText';
@@ -26,27 +21,21 @@ export default function HomePage() {
   const [selectedStage, setSelectedStage] = useState<
     'html' | 'textMapFlat' | 'textMap' | null
   >(null);
-  const [llmResponse, setLlmResponse] = useState<string | null>(null);
+  const [llmResponseContent, setLlmResponseContent] = useState<string | null>(null);
+  const [llmResponseUsage, setLlmResponseUsage] = useState<string | null>(null);
   const [isLlmLoading, setIsLlmLoading] = useState<boolean>(false);
   const [llmErrorMessage, setLlmErrorMessage] = useState<string | null>(null);
-  const [groundTruthXpathList, setGroundTruthXpathList] =
-    useState<ValidatedXpathArray | null>(null);
   const [predictXpathList, setPredictXpathList] =
     useState<ValidatedXpathArray | null>(null);
-  const [rawGroundTruthRecords, setRawGroundTruthRecords] = useState<
-    string[][] | null
-  >(null);
-  const [rawPredictRecords, setRawPredictRecords] = useState<string[][] | null>(
-    null,
-  );
   const [evaluationResult, setEvaluationResult] =
     useState<EvaluationResult | null>(null);
   const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
-  const [rawGroundTruthJsonContent, setRawGroundTruthJsonContent] = useState<
-    string | null
-  >(null);
   const [selectedSyntheticIndex, setSelectedSyntheticIndex] =
     useState<string>('');
+  const [numPredictedRecords, setNumPredictedRecords] = useState<number | null>(
+    null,
+  );
+  const [numHallucination, setNumHallucination] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -76,16 +65,12 @@ export default function HomePage() {
     setIsLoading(true);
     setErrorMessage(null);
     setProcessedData(null);
-    // Clear LLM related states
-    setLlmResponse(null);
+    setLlmResponseContent(null);
+    setLlmResponseUsage(null);
     setLlmErrorMessage(null);
     setSelectedStage(null);
-    setGroundTruthXpathList(null); // Reset ground truth for user-uploaded file
-    setPredictXpathList(null); // Reset predictions for user-uploaded file
-    setRawGroundTruthRecords(null);
-    setRawPredictRecords(null);
+    setPredictXpathList(null);
     setEvaluationResult(null);
-    setRawGroundTruthJsonContent(null); // Reset raw ground truth JSON content for user-uploaded file
 
     try {
       const htmlString = await readFileAsText(selectedFile);
@@ -126,9 +111,9 @@ export default function HomePage() {
 
     setIsLlmLoading(true);
     setLlmErrorMessage(null);
-    setLlmResponse(null); // Clear previous response
+    setLlmResponseContent(null);
+    setLlmResponseUsage(null);
     setPredictXpathList(null); // Clear previous LLM-generated XPaths
-    setRawPredictRecords(null); // Clear previous raw LLM XPaths
     setEvaluationResult(null); // Clear previous evaluation
 
     try {
@@ -139,7 +124,7 @@ export default function HomePage() {
       } as const;
 
       // Prepare data: use stringified version for maps, direct HTML for 'html' stage
-      let dataToSend: string | Record<string, string> | TextMapNode | undefined;
+      let dataToSend: string | Record<string, string> | NestedTextMap | undefined;
       if (selectedStage === 'html') {
         dataToSend = processedData.html;
       } else if (selectedStage === 'textMapFlat') {
@@ -174,68 +159,28 @@ export default function HomePage() {
       }
 
       const result = await response.json();
-      const rawLlmOutput = result.llmResponse; // Assuming this is the direct string output for XPaths
-
-      setLlmResponse(rawLlmOutput || JSON.stringify(result, null, 2));
-
-      // Attempt to parse and validate the rawLlmOutput if it's a string intended to be XPaths
-      if (rawLlmOutput && typeof rawLlmOutput === 'string') {
-        const validatedPredXPaths = parseAndValidateXPaths(rawLlmOutput);
-        if (validatedPredXPaths) {
-          setPredictXpathList(validatedPredXPaths);
-          // Attempt to parse rawLlmOutput as string[][] for evaluation
-          try {
-            const parsedRecords = JSON.parse(rawLlmOutput);
-            if (
-              Array.isArray(parsedRecords) &&
-              parsedRecords.every(
-                (record) =>
-                  Array.isArray(record) &&
-                  record.every((item) => typeof item === 'string'),
-              )
-            ) {
-              setRawPredictRecords(parsedRecords as string[][]);
-            } else {
-              console.warn(
-                'LLM response (rawLlmOutput) is not in string[][] format after parsing JSON.',
-              );
-              setRawPredictRecords(null);
-            }
-          } catch (e) {
-            console.warn(
-              'Failed to parse rawLlmOutput as JSON for raw records:',
-              e,
-            );
-            setRawPredictRecords(null);
-          }
-        } else {
-          setPredictXpathList(null);
-          setRawPredictRecords(null);
-          console.warn(
-            'LLM response (rawLlmOutput) could not be validated as XPath list.',
-          );
-          // Optionally, extend llmErrorMessage or set a specific message
-          setLlmErrorMessage((prev) =>
-            prev
-              ? `${prev}\nInfo: LLM output was not in the expected XPath list format.`
-              : 'Info: LLM output was not in the expected XPath list format.',
-          );
-        }
+      console.log('result', result);
+      if (
+        'content' in result &&
+        'usage' in result
+      ) {
+        const { content: llmContent, usage: llmUsage } = result;
+        const validatedPredXPaths = parseAndValidateXPaths(llmContent);
+        console.log('validatedPredXPaths', validatedPredXPaths);
+        setLlmResponseContent(llmContent);
+        setLlmResponseUsage(llmUsage);
+        setPredictXpathList(validatedPredXPaths);
       } else {
-        setPredictXpathList(null);
-        setRawPredictRecords(null);
-        if (rawLlmOutput) {
-          // It exists but it's not a string
-          console.warn(
-            'LLM response (rawLlmOutput) is not a string, cannot parse as XPaths directly.',
-          );
-        }
+        // Fallback if structure is not as expected but response was 'ok'
+        setLlmResponseContent(
+          `Unexpected response structure: ${JSON.stringify(result, null, 2)}`,
+        );
+        setLlmResponseUsage('Unknown');
+        setPredictXpathList(null); // Ensure evaluation clears
       }
-      console.log('predictXpathList', predictXpathList);
     } catch (error) {
-      console.error('Error sending to LLM:', error);
+      console.error(`Error sending to LLM: ${error}`);
       setPredictXpathList(null); // Ensure reset on error
-      setRawPredictRecords(null); // Ensure reset on error
       if (error instanceof Error) {
         setLlmErrorMessage(`LLM Error: ${error.message}`);
       } else {
@@ -257,35 +202,33 @@ export default function HomePage() {
   // Effect to run evaluation when necessary data is available
   useEffect(() => {
     if (
-      rawGroundTruthRecords &&
-      rawPredictRecords &&
+      // groundTruthXpathList && // No longer available for synthetic
+      predictXpathList &&
       processedData?.textMapFlat
     ) {
       setIsEvaluating(true);
-      setEvaluationResult(null); // Clear previous results
+      setEvaluationResult(null); // Clear previous broader results
+      setNumPredictedRecords(null); // Clear previous specific metrics
+      setNumHallucination(null); // Clear previous specific metrics
 
       try {
         const textMapFlatForEval = processedData.textMapFlat as Record<
           string,
           string
         >;
-
-        const mappedGtRecords = mapResponseToFullXPath(
-          textMapFlatForEval,
-          rawGroundTruthRecords,
-        );
+        const localNumPredictedRecords = predictXpathList.length;
         const mappedPredRecords = mapResponseToFullXPath(
           textMapFlatForEval,
-          rawPredictRecords,
+          predictXpathList,
         );
-
-        // TODO: The calculateEvaluationMetrics currently returns dummy data.
-        // You'll need to implement the actual logic in src/lib/utils/evaluation.ts
-        const metrics = calculateEvaluationMetrics(
-          mappedPredRecords,
-          mappedGtRecords,
-        );
-        setEvaluationResult(metrics);
+        let localNumHallucination = 0;
+        for (const record of mappedPredRecords) {
+          if (record.length === 0) {
+            localNumHallucination += 1;
+          }
+        }
+        setNumPredictedRecords(localNumPredictedRecords);
+        setNumHallucination(localNumHallucination);
       } catch (evalError) {
         console.error('Error during evaluation:', evalError);
         setErrorMessage((prev) =>
@@ -294,22 +237,25 @@ export default function HomePage() {
             : 'Error: Could not calculate evaluation metrics.',
         );
         setEvaluationResult(null);
+        setNumPredictedRecords(null); // Ensure clear on error
+        setNumHallucination(null); // Ensure clear on error
       } finally {
         setIsEvaluating(false);
       }
     } else {
       // If any of the necessary data is missing, ensure evaluationResult is null
       // and not in evaluating state.
-      // This handles cases where one of the lists becomes null later.
       if (evaluationResult !== null) setEvaluationResult(null);
+      if (numPredictedRecords !== null) setNumPredictedRecords(null);
+      if (numHallucination !== null) setNumHallucination(null);
       if (isEvaluating) setIsEvaluating(false);
     }
   }, [
-    rawGroundTruthRecords,
-    rawPredictRecords,
+    // groundTruthXpathList, // Removed
+    predictXpathList,
     processedData?.textMapFlat,
-    evaluationResult,
-    isEvaluating,
+    // evaluationResult, // Removed from deps as it's set by this effect
+    // isEvaluating, // Removed from deps as it's set by this effect
   ]);
 
   // useEffect to automatically load synthetic data when index changes
@@ -345,18 +291,15 @@ export default function HomePage() {
     setIsLoading(true);
     setErrorMessage(null);
     setProcessedData(null);
-    setLlmResponse(null);
+    setLlmResponseContent(null);
+    setLlmResponseUsage(null);
     setLlmErrorMessage(null);
     setSelectedStage(null);
-    setGroundTruthXpathList(null);
     setPredictXpathList(null);
-    setRawGroundTruthRecords(null);
-    setRawPredictRecords(null);
     setEvaluationResult(null);
-    setRawGroundTruthJsonContent(null);
 
     const htmlPath = `/next-eval/synthetic/html/${index}.html`;
-    const groundTruthPath = `/next-eval/synthetic/groundTruth/${index}.json`;
+    // const groundTruthPath = `/next-eval/synthetic/groundTruth/${index}.json`; // Removed
 
     try {
       // Fetch and process HTML
@@ -375,80 +318,8 @@ export default function HomePage() {
         originalHtmlLength,
       });
 
-      // Fetch and process groundTruth.json
-      try {
-        const groundTruthResponse = await fetch(groundTruthPath);
-        if (!groundTruthResponse.ok) {
-          console.error(
-            `Failed to fetch ${groundTruthPath}: ${groundTruthResponse.status} ${groundTruthResponse.statusText}`,
-          );
-          setErrorMessage((prev) =>
-            prev
-              ? `${prev}\nWarning: Could not load ground truth XPaths for index ${index}.`
-              : `Warning: Could not load ground truth XPaths for index ${index}.`,
-          );
-          setGroundTruthXpathList(null);
-          setRawGroundTruthRecords(null);
-          setRawGroundTruthJsonContent(null);
-        } else {
-          const groundTruthContent = await groundTruthResponse.text();
-          setRawGroundTruthJsonContent(groundTruthContent);
-          const validatedGroundTruth =
-            parseAndValidateXPaths(groundTruthContent);
-          if (validatedGroundTruth) {
-            setGroundTruthXpathList(validatedGroundTruth);
-            try {
-              const parsedRecords = JSON.parse(groundTruthContent);
-              if (
-                Array.isArray(parsedRecords) &&
-                parsedRecords.every(
-                  (record) =>
-                    Array.isArray(record) &&
-                    record.every((item) => typeof item === 'string'),
-                )
-              ) {
-                setRawGroundTruthRecords(parsedRecords as string[][]);
-              } else {
-                console.warn(
-                  `Ground truth content from ${groundTruthPath} is not in string[][] format after parsing JSON.`,
-                );
-                setRawGroundTruthRecords(null);
-              }
-            } catch (e) {
-              console.warn(
-                `Failed to parse groundTruthContent from ${groundTruthPath} as JSON for raw records:`,
-                e,
-              );
-              setRawGroundTruthRecords(null);
-            }
-          } else {
-            console.warn(
-              `Failed to parse or validate ${groundTruthPath}. Setting groundTruthXpathList to null.`,
-            );
-            setGroundTruthXpathList(null);
-            setRawGroundTruthRecords(null);
-            setRawGroundTruthJsonContent(null);
-            setErrorMessage((prev) =>
-              prev
-                ? `${prev}\nWarning: Ground truth XPaths for index ${index} are invalid or empty.`
-                : `Warning: Ground truth XPaths for index ${index} are invalid or empty.`,
-            );
-          }
-        }
-      } catch (gtError) {
-        console.error(
-          `Error loading or processing ${groundTruthPath}:`,
-          gtError,
-        );
-        setGroundTruthXpathList(null);
-        setRawGroundTruthRecords(null);
-        setRawGroundTruthJsonContent(null);
-        setErrorMessage((prev) =>
-          prev
-            ? `${prev}\nError: Could not load ground truth XPaths for index ${index}.`
-            : `Error: Could not load ground truth XPaths for index ${index}.`,
-        );
-      }
+      // Ground truth loading logic has been removed here.
+
     } catch (error) {
       console.error(`Error loading synthetic data for index ${index}:`, error);
       if (error instanceof Error) {
@@ -462,9 +333,6 @@ export default function HomePage() {
       }
       // Clear partial data on main error
       setProcessedData(null);
-      setRawGroundTruthJsonContent(null);
-      setGroundTruthXpathList(null);
-      setRawGroundTruthRecords(null);
     } finally {
       setIsLoading(false);
     }
@@ -473,8 +341,7 @@ export default function HomePage() {
   return (
     <main className="container mx-auto p-4 max-w-[1200px]">
       <h1 className="text-3xl font-bold text-center my-8">
-        NEXT-EVAL: Next Evaluation of Traditional and LLM Web Data Record
-        Extraction
+        NEXT-EVAL: Next Evaluation of Traditional and LLM Web Data Record Extraction
       </h1>
       {/* File Input Section */}
       <section className="mb-8 p-6 border rounded-lg shadow-md bg-white">
@@ -552,64 +419,37 @@ export default function HomePage() {
       </section>
 
       {/* Conditional rendering for side-by-side or individual display */}
-      {processedData && processedData.originalHtml && rawGroundTruthJsonContent && !isLoading ? (
-        <div className="flex flex-col md:flex-row md:space-x-4 mb-8">
-          <section className="w-full md:w-1/2 p-6 border rounded-lg shadow-md bg-white mb-4 md:mb-0">
-            <h2 className="text-xl font-semibold mb-4">Original HTML Content</h2>
-            {processedData.originalHtmlLength !== undefined && (
-              <p className="text-sm text-gray-600 mb-2">
-                Length: {processedData.originalHtmlLength.toLocaleString()} characters
-              </p>
-            )}
-            <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
-              <pre className="text-sm whitespace-pre-wrap">
-                {processedData.originalHtml}
-              </pre>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                if (processedData.originalHtml) {
-                  handleDownload(
-                    processedData.originalHtml,
-                    'original_source.html',
-                    'text/html',
-                  );
-                }
-              }}
-              className="px-4 py-2 bg-indigo-500 text-white text-sm font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
-              aria-label="Download original_source.html"
-              disabled={!processedData.originalHtml}
-            >
-              Download Original HTML
-            </button>
-          </section>
-
-          <section className="w-full md:w-1/2 p-6 border rounded-lg shadow-md bg-white">
-            <h2 className="text-xl font-semibold mb-4">
-              Ground Truth XPaths (JSON)
-            </h2>
-            <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
-              <pre className="text-sm whitespace-pre-wrap">
-                {rawGroundTruthJsonContent}
-              </pre>
-            </div>
-            <button
-              type="button"
-              onClick={() =>
+      {processedData && processedData.originalHtml && !isLoading ? (
+        <section className="w-full p-6 border rounded-lg shadow-md bg-white mb-4 md:mb-0">
+          <h2 className="text-xl font-semibold mb-4">Original HTML Content</h2>
+          {processedData.originalHtmlLength !== undefined && (
+            <p className="text-sm text-gray-600 mb-2">
+              Length: {processedData.originalHtmlLength.toLocaleString()} characters
+            </p>
+          )}
+          <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
+            <pre className="text-sm whitespace-pre-wrap">
+              {processedData.originalHtml}
+            </pre>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (processedData.originalHtml) {
                 handleDownload(
-                  rawGroundTruthJsonContent,
-                  'ground_truth.json',
-                  'application/json',
-                )
+                  processedData.originalHtml,
+                  'original_source.html',
+                  'text/html',
+                );
               }
-              className="px-4 py-2 bg-indigo-500 text-white text-sm font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
-              aria-label="Download ground_truth.json"
-            >
-              Download ground_truth.json
-            </button>
-          </section>
-        </div>
+            }}
+            className="px-4 py-2 bg-indigo-500 text-white text-sm font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
+            aria-label="Download original_source.html"
+            disabled={!processedData.originalHtml}
+          >
+            Download Original HTML
+          </button>
+        </section>
       ) : (
         <>
           {/* Display Original HTML Content Section (if only this is available) */}
@@ -642,34 +482,6 @@ export default function HomePage() {
                 disabled={!processedData.originalHtml}
               >
                 Download Original HTML
-              </button>
-            </section>
-          )}
-
-          {/* Display Ground Truth JSON Section (if only this is available) */}
-          {rawGroundTruthJsonContent && !isLoading && (
-            <section className="mb-8 p-6 border rounded-lg shadow-md bg-white">
-              <h2 className="text-xl font-semibold mb-4">
-                Ground Truth XPaths (JSON)
-              </h2>
-              <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
-                <pre className="text-sm whitespace-pre-wrap">
-                  {rawGroundTruthJsonContent}
-                </pre>
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  handleDownload(
-                    rawGroundTruthJsonContent,
-                    'ground_truth.json',
-                    'application/json',
-                  )
-                }
-                className="px-4 py-2 bg-indigo-500 text-white text-sm font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out"
-                aria-label="Download ground_truth.json"
-              >
-                Download ground_truth.json
               </button>
             </section>
           )}
@@ -900,74 +712,80 @@ export default function HomePage() {
               </pre>
             </div>
           )}
-          {llmResponse && !isLlmLoading && !llmErrorMessage && (
+          {llmResponseContent && !isLlmLoading && !llmErrorMessage && (
             <div className="mt-6">
               <h3 className="text-lg font-semibold mb-2">LLM Response:</h3>
-              {(() => {
-                try {
-                  const parsed = JSON.parse(llmResponse);
-                  if (
-                    parsed &&
-                    typeof parsed === 'object' &&
-                    'content' in parsed &&
-                    'usage' in parsed
-                  ) {
-                    return (
-                      <>
-                        <div className="mb-4">
-                          <h4 className="text-md font-semibold mb-1 text-gray-700">
-                            Usage:
-                          </h4>
-                          <div className="max-h-48 overflow-auto bg-gray-50 p-3 border rounded-md">
-                            <pre className="text-sm whitespace-pre-wrap">
-                              {typeof parsed.usage === 'string'
-                                ? parsed.usage
-                                : JSON.stringify(parsed.usage, null, 2)}
-                            </pre>
-                          </div>
-                        </div>
-                        <div>
-                          <h4 className="text-md font-semibold mb-1 text-gray-700">
-                            Content:
-                          </h4>
-                          <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md">
-                            <pre className="text-sm whitespace-pre-wrap">
-                              {typeof parsed.content === 'string'
-                                ? parsed.content
-                                : JSON.stringify(parsed.content, null, 2)}
-                            </pre>
-                          </div>
-                        </div>
-                      </>
-                    );
-                  }
-                } catch (e) {
-                  console.warn(
-                    'LLM response is not a parseable JSON or not in the expected format for splitting. Displaying raw response:',
-                    e,
-                  );
-                }
-                return (
+              <>
+                {llmResponseUsage && (
+                  <div className="mb-4">
+                    <h4 className="text-md font-semibold mb-1 text-gray-700">
+                      Usage:
+                    </h4>
+                    <div className="max-h-48 overflow-auto bg-gray-50 p-3 border rounded-md">
+                      <pre className="text-sm whitespace-pre-wrap">
+                        {typeof llmResponseUsage === 'string'
+                          ? llmResponseUsage
+                          : JSON.stringify(llmResponseUsage, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <h4 className="text-md font-semibold mb-1 text-gray-700">
+                    Content:
+                  </h4>
                   <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md">
                     <pre className="text-sm whitespace-pre-wrap">
-                      {llmResponse}
+                      {llmResponseContent}
                     </pre>
                   </div>
-                );
-              })()}
+                </div>
+              </>
+            </div>
+          )}
+          {/* Display Evaluation Metrics from LLM Response */} 
+          {!isLlmLoading && !llmErrorMessage && predictXpathList && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-2 text-gray-800">
+                Evaluation Metrics (from LLM Response):
+              </h3>
+              <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
+                {numPredictedRecords !== null && (
+                  <p className="text-sm">
+                    <span className="font-semibold">
+                      Number of Predicted XPath Records:
+                    </span>{' '}
+                    {numPredictedRecords}
+                  </p>
+                )}
+                {numHallucination !== null && (
+                  <p className="text-sm">
+                    <span className="font-semibold">
+                      Number of Potential Hallucinations (empty mappings):
+                    </span>{' '}
+                    {numHallucination} (Rate:{' '}
+                    {numPredictedRecords && numPredictedRecords > 0
+                      ? `${((numHallucination / numPredictedRecords) * 100).toFixed(2)}%`
+                      : 'N/A'}
+                    )
+                  </p>
+                )}
+                {(numPredictedRecords === null || numHallucination === null) &&
+                  !isEvaluating && (
+                    <p className="text-sm text-gray-500">
+                      Evaluation metrics are being calculated or are not available.
+                    </p>
+                  )}
+                {isEvaluating && (
+                  <p className="text-sm text-blue-500 animate-pulse">
+                    Calculating evaluation metrics...
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </section>
       )}
-      {processedData &&
-        !isLoading &&
-        groundTruthXpathList &&
-        predictXpathList && (
-          <EvaluationDisplay
-            evaluationResult={evaluationResult}
-            isLoading={isEvaluating}
-          />
-        )}
     </main>
   );
 }
