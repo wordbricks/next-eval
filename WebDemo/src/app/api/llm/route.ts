@@ -2,7 +2,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import dotenv from 'dotenv';
 import { type NextRequest, NextResponse } from 'next/server';
-import { type LLMResponse } from '../../../lib/interfaces';
+import type { LLMResponse } from '../../../lib/interfaces';
 
 dotenv.config(); // Ensure environment variables are loaded
 
@@ -620,7 +620,6 @@ const promptContentMap: Record<PromptType, string> = {
   hierarchical: SYSTEM_LLM_HIER_MD,
 };
 
-
 export async function POST(req: NextRequest) {
   try {
     const { promptType, data } = (await req.json()) as {
@@ -653,30 +652,38 @@ export async function POST(req: NextRequest) {
     const combinedPrompt = `${systemPromptContent}\n\nInput Data:\n${data}`;
     const temperature = 1.0;
 
-   const { text, usage } = await generateText({
-     model: google(modelName),
-     prompt: combinedPrompt,
-     temperature: temperature,
-   });
+    const { text, usage } = await generateText({
+      model: google(modelName),
+      prompt: combinedPrompt,
+      temperature: temperature,
+    });
 
-   if (!text) {
-     return NextResponse.json(
-       { error: 'No response from Gemini' } as LLMResponse,
-       { status: 500 },
-     );
-   }
+    if (!text) {
+      const responsePayload: LLMResponse = {
+        content: '```json[]```',
+        usage: usage
+          ? {
+              promptTokens: usage.promptTokens,
+              completionTokens: usage.completionTokens,
+              totalTokens: usage.totalTokens,
+            }
+          : undefined,
+        systemPromptUsed: `Embedded ${promptType}`,
+      };
+      return NextResponse.json(responsePayload);
+    }
 
-   const responsePayload: LLMResponse = {
-     content: text,
-     usage: usage
-       ? {
-           promptTokens: usage.promptTokens,
-           completionTokens: usage.completionTokens,
-           totalTokens: usage.totalTokens,
-         }
-       : undefined,
-     systemPromptUsed: `Embedded ${promptType}`,
-   };
+    const responsePayload: LLMResponse = {
+      content: text,
+      usage: usage
+        ? {
+            promptTokens: usage.promptTokens,
+            completionTokens: usage.completionTokens,
+            totalTokens: usage.totalTokens,
+          }
+        : undefined,
+      systemPromptUsed: `Embedded ${promptType}`,
+    };
 
     return NextResponse.json(responsePayload);
   } catch (error) {

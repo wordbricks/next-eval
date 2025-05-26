@@ -2,10 +2,14 @@
 
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { HtmlResult, EvaluationResult, NestedTextMap } from '../lib/interfaces';
+import type {
+  EvaluationResult,
+  HtmlResult,
+  NestedTextMap,
+} from '../lib/interfaces';
+import { handleDownload } from '../lib/utils/handleDownload';
 // import { calculateEvaluationMetrics } from '../lib/utils/evaluation';
 import { mapResponseToFullXPath } from '../lib/utils/mapResponseToFullXpath';
-import { handleDownload } from '../lib/utils/handleDownload';
 import { processHtmlContent } from '../lib/utils/processHtmlContent';
 import { readFileAsText } from '../lib/utils/readFileAsText';
 import {
@@ -68,8 +72,8 @@ export default function HomePage() {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      setErrorMessage(null); 
-      setProcessedData(null); 
+      setErrorMessage(null);
+      setProcessedData(null);
       // Reset LLM responses when a new file is selected
       setLlmResponses({
         html: { ...initialLlmStageResponse },
@@ -119,7 +123,7 @@ export default function HomePage() {
           'An unknown error occurred during client-side processing.',
         );
       }
-      setProcessedData(null); 
+      setProcessedData(null);
     } finally {
       setIsLoading(false);
     }
@@ -236,127 +240,142 @@ export default function HomePage() {
       handleProcessFile();
     }
   }, [selectedFile, handleProcessFile]);
-  
+
   useEffect(() => {
     if (!processedData?.textMapFlat) {
-      setLlmResponses(prev => {
+      setLlmResponses((prev) => {
         let needsUpdate = false;
         const newResponses = { ...prev };
-        (Object.keys(newResponses) as Array<keyof LlmAllResponses>).forEach(stageKey => {
-          if (
-            newResponses[stageKey].numPredictedRecords !== null ||
-            newResponses[stageKey].numHallucination !== null ||
-            newResponses[stageKey].isEvaluating
-          ) {
-            needsUpdate = true;
-            newResponses[stageKey] = {
-              ...newResponses[stageKey],
-              numPredictedRecords: null,
-              numHallucination: null,
-              evaluationResult: null,
-              isEvaluating: false,
-            };
-          }
-        });
+        (Object.keys(newResponses) as Array<keyof LlmAllResponses>).forEach(
+          (stageKey) => {
+            if (
+              newResponses[stageKey].numPredictedRecords !== null ||
+              newResponses[stageKey].numHallucination !== null ||
+              newResponses[stageKey].isEvaluating
+            ) {
+              needsUpdate = true;
+              newResponses[stageKey] = {
+                ...newResponses[stageKey],
+                numPredictedRecords: null,
+                numHallucination: null,
+                evaluationResult: null,
+                isEvaluating: false,
+              };
+            }
+          },
+        );
         return needsUpdate ? newResponses : prev;
       });
       return;
     }
 
-    const textMapFlatForEval = processedData.textMapFlat as Record<string, string>;
+    const textMapFlatForEval = processedData.textMapFlat as Record<
+      string,
+      string
+    >;
     let updateScheduled = false;
 
-    setLlmResponses(prevResponses => {
+    setLlmResponses((prevResponses) => {
       const newResponses = { ...prevResponses };
 
-      (Object.keys(newResponses) as Array<keyof LlmAllResponses>).forEach(stageKey => {
-        const stageData = newResponses[stageKey];
+      (Object.keys(newResponses) as Array<keyof LlmAllResponses>).forEach(
+        (stageKey) => {
+          const stageData = newResponses[stageKey];
 
-        // Step 1: If we have new XPaths, aren't loading/evaluating, and metrics are not yet computed, set to isEvaluating
-        if (
-          stageData.predictXpathList &&
-          !stageData.isLoading &&
-          !stageData.isEvaluating &&
-          stageData.numPredictedRecords === null // Only if metrics are not yet computed
-        ) {
-          newResponses[stageKey] = {
-            ...stageData,
-            isEvaluating: true,
-             // Clear any previous evaluation-specific errors
-            error: stageData.error?.includes('Evaluation Error:') 
-                ? stageData.error.split('\n').filter(line => !line.startsWith("Evaluation Error:")).join('\n') || null 
-                : stageData.error,
-          };
-          updateScheduled = true;
-        } 
-        // Step 2: If isEvaluating is true, perform the evaluation
-        else if (stageData.isEvaluating && !stageData.isLoading) {
-          try {
-            if (!stageData.predictXpathList) {
-              // This case should ideally be prevented by the reset in handleSendToLlm or if LLM call fails
-              // but as a safeguard, if predictXpathList is gone while we are in isEvaluating, reset.
-              newResponses[stageKey] = {
-                ...stageData,
-                isEvaluating: false,
-                numPredictedRecords: null,
-                numHallucination: null,
-                evaluationResult: null,
-                error: `${stageData.error ? stageData.error + '\n' : ''}Evaluation Error: XPaths disappeared during evaluation. Resetting metrics.`,
-              };
-              updateScheduled = true;
-              return; // continue to next stageKey in forEach
-            }
-
-            const localNumPredictedRecords = stageData.predictXpathList.length;
-            const mappedPredRecords = mapResponseToFullXPath(
-              textMapFlatForEval,
-              stageData.predictXpathList,
-            );
-            let localNumHallucination = 0;
-            for (const record of mappedPredRecords) {
-              if (record.length === 0) {
-                localNumHallucination += 1;
-              }
-            }
+          // Step 1: If we have new XPaths, aren't loading/evaluating, and metrics are not yet computed, set to isEvaluating
+          if (
+            stageData.predictXpathList &&
+            !stageData.isLoading &&
+            !stageData.isEvaluating &&
+            stageData.numPredictedRecords === null // Only if metrics are not yet computed
+          ) {
             newResponses[stageKey] = {
               ...stageData,
-              numPredictedRecords: localNumPredictedRecords,
-              numHallucination: localNumHallucination,
-              isEvaluating: false,
-              // Evaluation successful, error remains as is (or cleared in step 1 if it was an eval error)
+              isEvaluating: true,
+              // Clear any previous evaluation-specific errors
+              error: stageData.error?.includes('Evaluation Error:')
+                ? stageData.error
+                    .split('\n')
+                    .filter((line) => !line.startsWith('Evaluation Error:'))
+                    .join('\n') || null
+                : stageData.error,
             };
             updateScheduled = true;
-          } catch (evalError) {
-            console.error(`Error during evaluation for ${stageKey}:`, evalError);
+          }
+          // Step 2: If isEvaluating is true, perform the evaluation
+          else if (stageData.isEvaluating && !stageData.isLoading) {
+            try {
+              if (!stageData.predictXpathList) {
+                // This case should ideally be prevented by the reset in handleSendToLlm or if LLM call fails
+                // but as a safeguard, if predictXpathList is gone while we are in isEvaluating, reset.
+                newResponses[stageKey] = {
+                  ...stageData,
+                  isEvaluating: false,
+                  numPredictedRecords: null,
+                  numHallucination: null,
+                  evaluationResult: null,
+                  error: `${stageData.error ? `${stageData.error}\n` : ''}Evaluation Error: XPaths disappeared during evaluation. Resetting metrics.`,
+                };
+                updateScheduled = true;
+                return; // continue to next stageKey in forEach
+              }
+
+              const localNumPredictedRecords =
+                stageData.predictXpathList.length;
+              const mappedPredRecords = mapResponseToFullXPath(
+                textMapFlatForEval,
+                stageData.predictXpathList,
+              );
+              let localNumHallucination = 0;
+              for (const record of mappedPredRecords) {
+                if (record.length === 0) {
+                  localNumHallucination += 1;
+                }
+              }
+              newResponses[stageKey] = {
+                ...stageData,
+                numPredictedRecords: localNumPredictedRecords,
+                numHallucination: localNumHallucination,
+                isEvaluating: false,
+                // Evaluation successful, error remains as is (or cleared in step 1 if it was an eval error)
+              };
+              updateScheduled = true;
+            } catch (evalError) {
+              console.error(
+                `Error during evaluation for ${stageKey}:`,
+                evalError,
+              );
+              newResponses[stageKey] = {
+                ...stageData,
+                error: `${stageData.error ? `${stageData.error}\n` : ''}Evaluation Error: ${evalError instanceof Error ? evalError.message : String(evalError)}`,
+                numPredictedRecords: null,
+                numHallucination: null,
+                isEvaluating: false,
+              };
+              updateScheduled = true;
+            }
+          }
+          // Step 3: If predictXpathList becomes null (e.g. error during LLM fetch after successful fetch),
+          // and we are not currently loading/evaluating, ensure metrics are cleared.
+          // This is a cleanup step.
+          else if (
+            !stageData.predictXpathList &&
+            !stageData.isLoading &&
+            !stageData.isEvaluating &&
+            (stageData.numPredictedRecords !== null ||
+              stageData.numHallucination !== null)
+          ) {
             newResponses[stageKey] = {
               ...stageData,
-              error: `${stageData.error ? stageData.error + '\n' : ''}Evaluation Error: ${evalError instanceof Error ? evalError.message : String(evalError)}`,
               numPredictedRecords: null,
               numHallucination: null,
+              evaluationResult: null, // Kept for consistency
               isEvaluating: false,
             };
             updateScheduled = true;
           }
-        }
-        // Step 3: If predictXpathList becomes null (e.g. error during LLM fetch after successful fetch),
-        // and we are not currently loading/evaluating, ensure metrics are cleared.
-        // This is a cleanup step.
-        else if (
-          !stageData.predictXpathList && 
-          !stageData.isLoading && 
-          !stageData.isEvaluating && 
-          (stageData.numPredictedRecords !== null || stageData.numHallucination !== null)
-        ) {
-          newResponses[stageKey] = {
-            ...stageData,
-            numPredictedRecords: null,
-            numHallucination: null,
-            evaluationResult: null, // Kept for consistency
-            isEvaluating: false, 
-          };
-          updateScheduled = true;
-        }
-      });
+        },
+      );
 
       return updateScheduled ? newResponses : prevResponses;
     });
@@ -366,14 +385,15 @@ export default function HomePage() {
     setIsLoading(true);
     setErrorMessage(null);
     setProcessedData(null);
-    setLlmResponses({ // Reset LLM states
+    setLlmResponses({
+      // Reset LLM states
       html: { ...initialLlmStageResponse },
       textMap: { ...initialLlmStageResponse },
       textMapFlat: { ...initialLlmStageResponse },
     });
     setOverallLlmFetching(false);
 
-    const htmlPath = "/next-eval/sample.html";
+    const htmlPath = '/next-eval/sample.html';
 
     try {
       const htmlResponse = await fetch(htmlPath);
@@ -391,14 +411,12 @@ export default function HomePage() {
         originalHtmlLength,
       });
     } catch (error) {
-      console.error(`Error loading synthetic data`, error);
+      console.error('Error loading synthetic data', error);
       if (error instanceof Error) {
-        setErrorMessage(
-          `Error loading synthetic data: ${error.message}`,
-        );
+        setErrorMessage(`Error loading synthetic data: ${error.message}`);
       } else {
         setErrorMessage(
-          "An unknown error occurred while loading synthetic data",
+          'An unknown error occurred while loading synthetic data',
         );
       }
       // Clear partial data on main error
@@ -411,14 +429,15 @@ export default function HomePage() {
   return (
     <main className="container mx-auto p-4 max-w-[1200px]">
       <h1 className="text-3xl font-bold text-center my-8">
-        NEXT-EVAL: Next Evaluation of Traditional and LLM Web Data Record Extraction
+        NEXT-EVAL: Next Evaluation of Traditional and LLM Web Data Record
+        Extraction
       </h1>
       {/* File Input Section */}
       <section className="mb-8 p-6 border rounded-lg shadow-md bg-white">
         <h2 className="text-xl font-semibold mb-4">
           Upload HTML or Load Sample Data
         </h2>
-        <div className="flex flex-row items-start space-x-6"> 
+        <div className="flex flex-row items-start space-x-6">
           {/* Option 1: Upload your own HTML file */}
           <div className="flex-1 space-y-2">
             <p className="text-sm font-medium text-gray-700">
@@ -444,9 +463,7 @@ export default function HomePage() {
 
           {/* Separator */}
           <div className="flex flex-col items-center justify-start pt-8">
-            <span className="text-sm font-medium text-gray-500">
-              Or
-            </span>
+            <span className="text-sm font-medium text-gray-500">Or</span>
           </div>
 
           {/* Option 2: Load Sample HTML */}
@@ -473,12 +490,13 @@ export default function HomePage() {
       </section>
 
       {/* Conditional rendering for side-by-side or individual display */}
-      {processedData && processedData.originalHtml && !isLoading ? (
+      {processedData?.originalHtml && !isLoading ? (
         <section className="w-full p-6 border rounded-lg shadow-md bg-white mb-4 md:mb-0">
           <h2 className="text-xl font-semibold mb-4">Original HTML Content</h2>
           {processedData.originalHtmlLength !== undefined && (
             <p className="text-sm text-gray-600 mb-2">
-              Length: {processedData.originalHtmlLength.toLocaleString()} characters
+              Length: {processedData.originalHtmlLength.toLocaleString()}{' '}
+              characters
             </p>
           )}
           <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
@@ -507,12 +525,15 @@ export default function HomePage() {
       ) : (
         <>
           {/* Display Original HTML Content Section (if only this is available) */}
-          {processedData && processedData.originalHtml && !isLoading && (
+          {processedData?.originalHtml && !isLoading && (
             <section className="mb-8 p-6 border rounded-lg shadow-md bg-white">
-              <h2 className="text-xl font-semibold mb-4">Original HTML Content</h2>
+              <h2 className="text-xl font-semibold mb-4">
+                Original HTML Content
+              </h2>
               {processedData.originalHtmlLength !== undefined && (
                 <p className="text-sm text-gray-600 mb-2">
-                  Length: {processedData.originalHtmlLength.toLocaleString()} characters
+                  Length: {processedData.originalHtmlLength.toLocaleString()}{' '}
+                  characters
                 </p>
               )}
               <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
@@ -558,7 +579,7 @@ export default function HomePage() {
       {processedData && !isLoading && (
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Processing Stages</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Stage 1: Slimmed HTML (Cleaned HTML) */}
             <div
@@ -691,14 +712,16 @@ export default function HomePage() {
           </div>
 
           {/* Display LLM Responses in a Grid */}
-          {overallLlmFetching && 
-            !llmResponses.html.content && !llmResponses.textMap.content && !llmResponses.textMapFlat.content && (
-            <div className="mt-6 text-center">
-              <p className="text-lg font-semibold animate-pulse">
-                Waiting for LLM responses...
-              </p>
-            </div>
-          )}
+          {overallLlmFetching &&
+            !llmResponses.html.content &&
+            !llmResponses.textMap.content &&
+            !llmResponses.textMapFlat.content && (
+              <div className="mt-6 text-center">
+                <p className="text-lg font-semibold animate-pulse">
+                  Waiting for LLM responses...
+                </p>
+              </div>
+            )}
 
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
             {(Object.keys(llmResponses) as Array<keyof LlmAllResponses>).map(
@@ -734,81 +757,96 @@ export default function HomePage() {
                         </pre>
                       </div>
                     )}
-                    {!stageResponse.isLoading && stageResponse.content && !stageResponse.error && (
-                      <>
-                        {stageResponse.usage && (
+                    {!stageResponse.isLoading &&
+                      stageResponse.content &&
+                      !stageResponse.error && (
+                        <>
+                          {stageResponse.usage && (
+                            <div className="mb-3">
+                              <h4 className="text-sm font-semibold mb-1 text-gray-600">
+                                Usage:
+                              </h4>
+                              <div className="max-h-32 overflow-auto bg-white p-2 border rounded-md text-xs">
+                                <pre className="whitespace-pre-wrap">
+                                  {typeof stageResponse.usage === 'string'
+                                    ? stageResponse.usage
+                                    : JSON.stringify(
+                                        stageResponse.usage,
+                                        null,
+                                        2,
+                                      )}
+                                </pre>
+                              </div>
+                            </div>
+                          )}
                           <div className="mb-3">
                             <h4 className="text-sm font-semibold mb-1 text-gray-600">
-                              Usage:
+                              Content:
                             </h4>
-                            <div className="max-h-32 overflow-auto bg-white p-2 border rounded-md text-xs">
+                            <div className="h-64 overflow-auto bg-white p-2 border rounded-md text-xs">
                               <pre className="whitespace-pre-wrap">
-                                {typeof stageResponse.usage === 'string'
-                                  ? stageResponse.usage
-                                  : JSON.stringify(
-                                      stageResponse.usage,
-                                      null,
-                                      2,
-                                    )}
+                                {stageResponse.content}
                               </pre>
                             </div>
                           </div>
-                        )}
-                        <div className="mb-3">
-                          <h4 className="text-sm font-semibold mb-1 text-gray-600">
-                            Content:
-                          </h4>
-                          <div className="h-64 overflow-auto bg-white p-2 border rounded-md text-xs">
-                            <pre className="whitespace-pre-wrap">
-                              {stageResponse.content}
-                            </pre>
-                          </div>
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-semibold mb-1 text-gray-600">
-                            Evaluation Metrics:
-                          </h4>
-                          <div className="p-2 bg-blue-50 border border-blue-100 rounded-md space-y-1 text-xs">
-                            {stageResponse.isEvaluating && (
-                              <p className="text-blue-500 animate-pulse">
-                                Calculating metrics...
-                              </p>
-                            )}
-                            {!stageResponse.isEvaluating && stageResponse.predictXpathList && (
-                              <>
-                                {stageResponse.numPredictedRecords !== null && (
-                                  <p>
-                                    <span className="font-semibold">
-                                      Predicted Records:
-                                    </span>{' '}
-                                    {stageResponse.numPredictedRecords}
+                          <div>
+                            <h4 className="text-sm font-semibold mb-1 text-gray-600">
+                              Evaluation Metrics:
+                            </h4>
+                            <div className="p-2 bg-blue-50 border border-blue-100 rounded-md space-y-1 text-xs">
+                              {stageResponse.isEvaluating && (
+                                <p className="text-blue-500 animate-pulse">
+                                  Calculating metrics...
+                                </p>
+                              )}
+                              {!stageResponse.isEvaluating &&
+                                stageResponse.predictXpathList && (
+                                  <>
+                                    {stageResponse.numPredictedRecords !==
+                                      null && (
+                                      <p>
+                                        <span className="font-semibold">
+                                          Predicted Records:
+                                        </span>{' '}
+                                        {stageResponse.numPredictedRecords}
+                                      </p>
+                                    )}
+                                    {stageResponse.numHallucination !==
+                                      null && (
+                                      <p>
+                                        <span className="font-semibold">
+                                          Potential Hallucinations:
+                                        </span>{' '}
+                                        {stageResponse.numHallucination} (
+                                        {stageResponse.numPredictedRecords &&
+                                        stageResponse.numPredictedRecords > 0
+                                          ? `${((stageResponse.numHallucination / stageResponse.numPredictedRecords) * 100).toFixed(2)}%`
+                                          : 'N/A'}
+                                        )
+                                      </p>
+                                    )}
+                                  </>
+                                )}
+                              {!stageResponse.isEvaluating &&
+                                !stageResponse.predictXpathList &&
+                                !stageResponse.error &&
+                                stageResponse.content && (
+                                  <p className="text-gray-500">
+                                    Metrics not available (no valid XPaths
+                                    predicted or error in content).
                                   </p>
                                 )}
-                                {stageResponse.numHallucination !== null && (
-                                  <p>
-                                    <span className="font-semibold">
-                                      Potential Hallucinations:
-                                    </span>{' '}
-                                    {stageResponse.numHallucination} (
-                                    {stageResponse.numPredictedRecords &&
-                                    stageResponse.numPredictedRecords > 0
-                                      ? `${((stageResponse.numHallucination / stageResponse.numPredictedRecords) * 100).toFixed(2)}%`
-                                      : 'N/A'}
-                                    )
+                              {!stageResponse.isEvaluating &&
+                                !stageResponse.content &&
+                                !stageResponse.isLoading && (
+                                  <p className="text-gray-500">
+                                    No content to evaluate.
                                   </p>
                                 )}
-                              </>
-                            )}
-                            {!stageResponse.isEvaluating && !stageResponse.predictXpathList && !stageResponse.error && stageResponse.content &&(
-                               <p className="text-gray-500">Metrics not available (no valid XPaths predicted or error in content).</p>
-                            )}
-                             {!stageResponse.isEvaluating && !stageResponse.content && !stageResponse.isLoading && (
-                                <p className="text-gray-500">No content to evaluate.</p>
-                             )}
+                            </div>
                           </div>
-                        </div>
-                      </>
-                    )}
+                        </>
+                      )}
                   </div>
                 );
               },
