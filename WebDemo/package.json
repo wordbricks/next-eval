@@ -16,6 +16,7 @@
 		"mustache": "4.2.0",
     "munkres-js": "1.2.2",
     "next": "latest",
+		"node-html-parser": "^7.0.1",
 		"@ai-sdk/google": "1.2.8",
     "@google/generative-ai": "^0.11.3"
   },

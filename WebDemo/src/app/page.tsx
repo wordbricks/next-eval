@@ -2,12 +2,13 @@
 
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { EvaluationResult, HtmlResult } from '../lib/interfaces';
+import type { HtmlResult } from '../lib/interfaces';
 import { handleDownload } from '../lib/utils/handleDownload';
 // import { calculateEvaluationMetrics } from '../lib/utils/evaluation';
 import { mapResponseToFullXPath } from '../lib/utils/mapResponseToFullXpath';
 import { processHtmlContent } from '../lib/utils/processHtmlContent';
 import { readFileAsText } from '../lib/utils/readFileAsText';
+import { runMDR } from '../lib/utils/runMDR';
 import {
   type ValidatedXpathArray,
   parseAndValidateXPaths,
@@ -18,11 +19,19 @@ interface LlmStageResponse {
   usage: string | null;
   error: string | null;
   predictXpathList: ValidatedXpathArray | null;
-  evaluationResult: EvaluationResult | null; // Kept for potential future use
   numPredictedRecords: number | null;
   numHallucination: number | null;
+  mappedPredictionText: string[];
   isLoading: boolean;
   isEvaluating: boolean;
+}
+
+interface MdrResponseState {
+  predictXpathList: ValidatedXpathArray | null;
+  mappedPredictionText: string[] | null;
+  numPredictedRecords: number | null;
+  isLoading: boolean;
+  error: string | null;
 }
 
 type LlmAllResponses = {
@@ -36,18 +45,47 @@ const initialLlmStageResponse: LlmStageResponse = {
   usage: null,
   error: null,
   predictXpathList: null,
-  evaluationResult: null,
   numPredictedRecords: null,
   numHallucination: null,
+  mappedPredictionText: null,
   isLoading: false,
   isEvaluating: false,
 };
+
+const initialMdrResponseState: MdrResponseState = {
+  predictXpathList: null,
+  mappedPredictionText: null,
+  numPredictedRecords: null,
+  isLoading: false,
+  error: null,
+};
+
+const DownloadIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+    stroke="currentColor"
+    className="w-5 h-5"
+    aria-hidden="true"
+  >
+    <title>Download Icon</title>
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+    />
+  </svg>
+);
 
 export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false); // For file processing
   const [processedData, setProcessedData] = useState<HtmlResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null); // For file processing errors
+  const [selectedStage, setSelectedStage] =
+    useState<keyof LlmAllResponses>('textMapFlat');
 
   const [llmResponses, setLlmResponses] = useState<LlmAllResponses>({
     html: { ...initialLlmStageResponse },
@@ -55,6 +93,9 @@ export default function HomePage() {
     textMapFlat: { ...initialLlmStageResponse },
   });
   const [overallLlmFetching, setOverallLlmFetching] = useState<boolean>(false); // For the "Send All to Gemini" button
+  const [mdrResponse, setMdrResponse] = useState<MdrResponseState>({
+    ...initialMdrResponseState,
+  }); // Added MDR state
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -77,6 +118,8 @@ export default function HomePage() {
         textMapFlat: { ...initialLlmStageResponse },
       });
       setOverallLlmFetching(false);
+      setSelectedStage('textMapFlat');
+      setMdrResponse({ ...initialMdrResponseState }); // Reset MDR response
     } else {
       setSelectedFile(null);
     }
@@ -98,11 +141,12 @@ export default function HomePage() {
       textMapFlat: { ...initialLlmStageResponse },
     });
     setOverallLlmFetching(false);
+    setSelectedStage('textMapFlat');
+    setMdrResponse({ ...initialMdrResponseState }); // Reset MDR response
 
     try {
       const htmlString = await readFileAsText(selectedFile);
       const originalHtmlLength = htmlString.length;
-
       const processedContent = await processHtmlContent(htmlString);
 
       setProcessedData({
@@ -132,103 +176,180 @@ export default function HomePage() {
       // Optionally set a general error message for LLM section
       return;
     }
+    if (!selectedStage) {
+      // Ensure a stage is selected
+      console.error('No stage selected for LLM request.');
+      // Optionally set an error message
+      return;
+    }
 
     setOverallLlmFetching(true);
-    // Initialize/reset states for all stages
+    // Initialize/reset states for the selected stage
     setLlmResponses((prev) => ({
-      html: { ...initialLlmStageResponse, isLoading: true },
-      textMap: { ...initialLlmStageResponse, isLoading: true },
-      textMapFlat: { ...initialLlmStageResponse, isLoading: true },
+      ...prev,
+      [selectedStage]: { ...initialLlmStageResponse, isLoading: true },
     }));
 
-    const stagesMetaData = [
-      {
-        key: 'html' as keyof LlmAllResponses,
-        data: processedData.html,
-        promptType: 'slim',
-      },
-      {
-        key: 'textMap' as keyof LlmAllResponses,
-        data: processedData.textMap,
-        promptType: 'hierarchical',
-      },
-      {
-        key: 'textMapFlat' as keyof LlmAllResponses,
-        data: processedData.textMapFlat,
-        promptType: 'flat',
-      },
-    ];
+    const stageKey = selectedStage;
+    let stageDataForLlm: string | Record<string, unknown> | undefined;
+    let promptTypeForLlm: string | undefined;
 
-    const requests = stagesMetaData.map(async (stage) => {
-      try {
-        const requestBody = {
-          promptType: stage.promptType,
-          data: JSON.stringify(stage.data, null, 2), // Data is stringified here
-        };
+    if (stageKey === 'html') {
+      stageDataForLlm = processedData.html;
+      promptTypeForLlm = 'slim';
+    } else if (stageKey === 'textMap') {
+      stageDataForLlm = processedData.textMap;
+      promptTypeForLlm = 'hierarchical';
+    } else if (stageKey === 'textMapFlat') {
+      stageDataForLlm = processedData.textMapFlat;
+      promptTypeForLlm = 'flat';
+    } else {
+      console.error(`Unknown stage key: ${stageKey} for LLM request.`);
+      setOverallLlmFetching(false);
+      setLlmResponses((prev) => ({
+        ...prev,
+        [stageKey]: {
+          ...initialLlmStageResponse,
+          error: 'Unknown stage selected',
+          isLoading: false,
+        },
+      }));
+      return;
+    }
 
-        const response = await fetch('/next-eval/api/llm', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody),
-        });
+    try {
+      const requestBody = {
+        promptType: promptTypeForLlm,
+        data: JSON.stringify(stageDataForLlm, null, 2), // Data is stringified here
+      };
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({
-            message: `LLM API request for ${stage.key} failed with status ${response.status} and could not parse error.`,
-          }));
-          throw new Error(
-            errorData.message ||
-              `LLM API request for ${stage.key} failed with status ${response.status}`,
-          );
-        }
+      const response = await fetch('/next-eval/api/llm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
 
-        const result = await response.json();
-        if ('content' in result && 'usage' in result) {
-          const validatedPredXPaths = parseAndValidateXPaths(result.content);
-          setLlmResponses((prev) => ({
-            ...prev,
-            [stage.key]: {
-              ...prev[stage.key],
-              content: result.content,
-              usage: result.usage,
-              predictXpathList: validatedPredXPaths,
-              error: null,
-              isLoading: false,
-              // Reset evaluation metrics and state for fresh evaluation
-              numPredictedRecords: null,
-              numHallucination: null,
-              evaluationResult: null,
-              isEvaluating: false,
-            },
-          }));
-        } else {
-          throw new Error(
-            `Unexpected response structure for ${stage.key}: ${JSON.stringify(result, null, 2)}`,
-          );
-        }
-      } catch (error) {
-        console.error(`Error sending to LLM for stage ${stage.key}:`, error);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({
+          message: `LLM API request for ${stageKey} failed with status ${response.status} and could not parse error.`,
+        }));
+        throw new Error(
+          errorData.message ||
+            `LLM API request for ${stageKey} failed with status ${response.status}`,
+        );
+      }
+
+      const result = await response.json();
+      if ('content' in result && 'usage' in result) {
+        const validatedPredXPaths = parseAndValidateXPaths(result.content);
         setLlmResponses((prev) => ({
           ...prev,
-          [stage.key]: {
-            ...prev[stage.key],
-            error: error instanceof Error ? error.message : String(error),
-            content: null,
-            usage: null,
-            predictXpathList: null,
+          [stageKey]: {
+            ...initialLlmStageResponse,
+            content: result.content,
+            usage: result.usage,
+            predictXpathList: validatedPredXPaths,
+            error: null,
             isLoading: false,
-            // Also reset metrics and eval state on error
-            numPredictedRecords: null,
-            numHallucination: null,
-            evaluationResult: null,
             isEvaluating: false,
           },
         }));
+      } else {
+        throw new Error(
+          `Unexpected response structure for ${stageKey}: ${JSON.stringify(result, null, 2)}`,
+        );
       }
+    } catch (error) {
+      console.error(`Error sending to LLM for stage ${stageKey}:`, error);
+      setLlmResponses((prev) => ({
+        ...prev,
+        [stageKey]: {
+          ...initialLlmStageResponse,
+          error: error instanceof Error ? error.message : String(error),
+          content: null,
+          usage: null,
+          predictXpathList: null,
+          isLoading: false,
+          isEvaluating: false,
+        },
+      }));
+    } finally {
+      setOverallLlmFetching(false);
+    }
+  };
+
+  const handleRunMdr = async () => {
+    if (!processedData?.originalHtml || !processedData.textMapFlat) {
+      console.error(
+        'Original HTML or textMapFlat not available for MDR execution.',
+      );
+      setMdrResponse((prev) => ({
+        ...prev,
+        error:
+          'Required data (original HTML or text map) is not processed yet.',
+        isLoading: false,
+      }));
+      return;
+    }
+
+    setMdrResponse({
+      ...initialMdrResponseState,
+      isLoading: true,
     });
 
-    await Promise.allSettled(requests);
-    setOverallLlmFetching(false);
+    try {
+      // Assuming runMDR is not excessively long-running for now.
+      // For very large HTML or complex MDR, consider a Web Worker.
+      const mdrPredictedXPaths = runMDR(processedData.originalHtml);
+
+      if (!mdrPredictedXPaths || mdrPredictedXPaths.length === 0) {
+        setMdrResponse((prev) => ({
+          ...prev,
+          predictXpathList: [],
+          mappedPredictionText: [],
+          numPredictedRecords: 0,
+          isLoading: false,
+          error: 'MDR returned no XPaths.',
+        }));
+        return;
+      }
+
+      // Validate XPaths (optional, but good for consistency if parseAndValidateXPaths is used elsewhere for LLM)
+      // For now, we directly use the output of runMDR assuming it's string[][]
+      const validatedMdrXPaths: ValidatedXpathArray =
+        mdrPredictedXPaths as ValidatedXpathArray;
+
+      const textMapFlatForEval = processedData.textMapFlat as Record<
+        string,
+        string
+      >;
+
+      const mappedText = validatedMdrXPaths
+        .filter((xpathArray) =>
+          xpathArray.some((xpath) => xpath in textMapFlatForEval),
+        )
+        .map((xpathArray) =>
+          xpathArray
+            .filter((xpath) => xpath in textMapFlatForEval)
+            .map((xpath) => textMapFlatForEval[xpath])
+            .join(' '),
+        );
+
+      setMdrResponse({
+        predictXpathList: validatedMdrXPaths,
+        mappedPredictionText: mappedText,
+        numPredictedRecords: validatedMdrXPaths.length,
+        isLoading: false,
+        error: null,
+      });
+    } catch (error) {
+      console.error('Error running MDR:', error);
+      setMdrResponse({
+        ...initialMdrResponseState,
+        isLoading: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   };
 
   useEffect(() => {
@@ -255,7 +376,7 @@ export default function HomePage() {
               ...newResponses[stageKey],
               numPredictedRecords: null,
               numHallucination: null,
-              evaluationResult: null,
+              mappedPredictionText: null,
               isEvaluating: false,
             };
           }
@@ -289,7 +410,6 @@ export default function HomePage() {
           newResponses[stageKey] = {
             ...stageData,
             isEvaluating: true,
-            // Clear any previous evaluation-specific errors
             error: stageData.error?.includes('Evaluation Error:')
               ? stageData.error
                   .split('\n')
@@ -299,6 +419,7 @@ export default function HomePage() {
           };
           updateScheduled = true;
         }
+
         // Step 2: If isEvaluating is true, perform the evaluation
         else if (stageData.isEvaluating && !stageData.isLoading) {
           try {
@@ -310,7 +431,7 @@ export default function HomePage() {
                 isEvaluating: false,
                 numPredictedRecords: null,
                 numHallucination: null,
-                evaluationResult: null,
+                mappedPredictionText: null,
                 error: `${stageData.error ? `${stageData.error}\n` : ''}Evaluation Error: XPaths disappeared during evaluation. Resetting metrics.`,
               };
               updateScheduled = true;
@@ -322,6 +443,11 @@ export default function HomePage() {
               textMapFlatForEval,
               stageData.predictXpathList,
             );
+
+            const mappedPredRecordsText = mappedPredRecords.map((xpathArray) =>
+              xpathArray.map((xpath) => textMapFlatForEval[xpath]).join(' '),
+            );
+
             let localNumHallucination = 0;
             for (const record of mappedPredRecords) {
               if (record.length === 0) {
@@ -332,6 +458,7 @@ export default function HomePage() {
               ...stageData,
               numPredictedRecords: localNumPredictedRecords,
               numHallucination: localNumHallucination,
+              mappedPredictionText: mappedPredRecordsText,
               isEvaluating: false,
               // Evaluation successful, error remains as is (or cleared in step 1 if it was an eval error)
             };
@@ -346,15 +473,12 @@ export default function HomePage() {
               error: `${stageData.error ? `${stageData.error}\n` : ''}Evaluation Error: ${evalError instanceof Error ? evalError.message : String(evalError)}`,
               numPredictedRecords: null,
               numHallucination: null,
+              mappedPredictionText: null,
               isEvaluating: false,
             };
             updateScheduled = true;
           }
-        }
-        // Step 3: If predictXpathList becomes null (e.g. error during LLM fetch after successful fetch),
-        // and we are not currently loading/evaluating, ensure metrics are cleared.
-        // This is a cleanup step.
-        else if (
+        } else if (
           !stageData.predictXpathList &&
           !stageData.isLoading &&
           !stageData.isEvaluating &&
@@ -365,7 +489,7 @@ export default function HomePage() {
             ...stageData,
             numPredictedRecords: null,
             numHallucination: null,
-            evaluationResult: null, // Kept for consistency
+            mappedPredictionText: null,
             isEvaluating: false,
           };
           updateScheduled = true;
@@ -387,6 +511,8 @@ export default function HomePage() {
       textMapFlat: { ...initialLlmStageResponse },
     });
     setOverallLlmFetching(false);
+    setSelectedStage('textMapFlat');
+    setMdrResponse({ ...initialMdrResponseState }); // Reset MDR response
 
     const htmlPath = '/next-eval/sample.html';
 
@@ -494,7 +620,7 @@ export default function HomePage() {
               characters
             </p>
           )}
-          <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
+          <div className="h-64 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
             <pre className="text-sm whitespace-pre-wrap">
               {processedData.originalHtml}
             </pre>
@@ -514,7 +640,7 @@ export default function HomePage() {
                   characters
                 </p>
               )}
-              <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
+              <div className="h-64 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
                 <pre className="text-sm whitespace-pre-wrap">
                   {processedData.originalHtml}
                 </pre>
@@ -544,109 +670,131 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Stage 1: Slimmed HTML (Cleaned HTML) */}
             <div
-              className="p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between"
-              aria-label="Slimmed HTML stage content"
+              className={`p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between cursor-pointer transition-all duration-150 ease-in-out ${selectedStage === 'html' ? 'border-indigo-500 ring-2 ring-indigo-300' : 'border-gray-200 hover:shadow-md'}`}
+              onClick={() => setSelectedStage('html')}
+              onKeyDown={(e) => e.key === 'Enter' && setSelectedStage('html')}
+              tabIndex={0}
+              role="button"
+              aria-pressed={selectedStage === 'html'}
+              aria-label="Select Slimmed HTML stage and view its content"
             >
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-lg font-medium">1. Slimmed HTML</h3>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent stage selection when clicking download
+                    handleDownload(
+                      processedData.html,
+                      'slimmed_html.html',
+                      'text/html',
+                    );
+                  }}
+                  className="p-1 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 rounded-full transition-colors duration-150 ease-in-out"
+                  aria-label="Download slimmed HTML"
+                >
+                  <DownloadIcon />
+                </button>
+              </div>
               <div>
-                <h3 className="text-lg font-medium mb-1">
-                  1. Slimmed HTML (attributes removed){' '}
-                </h3>
                 <p className="text-xs text-gray-600 mb-2">
-                  Length: {processedData.htmlLength.toLocaleString()} chars
+                  (attributes removed) Length:{' '}
+                  {processedData.htmlLength.toLocaleString()} chars
                 </p>
-                <div className="h-64 overflow-auto bg-white p-2 border rounded mb-2">
+                <div className="h-64 overflow-auto bg-white p-2 border rounded">
                   <pre className="text-xs whitespace-pre-wrap">
                     {processedData.html}
                   </pre>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDownload(
-                    processedData.html,
-                    'slimmed_html.html',
-                    'text/html',
-                  );
-                }}
-                className="mt-2 px-3 py-1 bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out self-start"
-                aria-label="Download slimmed HTML"
-              >
-                Download HTML
-              </button>
             </div>
 
-            {/* Stage 3: Hierarchical Text Map - MOVED TO STAGE 2 */}
+            {/* Stage 2: Hierarchical JSON (Nested text map) */}
             <div
-              className="p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between"
-              aria-label="Hierarchical JSON stage content"
+              className={`p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between cursor-pointer transition-all duration-150 ease-in-out ${selectedStage === 'textMap' ? 'border-indigo-500 ring-2 ring-indigo-300' : 'border-gray-200 hover:shadow-md'}`}
+              onClick={() => setSelectedStage('textMap')}
+              onKeyDown={(e) =>
+                e.key === 'Enter' && setSelectedStage('textMap')
+              }
+              tabIndex={0}
+              role="button"
+              aria-pressed={selectedStage === 'textMap'}
+              aria-label="Select Hierarchical JSON stage and view its content"
             >
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-lg font-medium">2. Hierarchical JSON</h3>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownload(
+                      JSON.stringify(processedData.textMap, null, 2),
+                      'hierarchical_map.json',
+                      'application/json',
+                    );
+                  }}
+                  className="p-1 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 rounded-full transition-colors duration-150 ease-in-out"
+                  aria-label="Download hierarchical JSON map"
+                >
+                  <DownloadIcon />
+                </button>
+              </div>
               <div>
-                <h3 className="text-lg font-medium mb-1">
-                  2. Hierarchical JSON (Nested text map)
-                </h3>
                 <p className="text-xs text-gray-600 mb-2">
-                  Length: {processedData.textMapLength.toLocaleString()} chars
-                  (JSON string)
+                  (Nested text map) Length:{' '}
+                  {processedData.textMapLength.toLocaleString()} chars (JSON
+                  string)
                 </p>
-                <div className="h-64 overflow-auto bg-white p-2 border rounded mb-2">
+                <div className="h-64 overflow-auto bg-white p-2 border rounded">
                   <pre className="text-xs whitespace-pre-wrap">
                     {JSON.stringify(processedData.textMap, null, 2)}
                   </pre>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDownload(
-                    JSON.stringify(processedData.textMap, null, 2),
-                    'hierarchical_map.json',
-                    'application/json',
-                  );
-                }}
-                className="mt-2 px-3 py-1 bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out self-start"
-                aria-label="Download hierarchical JSON map"
-              >
-                Download Hierarchical JSON
-              </button>
             </div>
 
-            {/* Stage 2: XPath to Text (Flat) - MOVED TO STAGE 3 */}
+            {/* Stage 3: Flat JSON (text map) */}
             <div
-              className="p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between"
-              aria-label="Flat JSON stage content"
+              className={`p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between cursor-pointer transition-all duration-150 ease-in-out ${selectedStage === 'textMapFlat' ? 'border-indigo-500 ring-2 ring-indigo-300' : 'border-gray-200 hover:shadow-md'}`}
+              onClick={() => setSelectedStage('textMapFlat')}
+              onKeyDown={(e) =>
+                e.key === 'Enter' && setSelectedStage('textMapFlat')
+              }
+              tabIndex={0}
+              role="button"
+              aria-pressed={selectedStage === 'textMapFlat'}
+              aria-label="Select Flat JSON stage and view its content"
             >
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-lg font-medium">3. Flat JSON</h3>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownload(
+                      JSON.stringify(processedData.textMapFlat, null, 2),
+                      'flat_map.json',
+                      'application/json',
+                    );
+                  }}
+                  className="p-1 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 rounded-full transition-colors duration-150 ease-in-out"
+                  aria-label="Download flat JSON map"
+                >
+                  <DownloadIcon />
+                </button>
+              </div>
               <div>
-                <h3 className="text-lg font-medium mb-1">
-                  3. Flat JSON (text map)
-                </h3>
                 <p className="text-xs text-gray-600 mb-2">
-                  Length: {processedData.textMapFlatLength.toLocaleString()}{' '}
-                  chars (JSON string)
+                  (text map) Length:{' '}
+                  {processedData.textMapFlatLength.toLocaleString()} chars (JSON
+                  string)
                 </p>
-                <div className="h-64 overflow-auto bg-white p-2 border rounded mb-2">
+                <div className="h-64 overflow-auto bg-white p-2 border rounded">
                   <pre className="text-xs whitespace-pre-wrap">
                     {JSON.stringify(processedData.textMapFlat, null, 2)}
                   </pre>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDownload(
-                    JSON.stringify(processedData.textMapFlat, null, 2),
-                    'flat_map.json',
-                    'application/json',
-                  );
-                }}
-                className="mt-2 px-3 py-1 bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-600 transition-colors duration-150 ease-in-out self-start"
-                aria-label="Download flat JSON map"
-              >
-                Download Flat JSON
-              </button>
             </div>
           </div>
         </section>
@@ -656,37 +804,66 @@ export default function HomePage() {
       {processedData && !isLoading && (
         <section className="mt-8 p-6 border rounded-lg shadow-md bg-white">
           <h2 className="text-xl font-semibold mb-4">
-            LLM Interaction (Gemini 2.5 Pro) - All Stages
+            LLM Interaction (Gemini 2.5 Pro) & MDR Algorithm
           </h2>
-          <div className="flex justify-center items-center mb-6">
+          <div className="flex flex-col sm:flex-row justify-center items-center mb-6 gap-4">
             <button
               type="button"
               onClick={handleSendToLlm}
-              aria-label="Send all processed stages to LLM"
-              className="w-full sm:w-auto px-8 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!processedData || overallLlmFetching}
+              aria-label={`Send ${selectedStage === 'html' ? 'Slimmed HTML' : selectedStage === 'textMap' ? 'Hierarchical JSON' : 'Flat JSON'} to LLM`}
+              className="w-full sm:w-auto px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={
+                !processedData ||
+                overallLlmFetching ||
+                !selectedStage ||
+                mdrResponse.isLoading
+              }
             >
               {overallLlmFetching
-                ? 'Sending to Gemini...'
-                : 'Send All Stages to Gemini'}
+                ? `Sending ${selectedStage === 'html' ? 'Slimmed HTML' : selectedStage === 'textMap' ? 'Hierarchical JSON' : 'Flat JSON'} to Gemini...`
+                : `Send ${selectedStage === 'html' ? 'Slimmed HTML' : selectedStage === 'textMap' ? 'Hierarchical JSON' : 'Flat JSON'} to Gemini`}
+            </button>
+            <button
+              type="button"
+              onClick={handleRunMdr}
+              aria-label="Run MDR Algorithm on Original HTML"
+              className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={
+                !processedData?.originalHtml ||
+                mdrResponse.isLoading ||
+                overallLlmFetching
+              }
+            >
+              {mdrResponse.isLoading ? 'Running MDR...' : 'Run MDR Algorithm'}
             </button>
           </div>
 
           {/* Display LLM Responses in a Grid */}
           {overallLlmFetching &&
-            !llmResponses.html.content &&
-            !llmResponses.textMap.content &&
-            !llmResponses.textMapFlat.content && (
+            selectedStage && // Check if selectedStage is defined
+            llmResponses[selectedStage]?.isLoading && // Check if llmResponses[selectedStage] exists and isLoading
+            !llmResponses[selectedStage]?.content && (
               <div className="mt-6 text-center">
                 <p className="text-lg font-semibold animate-pulse">
-                  Waiting for LLM responses...
+                  Waiting for LLM response for{' '}
+                  {selectedStage === 'html'
+                    ? 'Slimmed HTML'
+                    : selectedStage === 'textMap'
+                      ? 'Hierarchical JSON'
+                      : 'Flat JSON'}
+                  ...
                 </p>
               </div>
             )}
 
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-            {(Object.keys(llmResponses) as Array<keyof LlmAllResponses>).map(
-              (stageKey) => {
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {' '}
+            {/* Grid for LLM and MDR cards */}
+            {/* Display LLM Response for the selectedStage */}
+            {selectedStage &&
+              llmResponses[selectedStage] &&
+              (() => {
+                const stageKey = selectedStage;
                 const stageResponse = llmResponses[stageKey];
                 const stageTitles: Record<keyof LlmAllResponses, string> = {
                   html: 'Slimmed HTML Response',
@@ -696,7 +873,7 @@ export default function HomePage() {
 
                 return (
                   <div
-                    key={stageKey}
+                    key={stageKey} // key is still useful for React even with one item if it can change
                     className="p-4 border rounded-lg shadow-sm bg-gray-50 flex flex-col"
                   >
                     <h3 className="text-lg font-semibold mb-3 text-gray-800 border-b pb-2">
@@ -750,6 +927,21 @@ export default function HomePage() {
                               </pre>
                             </div>
                           </div>
+                          {stageResponse.mappedPredictionText &&
+                            stageResponse.mappedPredictionText.length > 0 && (
+                              <div className="mb-3">
+                                <h4 className="text-sm font-semibold mb-1 text-gray-600">
+                                  Mapped Predicted Text (from XPaths):
+                                </h4>
+                                <div className="h-48 overflow-auto bg-white p-2 border rounded-md text-xs">
+                                  {stageResponse.mappedPredictionText.map((textBlock, index) => (
+                                    <pre key={`${textBlock}-${index}`} className="whitespace-pre-wrap py-1 my-1 border-b border-gray-200 last:border-b-0">
+                                      {textBlock}
+                                    </pre>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           <div>
                             <h4 className="text-sm font-semibold mb-1 text-gray-600">
                               Evaluation Metrics:
@@ -760,18 +952,16 @@ export default function HomePage() {
                                   Calculating metrics...
                                 </p>
                               )}
+
                               {!stageResponse.isEvaluating &&
-                                stageResponse.predictXpathList && (
+                                stageResponse.predictXpathList && ( // Metrics successfully calculated
                                   <>
-                                    {stageResponse.numPredictedRecords !==
-                                      null && (
-                                      <p>
-                                        <span className="font-semibold">
-                                          Predicted Records:
-                                        </span>{' '}
-                                        {stageResponse.numPredictedRecords}
-                                      </p>
-                                    )}
+                                    <p>
+                                      <span className="font-semibold">
+                                        Predicted Records:
+                                      </span>{' '}
+                                      {stageResponse.numPredictedRecords}
+                                    </p>
                                     {stageResponse.numHallucination !==
                                       null && (
                                       <p>
@@ -788,18 +978,43 @@ export default function HomePage() {
                                     )}
                                   </>
                                 )}
+
                               {!stageResponse.isEvaluating &&
-                                !stageResponse.predictXpathList &&
-                                !stageResponse.error &&
-                                stageResponse.content && (
-                                  <p className="text-gray-500">
-                                    Metrics not available (no valid XPaths
-                                    predicted or error in content).
+                                stageResponse.predictXpathList && // XPaths were present
+                                stageResponse.numPredictedRecords === null && // But metrics calculation failed or was reset (error should be shown by stageResponse.error)
+                                !stageResponse.error && ( // If no specific eval error is set, this is an unexpected state.
+                                  <p className="text-orange-500">
+                                    Metrics pending or encountered an issue.
+                                    Check for errors.
                                   </p>
                                 )}
+
                               {!stageResponse.isEvaluating &&
-                                !stageResponse.content &&
-                                !stageResponse.isLoading && (
+                                stageResponse.predictXpathList &&
+                                stageResponse.numPredictedRecords === null &&
+                                stageResponse.error &&
+                                stageResponse.error.includes(
+                                  'Evaluation Error:',
+                                ) && ( // Explicitly check if an Evaluation Error occurred
+                                  <p className="text-red-500">
+                                    Metrics calculation failed. See error
+                                    message above.
+                                  </p>
+                                )}
+
+                              {!stageResponse.isEvaluating &&
+                                !stageResponse.predictXpathList && // XPaths could not be parsed
+                                stageResponse.content && // But LLM content was present
+                                !stageResponse.error && ( // And no other error (like API error)
+                                  <p className="text-gray-500">
+                                    No valid XPaths parsed from LLM content.
+                                  </p>
+                                )}
+
+                              {!stageResponse.isEvaluating &&
+                                !stageResponse.content && // No LLM content at all
+                                !stageResponse.isLoading && // And not loading
+                                !stageResponse.error && ( // And no error
                                   <p className="text-gray-500">
                                     No content to evaluate.
                                   </p>
@@ -810,7 +1025,95 @@ export default function HomePage() {
                       )}
                   </div>
                 );
-              },
+              })()}
+            {/* MDR Response Card */}
+            {processedData && !isLoading && (
+              <div className="p-4 border rounded-lg shadow-sm bg-gray-50 flex flex-col">
+                <h3 className="text-lg font-semibold mb-3 text-gray-800 border-b pb-2">
+                  MDR Algorithm Response
+                </h3>
+                {mdrResponse.isLoading && (
+                  <p className="text-md font-medium text-blue-600 animate-pulse">
+                    Processing with MDR, please wait...
+                  </p>
+                )}
+                {mdrResponse.error && (
+                  <div
+                    className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm"
+                    role="alert"
+                  >
+                    <p className="font-semibold">MDR Error:</p>
+                    <pre className="whitespace-pre-wrap break-all">
+                      {mdrResponse.error}
+                    </pre>
+                  </div>
+                )}
+                {!mdrResponse.isLoading &&
+                  (mdrResponse.predictXpathList || mdrResponse.error) &&
+                  !mdrResponse.error && (
+                    <>
+                      {mdrResponse.predictXpathList && (
+                        <div className="mb-3">
+                          <h4 className="text-sm font-semibold mb-1 text-gray-600">
+                            Predicted XPaths:
+                          </h4>
+                          <div className="h-64 overflow-auto bg-gray-100 p-2 border rounded-md text-xs">
+                            <pre className="whitespace-pre-wrap">
+                              {JSON.stringify(
+                                mdrResponse.predictXpathList,
+                                null,
+                                2,
+                              )}
+                            </pre>
+                          </div>
+                        </div>
+                      )}
+                      {mdrResponse.mappedPredictionText &&
+                        mdrResponse.mappedPredictionText.length > 0 && (
+                          <div className="mb-3">
+                            <h4 className="text-sm font-semibold mb-1 text-gray-600">
+                              Mapped Predicted Text:
+                            </h4>
+                            <div className="h-48 overflow-auto bg-white p-2 border rounded-md text-xs">
+                              {mdrResponse.mappedPredictionText.map((textBlock, index) => (
+                                <pre
+                                  key={`${textBlock}-${index}`}
+                                  className="whitespace-pre-wrap py-1 my-1 border-b border-gray-200 last:border-b-0"
+                                >
+                                  {textBlock}
+                                </pre>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      <div>
+                        <h4 className="text-sm font-semibold mb-1 text-gray-600">
+                          Evaluation Metrics:
+                        </h4>
+                        <div className="p-2 bg-blue-50 border border-blue-100 rounded-md space-y-1 text-xs">
+                          {mdrResponse.numPredictedRecords !== null && (
+                            <p>
+                              <span className="font-semibold">
+                                Predicted Records:
+                              </span>{' '}
+                              {mdrResponse.numPredictedRecords}
+                            </p>
+                          )}
+                          {mdrResponse.numPredictedRecords === 0 && (
+                            <p className="text-gray-500">
+                              MDR did not predict any records.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                {!mdrResponse.isLoading &&
+                  !mdrResponse.predictXpathList &&
+                  !mdrResponse.error && (
+                    <p className="text-gray-500">Run MDR to see results.</p>
+                  )}
+              </div>
             )}
           </div>
         </section>
