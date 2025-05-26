@@ -934,11 +934,16 @@ export default function HomePage() {
                                   Mapped Predicted Text (from XPaths):
                                 </h4>
                                 <div className="h-48 overflow-auto bg-white p-2 border rounded-md text-xs">
-                                  {stageResponse.mappedPredictionText.map((textBlock, index) => (
-                                    <pre key={`${textBlock}-${index}`} className="whitespace-pre-wrap py-1 my-1 border-b border-gray-200 last:border-b-0">
-                                      {textBlock}
-                                    </pre>
-                                  ))}
+                                  {stageResponse.mappedPredictionText.map(
+                                    (textBlock, index) => (
+                                      <pre
+                                        key={`${textBlock}-${index}`}
+                                        className="whitespace-pre-wrap py-1 my-1 border-b border-gray-200 last:border-b-0"
+                                      >
+                                        {textBlock}
+                                      </pre>
+                                    ),
+                                  )}
                                 </div>
                               </div>
                             )}
@@ -1075,14 +1080,16 @@ export default function HomePage() {
                               Mapped Predicted Text:
                             </h4>
                             <div className="h-48 overflow-auto bg-white p-2 border rounded-md text-xs">
-                              {mdrResponse.mappedPredictionText.map((textBlock, index) => (
-                                <pre
-                                  key={`${textBlock}-${index}`}
-                                  className="whitespace-pre-wrap py-1 my-1 border-b border-gray-200 last:border-b-0"
-                                >
-                                  {textBlock}
-                                </pre>
-                              ))}
+                              {mdrResponse.mappedPredictionText.map(
+                                (textBlock, index) => (
+                                  <pre
+                                    key={`${textBlock}-${index}`}
+                                    className="whitespace-pre-wrap py-1 my-1 border-b border-gray-200 last:border-b-0"
+                                  >
+                                    {textBlock}
+                                  </pre>
+                                ),
+                              )}
                             </div>
                           </div>
                         )}
