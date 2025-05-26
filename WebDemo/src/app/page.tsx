@@ -30,8 +30,6 @@ export default function HomePage() {
   const [evaluationResult, setEvaluationResult] =
     useState<EvaluationResult | null>(null);
   const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
-  const [selectedSyntheticIndex, setSelectedSyntheticIndex] =
-    useState<string>('');
   const [numPredictedRecords, setNumPredictedRecords] = useState<number | null>(
     null,
   );
@@ -50,7 +48,6 @@ export default function HomePage() {
       setSelectedFile(file);
       setErrorMessage(null); // Clear previous errors
       setProcessedData(null); // Clear previous data
-      setSelectedSyntheticIndex(''); // Reset synthetic data selection
     } else {
       setSelectedFile(null);
     }
@@ -258,36 +255,7 @@ export default function HomePage() {
     // isEvaluating, // Removed from deps as it's set by this effect
   ]);
 
-  // useEffect to automatically load synthetic data when index changes
-  useEffect(() => {
-    if (selectedSyntheticIndex && selectedSyntheticIndex !== '') {
-      handleLoadSyntheticData();
-    }
-    // Adding handleLoadSyntheticData to dependency array if it's stable or wrapped in useCallback
-    // For now, assuming it's stable or its dependencies are correctly managed.
-    // If handleLoadSyntheticData itself causes state changes that re-trigger this effect
-    // unintentionally, it might need to be wrapped in useCallback or its own dependencies reviewed.
-  }, [selectedSyntheticIndex]); // Consider adding handleLoadSyntheticData if it's memoized
-
   const handleLoadSyntheticData = async () => {
-    // Debounce or ensure it's not called excessively if selectedSyntheticIndex changes rapidly
-    // For a select dropdown, this is usually fine.
-    if (!selectedSyntheticIndex) {
-      // This case might occur if the effect runs when selectedSyntheticIndex is reset to ''
-      // We can choose to clear data or do nothing.
-      // For now, let's ensure we only proceed if an index is actually selected.
-      // The validation inside handleLoadSyntheticData will also catch empty/invalid index if it proceeds.
-      return;
-    }
-
-    const index = parseInt(selectedSyntheticIndex, 10);
-    if (isNaN(index) || index < 1 || index > 164) {
-      setErrorMessage(
-        'Invalid index. Please enter a number between 1 and 164.',
-      );
-      return;
-    }
-
     setIsLoading(true);
     setErrorMessage(null);
     setProcessedData(null);
@@ -298,11 +266,9 @@ export default function HomePage() {
     setPredictXpathList(null);
     setEvaluationResult(null);
 
-    const htmlPath = `/next-eval/synthetic/html/${index}.html`;
-    // const groundTruthPath = `/next-eval/synthetic/groundTruth/${index}.json`; // Removed
+    const htmlPath = "/next-eval/sample.html";
 
     try {
-      // Fetch and process HTML
       const htmlResponse = await fetch(htmlPath);
       if (!htmlResponse.ok) {
         throw new Error(
@@ -317,18 +283,15 @@ export default function HomePage() {
         originalHtml: htmlString,
         originalHtmlLength,
       });
-
-      // Ground truth loading logic has been removed here.
-
     } catch (error) {
-      console.error(`Error loading synthetic data for index ${index}:`, error);
+      console.error(`Error loading synthetic data`, error);
       if (error instanceof Error) {
         setErrorMessage(
-          `Error loading synthetic data for index ${index}: ${error.message}`,
+          `Error loading synthetic data: ${error.message}`,
         );
       } else {
         setErrorMessage(
-          `An unknown error occurred while loading synthetic data for index ${index}.`,
+          "An unknown error occurred while loading synthetic data",
         );
       }
       // Clear partial data on main error
@@ -345,12 +308,14 @@ export default function HomePage() {
       </h1>
       {/* File Input Section */}
       <section className="mb-8 p-6 border rounded-lg shadow-md bg-white">
-        <h2 className="text-xl font-semibold mb-4">Upload HTML or Load Synthetic Data</h2>
-        <div className="flex flex-col md:flex-row md:space-x-6 md:space-y-0 space-y-6">
+        <h2 className="text-xl font-semibold mb-4">
+          Upload HTML or Load Sample Data
+        </h2>
+        <div className="flex flex-row items-start space-x-6"> 
           {/* Option 1: Upload your own HTML file */}
-          <div className="md:w-1/2 flex flex-col">
-            <p className="text-sm font-medium text-gray-700 mb-2">
-              Option 1: Upload your own HTML file.
+          <div className="flex-1 space-y-2">
+            <p className="text-sm font-medium text-gray-700">
+              Upload your own HTML file.
             </p>
             <input
               type="file"
@@ -370,49 +335,31 @@ export default function HomePage() {
             />
           </div>
 
-          {/* Option 2: Load Synthetic Data by Index */}
-          <div className="md:w-1/2 flex flex-col md:border-l md:pl-6 border-gray-200">
-            <p className="text-sm font-medium text-gray-700 mb-2">
-              Option 2: Load synthetic data by index (1-164).
+          {/* Separator */}
+          <div className="flex flex-col items-center justify-start pt-8">
+            <span className="text-sm font-medium text-gray-500">
+              Or
+            </span>
+          </div>
+
+          {/* Option 2: Load Sample HTML */}
+          <div className="flex-1 space-y-2">
+            <p className="text-sm font-medium text-gray-700">
+              Load a sample HTML file for quick testing.
             </p>
-            <label
-              htmlFor="syntheticIndexSelect"
-              className="block text-sm font-medium text-gray-700 mb-1 sr-only"
-            >
-              Select Synthetic Data:
-            </label>
-            <select
-              id="syntheticIndexSelect"
-              name="syntheticIndexSelect"
-              value={selectedSyntheticIndex}
-              onChange={(e) => {
-                const newSyntheticIndex = e.target.value;
-                setSelectedSyntheticIndex(newSyntheticIndex);
-                if (newSyntheticIndex) {
-                  // If a synthetic option is chosen (not the default "-- Select --")
-                  setSelectedFile(null); // Clear the selected file state
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = ''; // Clear the file input visually
-                  }
-                }
-              }}
-              className="block w-full text-sm text-slate-500 border-gray-300 rounded-md shadow-sm
-                         focus:ring-indigo-500 focus:border-indigo-500
-                         p-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
+            <button
+              type="button"
+              onClick={handleLoadSyntheticData}
+              className="w-full px-6 py-2 bg-teal-500 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isLoading}
-              aria-label="Select synthetic data by index (1-164)"
+              aria-label="Load sample HTML data"
             >
-              <option value="">-- Select Synthetic Data --</option>
-              {Array.from({ length: 164 }, (_, i) => (
-                <option key={i + 1} value={i + 1}>
-                  Synthetic {i + 1}
-                </option>
-              ))}
-            </select>
+              Load Sample HTML
+            </button>
           </div>
         </div>
         {errorMessage && (
-          <p className="mt-4 text-sm text-red-600" role="alert">
+          <p className="mt-6 text-sm text-red-600" role="alert">
             Error: {errorMessage}
           </p>
         )}
@@ -743,7 +690,7 @@ export default function HomePage() {
               </>
             </div>
           )}
-          {/* Display Evaluation Metrics from LLM Response */} 
+          {/* Display Evaluation Metrics from LLM Response */}
           {!isLlmLoading && !llmErrorMessage && predictXpathList && (
             <div className="mt-6">
               <h3 className="text-lg font-semibold mb-2 text-gray-800">
