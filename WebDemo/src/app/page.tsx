@@ -432,7 +432,7 @@ export default function HomePage() {
             );
 
             const mappedPredRecordsText = mappedPredRecords.map((xpathArray) =>
-              xpathArray.map((xpath) => textMapFlatForEval[xpath]).join(' ')
+              xpathArray.map((xpath) => textMapFlatForEval[xpath]).join(', ')
             );
 
             let localNumHallucination = 0;
@@ -608,7 +608,7 @@ export default function HomePage() {
               characters
             </p>
           )}
-          <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
+          <div className="h-32 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
             <pre className="text-sm whitespace-pre-wrap">
               {processedData.originalHtml}
             </pre>
@@ -652,7 +652,7 @@ export default function HomePage() {
 
       {/* Processing Steps Section */}
       {processedData && !isLoading && (
-        <section className="mb-8">
+        <section className="my-8">
           <h2 className="text-2xl font-semibold mb-4">Processing Stages</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -691,7 +691,7 @@ export default function HomePage() {
                   (attributes removed) Length:{' '}
                   {processedData.htmlLength.toLocaleString()} chars
                 </p>
-                <div className="h-64 overflow-auto bg-white p-2 border rounded">
+                <div className="h-32 overflow-auto bg-white p-2 border rounded">
                   <pre className="text-xs whitespace-pre-wrap">
                     {processedData.html}
                   </pre>
@@ -735,7 +735,7 @@ export default function HomePage() {
                   {processedData.textMapLength.toLocaleString()} chars (JSON
                   string)
                 </p>
-                <div className="h-64 overflow-auto bg-white p-2 border rounded">
+                <div className="h-32 overflow-auto bg-white p-2 border rounded">
                   <pre className="text-xs whitespace-pre-wrap">
                     {JSON.stringify(processedData.textMap, null, 2)}
                   </pre>
@@ -779,7 +779,7 @@ export default function HomePage() {
                   {processedData.textMapFlatLength.toLocaleString()} chars (JSON
                   string)
                 </p>
-                <div className="h-64 overflow-auto bg-white p-2 border rounded">
+                <div className="h-32 overflow-auto bg-white p-2 border rounded">
                   <pre className="text-xs whitespace-pre-wrap">
                     {JSON.stringify(processedData.textMapFlat, null, 2)}
                   </pre>
@@ -876,7 +876,7 @@ export default function HomePage() {
                               <h4 className="text-sm font-semibold mb-1 text-gray-600">
                                 Usage:
                               </h4>
-                              <div className="max-h-32 overflow-auto bg-white p-2 border rounded-md text-xs">
+                              <div className="max-h-24 overflow-auto bg-white p-2 border rounded-md text-xs">
                                 <pre className="whitespace-pre-wrap">
                                   {typeof stageResponse.usage === 'string'
                                     ? stageResponse.usage
@@ -893,7 +893,7 @@ export default function HomePage() {
                             <h4 className="text-sm font-semibold mb-1 text-gray-600">
                               Content:
                             </h4>
-                            <div className="h-64 overflow-auto bg-white p-2 border rounded-md text-xs">
+                            <div className="h-48 overflow-auto bg-white p-2 border rounded-md text-xs">
                               <pre className="whitespace-pre-wrap">
                                 {stageResponse.content}
                               </pre>
@@ -904,7 +904,7 @@ export default function HomePage() {
                               <h4 className="text-sm font-semibold mb-1 text-gray-600">
                                 Mapped Predicted Text (from XPaths):
                               </h4>
-                              <div className="h-48 overflow-auto bg-white p-2 border rounded-md text-xs">
+                              <div className="h-40 overflow-auto bg-white p-2 border rounded-md text-xs">
                                 {stageResponse.mappedPredictionText.map((textBlock, index) => (
                                   <pre key={index} className="whitespace-pre-wrap py-1 my-1 border-b border-gray-200 last:border-b-0">
                                     {textBlock}
@@ -1024,7 +1024,7 @@ export default function HomePage() {
                           <h4 className="text-sm font-semibold mb-1 text-gray-600">
                             Predicted XPaths:
                           </h4>
-                          <div className="h-64 overflow-auto bg-gray-100 p-2 border rounded-md text-xs">
+                          <div className="h-48 overflow-auto bg-gray-100 p-2 border rounded-md text-xs">
                             <pre className="whitespace-pre-wrap">
                               {JSON.stringify(
                                 mdrResponse.predictXpathList,
@@ -1041,7 +1041,7 @@ export default function HomePage() {
                             <h4 className="text-sm font-semibold mb-1 text-gray-600">
                               Mapped Predicted Text:
                             </h4>
-                            <div className="h-48 overflow-auto bg-white p-2 border rounded-md text-xs">
+                            <div className="h-40 overflow-auto bg-white p-2 border rounded-md text-xs">
                               {mdrResponse.mappedPredictionText.map(
                                 (textBlock, index) => (
                                   <pre
