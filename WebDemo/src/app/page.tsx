@@ -83,6 +83,7 @@ export default function HomePage() {
   const [processedData, setProcessedData] = useState<HtmlResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null); // For file processing errors
   const [selectedStage, setSelectedStage] = useState<keyof LlmAllResponses>('textMapFlat');
+  const [randomNumber, setRandomNumber] = useState<number | null>(null); // Added randomNumber state
 
   const [llmResponses, setLlmResponses] = useState<LlmAllResponses>({
     html: { ...initialLlmStageResponse },
@@ -102,6 +103,7 @@ export default function HomePage() {
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    setRandomNumber(null);
     if (file) {
       setSelectedFile(file);
       setErrorMessage(null);
@@ -193,7 +195,7 @@ export default function HomePage() {
       promptTypeForLlm = 'slim';
     } else if (stageKey === 'textMap') {
       stageDataForLlm = processedData.textMap;
-      promptTypeForLlm = 'hierarchical';
+      promptTypeForLlm = 'hier';
     } else if (stageKey === 'textMapFlat') {
       stageDataForLlm = processedData.textMapFlat;
       promptTypeForLlm = 'flat';
@@ -210,7 +212,8 @@ export default function HomePage() {
     try {
       const requestBody = {
         promptType: promptTypeForLlm,
-        data: JSON.stringify(stageDataForLlm, null, 2), // Data is stringified here
+        data: JSON.stringify(stageDataForLlm, null, 2),
+        randomNumber,
       };
 
       const response = await fetch('/next-eval/api/llm', {
@@ -290,7 +293,8 @@ export default function HomePage() {
     try {
       // Assuming runMDR is not excessively long-running for now.
       // For very large HTML or complex MDR, consider a Web Worker.
-      const mdrPredictedXPaths = runMDR(processedData.originalHtml);
+      const mdrPredictedXPaths = runMDR(processedData.html);
+      console.log(processedData.html);
 
       if (!mdrPredictedXPaths || mdrPredictedXPaths.length === 0) {
         setMdrResponse((prev) => ({
@@ -307,20 +311,22 @@ export default function HomePage() {
       // Validate XPaths (optional, but good for consistency if parseAndValidateXPaths is used elsewhere for LLM)
       // For now, we directly use the output of runMDR assuming it's string[][]
       const validatedMdrXPaths: ValidatedXpathArray = mdrPredictedXPaths as ValidatedXpathArray;
-
+      console.log("validate", validatedMdrXPaths);
       const textMapFlatForEval = processedData.textMapFlat as Record<
         string,
         string
       >;
+      const mdrFullXPaths = mapResponseToFullXPath(textMapFlatForEval, validatedMdrXPaths);
 
-      const mappedText = validatedMdrXPaths
+      const mappedText = mdrFullXPaths 
         .filter((xpathArray) => xpathArray.some((xpath) => xpath in textMapFlatForEval))
         .map((xpathArray) =>
         xpathArray
           .filter((xpath) => xpath in textMapFlatForEval)
           .map((xpath) => textMapFlatForEval[xpath])
-          .join(' ')
+          .join(',')
       );
+      console.log("mappedText", mappedText)
 
       setMdrResponse({
         predictXpathList: validatedMdrXPaths,
@@ -502,7 +508,9 @@ export default function HomePage() {
     setSelectedStage('textMapFlat');
     setMdrResponse({ ...initialMdrResponseState }); // Reset MDR response
 
-    const htmlPath = '/next-eval/sample.html';
+    const newRandomNumber = Math.floor(Math.random() * 20) + 1; // Generate number between 1 and 20
+    setRandomNumber(newRandomNumber); // Set the randomNumber state
+    const htmlPath = `/next-eval/sample${newRandomNumber}.html`; // Use newRandomNumber for the path
 
     try {
       const htmlResponse = await fetch(htmlPath);
@@ -959,7 +967,7 @@ export default function HomePage() {
                                 )}
                               
                               {!stageResponse.isEvaluating &&
-                                stageResponse.predictXpathList && 
+                                stageResponse.predictXpathList &&
                                 stageResponse.numPredictedRecords === null &&
                                 stageResponse.error && stageResponse.error.includes("Evaluation Error:") && ( // Explicitly check if an Evaluation Error occurred
                                 <p className="text-red-500">

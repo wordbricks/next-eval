@@ -3,10 +3,12 @@ import { generateText } from 'ai';
 import dotenv from 'dotenv';
 import { type NextRequest, NextResponse } from 'next/server';
 import type { LLMResponse } from '../../../lib/interfaces';
+import fs from 'fs/promises';
+import path from 'path';
 
 dotenv.config(); // Ensure environment variables are loaded
 
-type PromptType = 'slim' | 'flat' | 'hierarchical';
+type PromptType = 'slim' | 'flat' | 'hier';
 
 const GEMINI_PRO_2_5_PREVIEW_03 = 'gemini-2.5-pro-preview-03-25';
 
@@ -617,25 +619,18 @@ type Output = string[][];
 const promptContentMap: Record<PromptType, string> = {
   slim: SYSTEM_LLM_SLIM_MD,
   flat: SYSTEM_LLM_FLAT_MD,
-  hierarchical: SYSTEM_LLM_HIER_MD,
+  hier: SYSTEM_LLM_HIER_MD,
 };
 
 export async function POST(req: NextRequest) {
   try {
-    const { promptType, data } = (await req.json()) as {
+    const { promptType, data, randomNumber } = (await req.json()) as {
       promptType: PromptType;
       data: string;
+      randomNumber?: number | null;
     };
-    const modelName = GEMINI_PRO_2_5_PREVIEW_03;
 
-    if (!promptType || !promptContentMap[promptType]) {
-      return NextResponse.json(
-        { error: 'Invalid prompt type' } as LLMResponse,
-        { status: 400 },
-      );
-    }
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-
     if (!apiKey) {
       console.error(
         'API key is not set in .env or not accessible. Please set the GOOGLE_GENERATIVE_AI_API_KEY environment variable.',
@@ -645,9 +640,45 @@ export async function POST(req: NextRequest) {
         { status: 500 },
       );
     }
+
+    if (randomNumber !== null && randomNumber !== undefined) {
+      try {
+        const contentPath = path.join(process.cwd(), 'src', 'assets', `sample${randomNumber}_${promptType}_content.json`);
+        const usagePath = path.join(process.cwd(), 'src', 'assets', `sample${randomNumber}_${promptType}_usage.json`);
+
+        const contentFile = await fs.readFile(contentPath, 'utf-8');
+        const usageFile = await fs.readFile(usagePath, 'utf-8');
+
+        const contentData = contentFile;
+        const usageData = JSON.parse(usageFile);
+
+        const responsePayload: LLMResponse = {
+          content: contentData,
+          usage: usageData,
+          systemPromptUsed: `Loaded from local assets (sample${randomNumber})`,
+        };
+        return NextResponse.json(responsePayload);
+
+      } catch (assetError) {
+        console.error(`Error loading assets for sample${randomNumber}:`, assetError);
+        return NextResponse.json(
+          { error: `Assets for sample ${randomNumber} not found or are invalid.` } as LLMResponse,
+          { status: 404 },
+        );
+      }
+    }
+
+    const modelName = GEMINI_PRO_2_5_PREVIEW_03;
+
+    if (!promptType || !promptContentMap[promptType]) {
+      return NextResponse.json(
+        { error: 'Invalid prompt type' } as LLMResponse,
+        { status: 400 },
+      );
+    }
+
     const systemPromptContent = promptContentMap[promptType];
 
-    // Directly combine system prompt and the input data
     const combinedPrompt = `${systemPromptContent}\n\nInput Data:\n${data}`;
     const temperature = 1.0;
 
