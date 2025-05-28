@@ -629,8 +629,8 @@ export default function HomePage() {
         )}
         {/* Conditional rendering for side-by-side or individual display - MOVED HERE */}
                   {processedData?.originalHtml && !isLoading ? (
-           <div className="flex justify-center w-full">
-             <div className="w-full md:w-1/3 p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between">
+           <div className="mt-8">
+             <div className="w-full p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-lg font-medium">
                   Original HTML
