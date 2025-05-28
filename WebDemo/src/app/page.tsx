@@ -139,7 +139,7 @@ export default function HomePage() {
   const [selectedStage, setSelectedStage] = useState<keyof LlmAllResponses>('textMapFlat');
   const [randomNumber, setRandomNumber] = useState<number | null>(null);
   const [feedbackSent, setFeedbackSent] = useState<{ [key: string]: boolean }>({});
-  const [sessionId, setSessionId] = useState<string>('');
+  const [htmlId, setHtmlId] = useState<string | null>(null);
 
   // New state for UI tabs in extraction section
   const [activeExtractTab, setActiveExtractTab] = useState<ExtractTab>('llm');
@@ -213,6 +213,7 @@ export default function HomePage() {
         originalHtml: htmlString,
         originalHtmlLength,
       });
+      setHtmlId(uuidv4());
     } catch (error) {
       console.error('Client-side processing error:', error);
       if (error instanceof Error) {
@@ -589,6 +590,7 @@ export default function HomePage() {
         originalHtml: htmlString,
         originalHtmlLength,
       });
+      setHtmlId(uuidv4());
     } catch (error) {
       console.error('Error loading synthetic data', error);
       if (error instanceof Error) {
@@ -616,13 +618,16 @@ export default function HomePage() {
     }
   };
 
+  const getCurrentFeedbackId = () => {
+    return `${htmlId}-${activeExtractTab === 'llm' ? selectedStage : 'mdr'}`;
+  }
+
   const handleFeedback = async (isPositive: boolean, text: string) => {
-    if (feedbackSent[text]) {
+    if (feedbackSent[getCurrentFeedbackId()]) {
       return; // Prevent multiple feedback for the same text
     }
 
-    const feedbackId = uuidv4();
-    const feedbackMessage = `*Extraction Feedback*\\n${isPositive ? '👍' : '👎'} ID: ${feedbackId}`;
+    const feedbackMessage = `*Extraction Feedback*\\n${isPositive ? '👍' : '👎'} ID: ${getCurrentFeedbackId()}`;
 
     try {
       const response = await fetch('/next-eval/api/feedback', {
@@ -1070,9 +1075,9 @@ export default function HomePage() {
                                     <button
                                       type="button"
                                       onClick={() => handleFeedback(true, stageResponse.mappedPredictionText.join('\n'))}
-                                      disabled={feedbackSent[stageResponse.mappedPredictionText.join('\n')]}
+                                      disabled={feedbackSent[getCurrentFeedbackId()]}
                                       className={`p-1 hover:bg-green-100 rounded-full transition-colors duration-150 ease-in-out ${
-                                        feedbackSent[stageResponse.mappedPredictionText.join('\n')] 
+                                        feedbackSent[getCurrentFeedbackId()]
                                           ? 'text-green-600' 
                                           : 'text-gray-400 hover:text-green-600'
                                       }`}
@@ -1083,9 +1088,9 @@ export default function HomePage() {
                                     <button
                                       type="button"
                                       onClick={() => handleFeedback(false, stageResponse.mappedPredictionText.join('\n'))}
-                                      disabled={feedbackSent[stageResponse.mappedPredictionText.join('\n')]}
+                                      disabled={feedbackSent[getCurrentFeedbackId()]}
                                       className={`p-1 hover:bg-red-100 rounded-full transition-colors duration-150 ease-in-out ${
-                                        feedbackSent[stageResponse.mappedPredictionText.join('\n')] 
+                                        feedbackSent[getCurrentFeedbackId()]
                                           ? 'text-red-600' 
                                           : 'text-gray-400 hover:text-red-600'
                                       }`}
@@ -1151,8 +1156,7 @@ export default function HomePage() {
                                       )}
                                     </>
                                   )}
-
-{!stageResponse.isEvaluating &&
+                                {!stageResponse.isEvaluating &&
                                   stageResponse.predictXpathList && // XPaths were present
                                   stageResponse.numPredictedRecords === null && // But metrics calculation failed or was reset (error should be shown by stageResponse.error)
                                   !stageResponse.error && ( // If no specific eval error is set, this is an unexpected state.
@@ -1177,8 +1181,7 @@ export default function HomePage() {
                                       No valid XPaths parsed from LLM content.
                                     </p>
                                   )}
-          
-          {!stageResponse.isEvaluating &&
+                                {!stageResponse.isEvaluating &&
                                   !stageResponse.content && // No LLM content at all
                                   !stageResponse.isLoading && // And not loading
                                   !stageResponse.error && ( // And no error
@@ -1252,9 +1255,8 @@ export default function HomePage() {
                               </pre>
                             </div>
                           </div>
-                        )}
-
-{mdrResponse.mappedPredictionText &&
+                        )} 
+                        {mdrResponse.mappedPredictionText &&
                           mdrResponse.mappedPredictionText.length > 0 && (
                             <div className="mb-3">
                               <div className="flex justify-between items-center mb-1">
@@ -1265,9 +1267,9 @@ export default function HomePage() {
                                   <button
                                     type="button"
                                     onClick={() => handleFeedback(true, mdrResponse.mappedPredictionText.join('\n'))}
-                                    disabled={feedbackSent[mdrResponse.mappedPredictionText.join('\n')]}
+                                    disabled={feedbackSent[getCurrentFeedbackId()]}
                                     className={`p-1 hover:bg-green-100 rounded-full transition-colors duration-150 ease-in-out ${
-                                      feedbackSent[mdrResponse.mappedPredictionText.join('\n')] 
+                                      feedbackSent[getCurrentFeedbackId()] 
                                         ? 'text-green-600' 
                                         : 'text-gray-400 hover:text-green-600'
                                     }`}
@@ -1278,9 +1280,9 @@ export default function HomePage() {
                                   <button
                                     type="button"
                                     onClick={() => handleFeedback(false, mdrResponse.mappedPredictionText.join('\n'))}
-                                    disabled={feedbackSent[mdrResponse.mappedPredictionText.join('\n')]}
+                                    disabled={feedbackSent[getCurrentFeedbackId()]}
                                     className={`p-1 hover:bg-red-100 rounded-full transition-colors duration-150 ease-in-out ${
-                                      feedbackSent[mdrResponse.mappedPredictionText.join('\n')] 
+                                      feedbackSent[getCurrentFeedbackId()] 
                                         ? 'text-red-600' 
                                         : 'text-gray-400 hover:text-red-600'
                                     }`}
