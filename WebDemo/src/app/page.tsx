@@ -79,6 +79,23 @@ const DownloadIcon = () => (
   </svg>
 );
 
+const CopyIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+    stroke="currentColor"
+    className="w-5 h-5"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75"
+    />
+  </svg>
+);
+
 export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false); // For file processing
@@ -91,6 +108,7 @@ export default function HomePage() {
   const [activeExtractTab, setActiveExtractTab] = useState<ExtractTab>('llm');
   // New state for LLM model selection (though only one is enabled for now)
   const [selectedLlmModel, setSelectedLlmModel] = useState<string>('gemini-2.5-pro');
+  const [copySuccess, setCopySuccess] = useState<string>('');
 
   const [llmResponses, setLlmResponses] = useState<LlmAllResponses>({
     html: { ...initialLlmStageResponse },
@@ -550,6 +568,17 @@ export default function HomePage() {
     }
   };
 
+  const handleCopyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopySuccess('Copied!');
+      setTimeout(() => setCopySuccess(''), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+      setCopySuccess('Failed to copy');
+    }
+  };
+
   return (
     <main className="container mx-auto p-4 max-w-[1000px]">
       <h1 className="text-3xl font-bold text-center my-8">
@@ -599,18 +628,34 @@ export default function HomePage() {
           </p>
         )}
         {/* Conditional rendering for side-by-side or individual display - MOVED HERE */}
-        {processedData?.originalHtml && !isLoading ? (
-          <>
-          <h2 className="text-xl font-semibold mb-4 mt-6">Original HTML</h2>
-          <div className="h-32 overflow-auto bg-gray-50 p-3 border rounded-md mb-3">
-            <pre className="text-sm whitespace-pre-wrap">
-              {processedData.originalHtml}
-            </pre>
-          </div>
-          <p className="text-xs text-gray-500 text-right mb-4">
-            {processedData.originalHtmlLength.toLocaleString()} characters
-          </p>
-          </>
+                  {processedData?.originalHtml && !isLoading ? (
+           <div className="flex justify-center w-full">
+             <div className="w-full md:w-1/3 p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-lg font-medium">
+                  Original HTML
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => handleDownload(processedData.originalHtml, 'original_html.html', 'text/html')}
+                  className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-full transition-colors duration-150 ease-in-out"
+                  aria-label="Download original HTML"
+                >
+                  <DownloadIcon />
+                </button>
+              </div>
+              <div>
+                <div className="h-32 overflow-auto bg-white p-2 border rounded mb-3">
+                  <pre className="text-xs whitespace-pre-wrap">
+                    {processedData.originalHtml}
+                  </pre>
+                </div>
+                <p className="text-xs text-gray-500 text-right">
+                  {processedData.originalHtmlLength.toLocaleString()} characters
+                </p>
+              </div>
+             </div>
+           </div>
         ) : (
           <>
             {/* Display Original HTML Content Section (if only this is available) */}
@@ -668,9 +713,6 @@ export default function HomePage() {
                   </button>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-600 mb-2">
-                    (attributes removed)
-                  </p>
                   <div className="h-32 overflow-auto bg-white p-2 border rounded mb-3">
                     <pre className="text-xs whitespace-pre-wrap">
                       {processedData.html}
@@ -713,9 +755,6 @@ export default function HomePage() {
                   </button>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-600 mb-2">
-                    (Nested text map)
-                  </p>
                   <div className="h-32 overflow-auto bg-white p-2 border rounded mb-3">
                     <pre className="text-xs whitespace-pre-wrap">
                       {JSON.stringify(processedData.textMap, null, 2)}
@@ -758,9 +797,6 @@ export default function HomePage() {
                   </button>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-600 mb-2">
-                    (text map)
-                  </p>
                   <div className="h-32 overflow-auto bg-white p-2 border rounded mb-3">
                     <pre className="text-xs whitespace-pre-wrap">
                       {JSON.stringify(processedData.textMapFlat, null, 2)}
@@ -852,7 +888,7 @@ export default function HomePage() {
                  {/* Data Source for LLM Dropdown */}
                  <div>
                   <label htmlFor="llmDataStageSelect" className="block text-sm font-medium text-gray-700 mb-1">
-                    Data for LLM
+                    Processing method
                   </label>
                   <select
                     id="llmDataStageSelect"
@@ -960,9 +996,24 @@ export default function HomePage() {
                             </div>
                             {stageResponse.mappedPredictionText && stageResponse.mappedPredictionText.length > 0 && (
                               <div className="mb-3">
-                                <h4 className="text-sm font-semibold mb-1 text-gray-600">
-                                  Mapped Predicted Text (from XPaths):
-                                </h4>
+                                <div className="flex justify-between items-center mb-1">
+                                  <h4 className="text-sm font-semibold text-gray-600">
+                                    Predicted Text:
+                                  </h4>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyToClipboard(stageResponse.mappedPredictionText.join('\n'))}
+                                    className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-full transition-colors duration-150 ease-in-out group relative"
+                                    aria-label="Copy predicted text to clipboard"
+                                  >
+                                    <CopyIcon />
+                                    {copySuccess && (
+                                      <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded">
+                                        {copySuccess}
+                                      </span>
+                                    )}
+                                  </button>
+                                </div>
                                 <div className="h-40 overflow-auto bg-white p-2 border rounded-md text-xs">
                                   {stageResponse.mappedPredictionText.map((textBlock, index) => (
                                     <pre key={index} className="whitespace-pre-wrap py-1 my-1 border-b border-gray-200 last:border-b-0">
@@ -1112,9 +1163,24 @@ export default function HomePage() {
 {mdrResponse.mappedPredictionText &&
                           mdrResponse.mappedPredictionText.length > 0 && (
                             <div className="mb-3">
-                              <h4 className="text-sm font-semibold mb-1 text-gray-600">
-                                Mapped Predicted Text:
-                              </h4>
+                              <div className="flex justify-between items-center mb-1">
+                                <h4 className="text-sm font-semibold text-gray-600">
+                                  Predicted Text:
+                                </h4>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyToClipboard(mdrResponse.mappedPredictionText.join('\n'))}
+                                  className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-full transition-colors duration-150 ease-in-out group relative"
+                                  aria-label="Copy predicted text to clipboard"
+                                >
+                                  <CopyIcon />
+                                  {copySuccess && (
+                                    <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded">
+                                      {copySuccess}
+                                    </span>
+                                  )}
+                                </button>
+                              </div>
                               <div className="h-40 overflow-auto bg-white p-2 border rounded-md text-xs">
                                 {mdrResponse.mappedPredictionText.map(
                                   (textBlock, index) => (
