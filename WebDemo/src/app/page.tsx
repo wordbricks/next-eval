@@ -15,9 +15,6 @@ import {
 } from '../lib/utils/xpathValidation';
 import { runMDR } from '../lib/utils/runMDR';
 
-// Slack webhook URL
-const SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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';
-
 interface LlmStageResponse {
   content: string | null;
   usage: string | null;
@@ -624,21 +621,24 @@ export default function HomePage() {
       return; // Prevent multiple feedback for the same text
     }
 
+    const feedbackId = uuidv4();
+    const feedbackMessage = `*Extraction Feedback*\\n${isPositive ? '👍' : '👎'} ID: ${feedbackId}`;
+
     try {
-      const response = await fetch(SLACK_WEBHOOK_URL, {
+      const response = await fetch('/next-eval/api/feedback', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          text: `*Extraction Feedback*\n${isPositive ? '👍' : '👎'} ${text}`,
-        }),
+        body: JSON.stringify({ text: feedbackMessage }),
       });
 
       if (response.ok) {
         setFeedbackSent((prev) => ({ ...prev, [text]: true }));
       } else {
-        console.error('Failed to send feedback to Slack');
+        console.error('Failed to send feedback via API. Status:', response.status);
+        const responseBody = await response.text();
+        console.error('Response body:', responseBody);
       }
     } catch (error) {
       console.error('Error sending feedback:', error);
