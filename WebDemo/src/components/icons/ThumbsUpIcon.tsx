@@ -9,6 +9,7 @@ const ThumbsUpIcon = () => (
     stroke="currentColor"
     className="w-5 h-5"
   >
+    <title>Thumbs Up Icon</title>
     <path
       strokeLinecap="round"
       strokeLinejoin="round"

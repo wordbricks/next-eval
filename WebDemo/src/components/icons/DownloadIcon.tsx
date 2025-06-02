@@ -9,6 +9,7 @@ const DownloadIcon = () => (
     stroke="currentColor"
     className="w-5 h-5"
   >
+    <title>Download Icon</title>
     <path
       strokeLinecap="round"
       strokeLinejoin="round"

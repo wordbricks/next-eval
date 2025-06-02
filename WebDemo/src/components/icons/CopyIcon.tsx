@@ -9,6 +9,7 @@ const CopyIcon = () => (
     stroke="currentColor"
     className="w-5 h-5"
   >
+    <title>Copy Icon</title>
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
