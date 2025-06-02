@@ -527,7 +527,7 @@ export default function HomePage() {
 
       return updateScheduled ? newResponses : prevResponses;
     });
-  }, [processedData?.textMapFlat, llmResponses]);
+  }, [processedData?.textMapFlat]);
 
   const handleLoadSyntheticData = async () => {
     setIsLoading(true);
