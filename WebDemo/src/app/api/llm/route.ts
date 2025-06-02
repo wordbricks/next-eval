@@ -1,10 +1,10 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import dotenv from 'dotenv';
 import { type NextRequest, NextResponse } from 'next/server';
 import type { LLMResponse } from '../../../lib/interfaces';
-import fs from 'fs/promises';
-import path from 'path';
 
 dotenv.config(); // Ensure environment variables are loaded
 
@@ -643,8 +643,18 @@ export async function POST(req: NextRequest) {
 
     if (randomNumber !== null && randomNumber !== undefined) {
       try {
-        const contentPath = path.join(process.cwd(), 'src', 'assets', `sample${randomNumber}_${promptType}_content.json`);
-        const usagePath = path.join(process.cwd(), 'src', 'assets', `sample${randomNumber}_${promptType}_usage.json`);
+        const contentPath = path.join(
+          process.cwd(),
+          'src',
+          'assets',
+          `sample${randomNumber}_${promptType}_content.json`,
+        );
+        const usagePath = path.join(
+          process.cwd(),
+          'src',
+          'assets',
+          `sample${randomNumber}_${promptType}_usage.json`,
+        );
 
         const contentFile = await fs.readFile(contentPath, 'utf-8');
         const usageFile = await fs.readFile(usagePath, 'utf-8');
@@ -658,11 +668,15 @@ export async function POST(req: NextRequest) {
           systemPromptUsed: `Loaded from local assets (sample${randomNumber})`,
         };
         return NextResponse.json(responsePayload);
-
       } catch (assetError) {
-        console.error(`Error loading assets for sample${randomNumber}:`, assetError);
+        console.error(
+          `Error loading assets for sample${randomNumber}:`,
+          assetError,
+        );
         return NextResponse.json(
-          { error: `Assets for sample ${randomNumber} not found or are invalid.` } as LLMResponse,
+          {
+            error: `Assets for sample ${randomNumber} not found or are invalid.`,
+          } as LLMResponse,
           { status: 404 },
         );
       }

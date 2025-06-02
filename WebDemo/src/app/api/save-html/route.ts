@@ -1,5 +1,5 @@
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { createClient } from "@supabase/supabase-js";
 
 type Database = {
   public: {
@@ -25,9 +25,9 @@ type Database = {
       [_ in never]: never;
     };
     Enums: {
-      access_role: "editor" | "owner" | "viewer";
-      next_eval_type: "decision" | "result";
-      role: "user" | "admin";
+      access_role: 'editor' | 'owner' | 'viewer';
+      next_eval_type: 'decision' | 'result';
+      role: 'user' | 'admin';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -36,17 +36,19 @@ type Database = {
 };
 
 const supabaseClient = createClient<Database>(
-   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
-)
-
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+);
 
 export async function POST(request: Request) {
   try {
     const { htmlId, htmlContent } = await request.json();
 
     if (!htmlId || !htmlContent) {
-      return NextResponse.json({ error: 'Missing htmlId or htmlContent' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing htmlId or htmlContent' },
+        { status: 400 },
+      );
     }
 
     const { data, error } = await supabaseClient
@@ -67,4 +69,4 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
-} 
+}

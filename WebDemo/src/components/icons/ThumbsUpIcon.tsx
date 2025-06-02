@@ -17,4 +17,4 @@ const ThumbsUpIcon = () => (
   </svg>
 );
 
-export default ThumbsUpIcon; 
+export default ThumbsUpIcon;

@@ -3,21 +3,21 @@
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import CopyIcon from '../components/icons/CopyIcon';
+import DownloadIcon from '../components/icons/DownloadIcon';
+import ThumbsDownIcon from '../components/icons/ThumbsDownIcon';
+import ThumbsUpIcon from '../components/icons/ThumbsUpIcon';
 import type { HtmlResult } from '../lib/interfaces';
 import { handleDownload } from '../lib/utils/handleDownload';
 // import { calculateEvaluationMetrics } from '../lib/utils/evaluation';
 import { mapResponseToFullXPath } from '../lib/utils/mapResponseToFullXpath';
 import { processHtmlContent } from '../lib/utils/processHtmlContent';
 import { readFileAsText } from '../lib/utils/readFileAsText';
+import { runMDR } from '../lib/utils/runMDR';
 import {
   type ValidatedXpathArray,
   parseAndValidateXPaths,
 } from '../lib/utils/xpathValidation';
-import { runMDR } from '../lib/utils/runMDR';
-import DownloadIcon from '../components/icons/DownloadIcon';
-import CopyIcon from '../components/icons/CopyIcon';
-import ThumbsUpIcon from '../components/icons/ThumbsUpIcon';
-import ThumbsDownIcon from '../components/icons/ThumbsDownIcon';
 
 interface LlmStageResponse {
   content: string | null;
@@ -72,15 +72,19 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState<boolean>(false); // For file processing
   const [processedData, setProcessedData] = useState<HtmlResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null); // For file processing errors
-  const [selectedStage, setSelectedStage] = useState<keyof LlmAllResponses>('textMapFlat');
+  const [selectedStage, setSelectedStage] =
+    useState<keyof LlmAllResponses>('textMapFlat');
   const [randomNumber, setRandomNumber] = useState<number | null>(null);
-  const [feedbackSent, setFeedbackSent] = useState<{ [key: string]: boolean }>({});
+  const [feedbackSent, setFeedbackSent] = useState<{ [key: string]: boolean }>(
+    {},
+  );
   const [htmlId, setHtmlId] = useState<string | null>(null);
 
   // New state for UI tabs in extraction section
   const [activeExtractTab, setActiveExtractTab] = useState<ExtractTab>('llm');
   // New state for LLM model selection (though only one is enabled for now)
-  const [selectedLlmModel, setSelectedLlmModel] = useState<string>('gemini-2.5-pro');
+  const [selectedLlmModel, setSelectedLlmModel] =
+    useState<string>('gemini-2.5-pro');
   const [copySuccess, setCopySuccess] = useState<string>('');
 
   const [llmResponses, setLlmResponses] = useState<LlmAllResponses>({
@@ -89,7 +93,9 @@ export default function HomePage() {
     textMapFlat: { ...initialLlmStageResponse },
   });
   const [overallLlmFetching, setOverallLlmFetching] = useState<boolean>(false); // For the "Send All to Gemini" button
-  const [mdrResponse, setMdrResponse] = useState<MdrResponseState>({ ...initialMdrResponseState }); // Added MDR state
+  const [mdrResponse, setMdrResponse] = useState<MdrResponseState>({
+    ...initialMdrResponseState,
+  }); // Added MDR state
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -107,7 +113,9 @@ export default function HomePage() {
         body: JSON.stringify({ htmlId: id, htmlContent: content }),
       });
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to save HTML and could not parse error.' }));
+        const errorData = await response.json().catch(() => ({
+          message: 'Failed to save HTML and could not parse error.',
+        }));
         console.error('Failed to save HTML to server:', errorData.message);
       } else {
         console.log('HTML saved to server successfully.');
@@ -192,7 +200,8 @@ export default function HomePage() {
       // Optionally set a general error message for LLM section
       return;
     }
-    if (!selectedStage) { // Ensure a stage is selected
+    if (!selectedStage) {
+      // Ensure a stage is selected
       console.error('No stage selected for LLM request.');
       // Optionally set an error message
       return;
@@ -223,7 +232,11 @@ export default function HomePage() {
       setOverallLlmFetching(false);
       setLlmResponses((prev) => ({
         ...prev,
-        [stageKey]: { ...initialLlmStageResponse, error: 'Unknown stage selected', isLoading: false },
+        [stageKey]: {
+          ...initialLlmStageResponse,
+          error: 'Unknown stage selected',
+          isLoading: false,
+        },
       }));
       return;
     }
@@ -329,21 +342,27 @@ export default function HomePage() {
 
       // Validate XPaths (optional, but good for consistency if parseAndValidateXPaths is used elsewhere for LLM)
       // For now, we directly use the output of runMDR assuming it's string[][]
-      const validatedMdrXPaths: ValidatedXpathArray = mdrPredictedXPaths as ValidatedXpathArray;
+      const validatedMdrXPaths: ValidatedXpathArray =
+        mdrPredictedXPaths as ValidatedXpathArray;
       const textMapFlatForEval = processedData.textMapFlat as Record<
         string,
         string
       >;
-      const mdrFullXPaths = mapResponseToFullXPath(textMapFlatForEval, validatedMdrXPaths);
-
-      const mappedText = mdrFullXPaths 
-        .filter((xpathArray) => xpathArray.some((xpath) => xpath in textMapFlatForEval))
-        .map((xpathArray) =>
-        xpathArray
-          .filter((xpath) => xpath in textMapFlatForEval)
-          .map((xpath) => textMapFlatForEval[xpath])
-          .join(',')
+      const mdrFullXPaths = mapResponseToFullXPath(
+        textMapFlatForEval,
+        validatedMdrXPaths,
       );
+
+      const mappedText = mdrFullXPaths
+        .filter((xpathArray) =>
+          xpathArray.some((xpath) => xpath in textMapFlatForEval),
+        )
+        .map((xpathArray) =>
+          xpathArray
+            .filter((xpath) => xpath in textMapFlatForEval)
+            .map((xpath) => textMapFlatForEval[xpath])
+            .join(','),
+        );
 
       setMdrResponse({
         predictXpathList: validatedMdrXPaths,
@@ -455,7 +474,7 @@ export default function HomePage() {
             );
 
             const mappedPredRecordsText = mappedPredRecords.map((xpathArray) =>
-              xpathArray.map((xpath) => textMapFlatForEval[xpath]).join(', ')
+              xpathArray.map((xpath) => textMapFlatForEval[xpath]).join(', '),
             );
 
             let localNumHallucination = 0;
@@ -488,8 +507,7 @@ export default function HomePage() {
             };
             updateScheduled = true;
           }
-        }
-        else if (
+        } else if (
           !stageData.predictXpathList &&
           !stageData.isLoading &&
           !stageData.isEvaluating &&
@@ -576,7 +594,7 @@ export default function HomePage() {
 
   const getCurrentFeedbackId = () => {
     return `${htmlId}-${activeExtractTab === 'llm' ? selectedStage : 'mdr'}`;
-  }
+  };
 
   const handleFeedback = async (isPositive: boolean, text: string) => {
     if (feedbackSent[getCurrentFeedbackId()]) {
@@ -597,7 +615,10 @@ export default function HomePage() {
       if (response.ok) {
         setFeedbackSent((prev) => ({ ...prev, [text]: true }));
       } else {
-        console.error('Failed to send feedback via API. Status:', response.status);
+        console.error(
+          'Failed to send feedback via API. Status:',
+          response.status,
+        );
         const responseBody = await response.text();
         console.error('Response body:', responseBody);
       }
@@ -616,7 +637,9 @@ export default function HomePage() {
         <h2 className="text-2xl font-semibold mb-4">
           1.Upload and process HTML
         </h2>
-        <div className="space-y-3"> {/* Main container for upload elements */}
+        <div className="space-y-3">
+          {' '}
+          {/* Main container for upload elements */}
           {/* Combined Upload and Load Sample section */}
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-gray-700">
@@ -650,21 +673,27 @@ export default function HomePage() {
           />
         </div>
         {errorMessage && (
-          <p className="mt-4 text-sm text-red-600" role="alert"> {/* Adjusted margin top */}
+          <p className="mt-4 text-sm text-red-600" role="alert">
+            {' '}
+            {/* Adjusted margin top */}
             Error: {errorMessage}
           </p>
         )}
         {/* Conditional rendering for side-by-side or individual display - MOVED HERE */}
-                  {processedData?.originalHtml && !isLoading ? (
-           <div className="mt-8">
-             <div className="w-full p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between">
+        {processedData?.originalHtml && !isLoading ? (
+          <div className="mt-8">
+            <div className="w-full p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between">
               <div className="flex justify-between items-start mb-2">
-                <h3 className="text-lg font-medium">
-                  Original HTML
-                </h3>
+                <h3 className="text-lg font-medium">Original HTML</h3>
                 <button
                   type="button"
-                  onClick={() => handleDownload(processedData.originalHtml, 'original_html.html', 'text/html')}
+                  onClick={() =>
+                    handleDownload(
+                      processedData.originalHtml,
+                      'original_html.html',
+                      'text/html',
+                    )
+                  }
                   className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-full transition-colors duration-150 ease-in-out"
                   aria-label="Download original HTML"
                 >
@@ -681,8 +710,8 @@ export default function HomePage() {
                   {processedData.originalHtmlLength.toLocaleString()} characters
                 </p>
               </div>
-             </div>
-           </div>
+            </div>
+          </div>
         ) : (
           <>
             {/* Display Original HTML Content Section (if only this is available) */}
@@ -691,23 +720,26 @@ export default function HomePage() {
                 <h2 className="text-xl font-semibold mb-4">
                   Original HTML Content
                 </h2>
-              {processedData.originalHtmlLength !== undefined && (
-                <p className="text-sm text-gray-600 mb-2">
-                  {processedData.originalHtmlLength.toLocaleString()} characters
-                </p>
-              )}
-              <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
-                <pre className="text-sm whitespace-pre-wrap">
-                  {processedData.originalHtml}
-                </pre>
-              </div>
+                {processedData.originalHtmlLength !== undefined && (
+                  <p className="text-sm text-gray-600 mb-2">
+                    {processedData.originalHtmlLength.toLocaleString()}{' '}
+                    characters
+                  </p>
+                )}
+                <div className="h-96 overflow-auto bg-gray-50 p-3 border rounded-md mb-4">
+                  <pre className="text-sm whitespace-pre-wrap">
+                    {processedData.originalHtml}
+                  </pre>
+                </div>
               </>
             )}
           </>
         )}
 
         {processedData && !isLoading && (
-          <section className="my-8"> {/* This section already has my-8 for spacing */}
+          <section className="my-8">
+            {' '}
+            {/* This section already has my-8 for spacing */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Stage 1: Slimmed HTML (Cleaned HTML) */}
               <div
@@ -720,9 +752,7 @@ export default function HomePage() {
                 aria-label="Select Slimmed HTML stage and view its content"
               >
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-lg font-medium">
-                    1. Slimmed HTML
-                  </h3>
+                  <h3 className="text-lg font-medium">1. Slimmed HTML</h3>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -755,16 +785,16 @@ export default function HomePage() {
               <div
                 className={`p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between cursor-pointer transition-all duration-150 ease-in-out ${selectedStage === 'textMap' ? 'border-orange-500 ring-2 ring-orange-300' : 'border-gray-200 hover:shadow-md'}`}
                 onClick={() => setSelectedStage('textMap')}
-                onKeyDown={(e) => e.key === 'Enter' && setSelectedStage('textMap')}
+                onKeyDown={(e) =>
+                  e.key === 'Enter' && setSelectedStage('textMap')
+                }
                 tabIndex={0}
                 role="button"
                 aria-pressed={selectedStage === 'textMap'}
                 aria-label="Select Hierarchical JSON stage and view its content"
               >
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-lg font-medium">
-                    2. Hierarchical JSON
-                  </h3>
+                  <h3 className="text-lg font-medium">2. Hierarchical JSON</h3>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -797,16 +827,16 @@ export default function HomePage() {
               <div
                 className={`p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between cursor-pointer transition-all duration-150 ease-in-out ${selectedStage === 'textMapFlat' ? 'border-orange-500 ring-2 ring-orange-300' : 'border-gray-200 hover:shadow-md'}`}
                 onClick={() => setSelectedStage('textMapFlat')}
-                onKeyDown={(e) => e.key === 'Enter' && setSelectedStage('textMapFlat')}
+                onKeyDown={(e) =>
+                  e.key === 'Enter' && setSelectedStage('textMapFlat')
+                }
                 tabIndex={0}
                 role="button"
                 aria-pressed={selectedStage === 'textMapFlat'}
                 aria-label="Select Flat JSON stage and view its content"
               >
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-lg font-medium">
-                    3. Flat JSON
-                  </h3>
+                  <h3 className="text-lg font-medium">3. Flat JSON</h3>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -830,29 +860,27 @@ export default function HomePage() {
                     </pre>
                   </div>
                   <p className="text-xs text-gray-500 text-right">
-                    {processedData.textMapFlatLength.toLocaleString()} characters
+                    {processedData.textMapFlatLength.toLocaleString()}{' '}
+                    characters
                   </p>
                 </div>
               </div>
             </div>
           </section>
-      )}
+        )}
 
-      {/* Loading Indicator - more prominent */}
-      {isLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl">
-            <p className="text-lg font-semibold animate-pulse">
-              Processing file, please wait...
-            </p>
-            {/* You can add a spinner SVG or component here */}
+        {/* Loading Indicator - more prominent */}
+        {isLoading && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl">
+              <p className="text-lg font-semibold animate-pulse">
+                Processing file, please wait...
+              </p>
+              {/* You can add a spinner SVG or component here */}
+            </div>
           </div>
-        </div>
-      )}
-
-
+        )}
       </section>
-
 
       {/* LLM Interaction Section */}
       {processedData && !isLoading && (
@@ -861,7 +889,6 @@ export default function HomePage() {
             2. Extract data records
           </h2>
 
-
           {/* Tab Navigation */}
           <div className="mb-6 border-b border-gray-200">
             <nav className="-mb-px flex space-x-8" aria-label="Tabs">
@@ -869,9 +896,10 @@ export default function HomePage() {
                 type="button"
                 onClick={() => setActiveExtractTab('llm')}
                 className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm
-                  ${activeExtractTab === 'llm'
-                    ? 'border-orange-500 text-orange-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ${
+                    activeExtractTab === 'llm'
+                      ? 'border-orange-500 text-orange-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   } focus:outline-none`}
                 aria-current={activeExtractTab === 'llm' ? 'page' : undefined}
               >
@@ -881,9 +909,10 @@ export default function HomePage() {
                 type="button"
                 onClick={() => setActiveExtractTab('mdr')}
                 className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm
-                  ${activeExtractTab === 'mdr'
-                    ? 'border-orange-500 text-orange-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ${
+                    activeExtractTab === 'mdr'
+                      ? 'border-orange-500 text-orange-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   } focus:outline-none`}
                 aria-current={activeExtractTab === 'mdr' ? 'page' : undefined}
               >
@@ -897,7 +926,10 @@ export default function HomePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 items-end">
                 {/* LLM Model Selection Dropdown */}
                 <div>
-                  <label htmlFor="llmModelSelect" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="llmModelSelect"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     LLM Model
                   </label>
                   <select
@@ -908,21 +940,33 @@ export default function HomePage() {
                     className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm rounded-md shadow-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
                     <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                    <option value="claude-3-opus-disabled" disabled>Claude 3 Opus (soon)</option>
-                    <option value="gpt4-turbo-disabled" disabled>GPT-4 Turbo (soon)</option>
+                    <option value="claude-3-opus-disabled" disabled>
+                      Claude 3 Opus (soon)
+                    </option>
+                    <option value="gpt4-turbo-disabled" disabled>
+                      GPT-4 Turbo (soon)
+                    </option>
                   </select>
                 </div>
-                 {/* Data Source for LLM Dropdown */}
-                 <div>
-                  <label htmlFor="llmDataStageSelect" className="block text-sm font-medium text-gray-700 mb-1">
+                {/* Data Source for LLM Dropdown */}
+                <div>
+                  <label
+                    htmlFor="llmDataStageSelect"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Processing method
                   </label>
                   <select
                     id="llmDataStageSelect"
                     name="llmDataStageSelect"
                     value={selectedStage}
-                    onChange={(e) => setSelectedStage(e.target.value as keyof LlmAllResponses)}
-                    disabled={overallLlmFetching || (llmResponses[selectedStage]?.isLoading)}
+                    onChange={(e) =>
+                      setSelectedStage(e.target.value as keyof LlmAllResponses)
+                    }
+                    disabled={
+                      overallLlmFetching ||
+                      llmResponses[selectedStage]?.isLoading
+                    }
                     className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm rounded-md shadow-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
                     <option value="html">Slimmed HTML</option>
@@ -931,18 +975,24 @@ export default function HomePage() {
                   </select>
                 </div>
               </div>
-               {/* Send to LLM Button */}
-               <div className="flex justify-center items-center mb-6">
+              {/* Send to LLM Button */}
+              <div className="flex justify-center items-center mb-6">
                 <button
                   type="button"
                   onClick={handleSendToLlm}
                   aria-label={`Send ${selectedStage === 'html' ? 'Slimmed HTML' : selectedStage === 'textMap' ? 'Hierarchical JSON' : 'Flat JSON'} to ${selectedLlmModel}`}
                   className="w-full sm:w-auto px-6 py-3 bg-orange-500 text-white font-semibold rounded-lg shadow-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={!processedData || overallLlmFetching || !selectedStage || mdrResponse.isLoading || (llmResponses[selectedStage]?.isLoading)}
+                  disabled={
+                    !processedData ||
+                    overallLlmFetching ||
+                    !selectedStage ||
+                    mdrResponse.isLoading ||
+                    llmResponses[selectedStage]?.isLoading
+                  }
                 >
                   {overallLlmFetching && llmResponses[selectedStage]?.isLoading
-                    ? `Sending to LLM...`
-                    : `Send to LLM`}
+                    ? 'Sending to LLM...'
+                    : 'Send to LLM'}
                 </button>
               </div>
               {/* Display LLM Responses */}
@@ -952,11 +1002,18 @@ export default function HomePage() {
                 !llmResponses[selectedStage]?.content && (
                   <div className="mt-6 text-center">
                     <p className="text-lg font-semibold animate-pulse">
-                      Waiting for {selectedLlmModel} response for {selectedStage === 'html' ? 'Slimmed HTML' : selectedStage === 'textMap' ? 'Hierarchical JSON' : 'Flat JSON'}...
+                      Waiting for {selectedLlmModel} response for{' '}
+                      {selectedStage === 'html'
+                        ? 'Slimmed HTML'
+                        : selectedStage === 'textMap'
+                          ? 'Hierarchical JSON'
+                          : 'Flat JSON'}
+                      ...
                     </p>
                   </div>
                 )}
-              {selectedStage && llmResponses[selectedStage] && (
+              {selectedStage &&
+                llmResponses[selectedStage] &&
                 (() => {
                   const stageKey = selectedStage;
                   const stageResponse = llmResponses[stageKey];
@@ -1018,66 +1075,96 @@ export default function HomePage() {
                               <div className="h-48 overflow-auto bg-white p-2 border rounded-md text-xs">
                                 <pre className="whitespace-pre-wrap">
                                   {stageResponse.content}
-                                  </pre>
+                                </pre>
                               </div>
                             </div>
-                            {stageResponse.mappedPredictionText && stageResponse.mappedPredictionText.length > 0 && (
-                              <div className="mb-3">
-                                <div className="flex justify-between items-center mb-1">
-                                  <h4 className="text-sm font-semibold text-gray-600">
-                                    Predicted Text:
-                                  </h4>
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleFeedback(true, stageResponse.mappedPredictionText.join('\n'))}
-                                      disabled={feedbackSent[getCurrentFeedbackId()]}
-                                      className={`p-1 hover:bg-green-100 rounded-full transition-colors duration-150 ease-in-out ${
-                                        feedbackSent[getCurrentFeedbackId()]
-                                          ? 'text-green-600' 
-                                          : 'text-gray-400 hover:text-green-600'
-                                      }`}
-                                      aria-label="Give positive feedback"
-                                    >
-                                      <ThumbsUpIcon />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleFeedback(false, stageResponse.mappedPredictionText.join('\n'))}
-                                      disabled={feedbackSent[getCurrentFeedbackId()]}
-                                      className={`p-1 hover:bg-red-100 rounded-full transition-colors duration-150 ease-in-out ${
-                                        feedbackSent[getCurrentFeedbackId()]
-                                          ? 'text-red-600' 
-                                          : 'text-gray-400 hover:text-red-600'
-                                      }`}
-                                      aria-label="Give negative feedback"
-                                    >
-                                      <ThumbsDownIcon />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleCopyToClipboard(stageResponse.mappedPredictionText.join('\n'))}
-                                      className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-full transition-colors duration-150 ease-in-out group relative"
-                                      aria-label="Copy predicted text to clipboard"
-                                    >
-                                      <CopyIcon />
-                                      {copySuccess && (
-                                        <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded">
-                                          {copySuccess}
-                                        </span>
-                                      )}
-                                    </button>
+                            {stageResponse.mappedPredictionText &&
+                              stageResponse.mappedPredictionText.length > 0 && (
+                                <div className="mb-3">
+                                  <div className="flex justify-between items-center mb-1">
+                                    <h4 className="text-sm font-semibold text-gray-600">
+                                      Predicted Text:
+                                    </h4>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          handleFeedback(
+                                            true,
+                                            stageResponse.mappedPredictionText.join(
+                                              '\n',
+                                            ),
+                                          )
+                                        }
+                                        disabled={
+                                          feedbackSent[getCurrentFeedbackId()]
+                                        }
+                                        className={`p-1 hover:bg-green-100 rounded-full transition-colors duration-150 ease-in-out ${
+                                          feedbackSent[getCurrentFeedbackId()]
+                                            ? 'text-green-600'
+                                            : 'text-gray-400 hover:text-green-600'
+                                        }`}
+                                        aria-label="Give positive feedback"
+                                      >
+                                        <ThumbsUpIcon />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          handleFeedback(
+                                            false,
+                                            stageResponse.mappedPredictionText.join(
+                                              '\n',
+                                            ),
+                                          )
+                                        }
+                                        disabled={
+                                          feedbackSent[getCurrentFeedbackId()]
+                                        }
+                                        className={`p-1 hover:bg-red-100 rounded-full transition-colors duration-150 ease-in-out ${
+                                          feedbackSent[getCurrentFeedbackId()]
+                                            ? 'text-red-600'
+                                            : 'text-gray-400 hover:text-red-600'
+                                        }`}
+                                        aria-label="Give negative feedback"
+                                      >
+                                        <ThumbsDownIcon />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          handleCopyToClipboard(
+                                            stageResponse.mappedPredictionText.join(
+                                              '\n',
+                                            ),
+                                          )
+                                        }
+                                        className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-full transition-colors duration-150 ease-in-out group relative"
+                                        aria-label="Copy predicted text to clipboard"
+                                      >
+                                        <CopyIcon />
+                                        {copySuccess && (
+                                          <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded">
+                                            {copySuccess}
+                                          </span>
+                                        )}
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="h-40 overflow-auto bg-white p-2 border rounded-md text-xs">
+                                    {stageResponse.mappedPredictionText.map(
+                                      (textBlock, index) => (
+                                        <pre
+                                          key={index}
+                                          className="whitespace-pre-wrap py-1 my-1 border-b border-gray-200 last:border-b-0"
+                                        >
+                                          {textBlock}
+                                        </pre>
+                                      ),
+                                    )}
                                   </div>
                                 </div>
-                                <div className="h-40 overflow-auto bg-white p-2 border rounded-md text-xs">
-                                  {stageResponse.mappedPredictionText.map((textBlock, index) => (
-                                    <pre key={index} className="whitespace-pre-wrap py-1 my-1 border-b border-gray-200 last:border-b-0">
-                                      {textBlock}
-                                    </pre>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                              )}
                             <div>
                               <h4 className="text-sm font-semibold mb-1 text-gray-600">
                                 Evaluation Metrics:
@@ -1097,7 +1184,8 @@ export default function HomePage() {
                                         </span>{' '}
                                         {stageResponse.numPredictedRecords}
                                       </p>
-                                      {stageResponse.numHallucination !== null && (
+                                      {stageResponse.numHallucination !==
+                                        null && (
                                         <p>
                                           <span className="font-semibold">
                                             Potential Hallucinations:
@@ -1117,18 +1205,23 @@ export default function HomePage() {
                                   stageResponse.numPredictedRecords === null && // But metrics calculation failed or was reset (error should be shown by stageResponse.error)
                                   !stageResponse.error && ( // If no specific eval error is set, this is an unexpected state.
                                     <p className="text-orange-500">
-                                      Metrics pending or encountered an issue. Check for errors.
+                                      Metrics pending or encountered an issue.
+                                      Check for errors.
                                     </p>
                                   )}
-                                
+
                                 {!stageResponse.isEvaluating &&
                                   stageResponse.predictXpathList &&
                                   stageResponse.numPredictedRecords === null &&
-                                  stageResponse.error && stageResponse.error.includes("Evaluation Error:") && ( // Explicitly check if an Evaluation Error occurred
-                                  <p className="text-red-500">
-                                    Metrics calculation failed. See error message above.
-                                  </p>
-                                )}
+                                  stageResponse.error &&
+                                  stageResponse.error.includes(
+                                    'Evaluation Error:',
+                                  ) && ( // Explicitly check if an Evaluation Error occurred
+                                    <p className="text-red-500">
+                                      Metrics calculation failed. See error
+                                      message above.
+                                    </p>
+                                  )}
                                 {!stageResponse.isEvaluating &&
                                   !stageResponse.predictXpathList && // XPaths could not be parsed
                                   stageResponse.content && // But LLM content was present
@@ -1151,13 +1244,14 @@ export default function HomePage() {
                         )}
                     </div>
                   );
-                })()
-              )}
+                })()}
             </div>
           )}
-            {/* MDR Tab Content */}
-            {activeExtractTab === 'mdr' && (
-            <div className="mt-4"> {/* Added mt-4 for spacing consistent with LLM tab */}
+          {/* MDR Tab Content */}
+          {activeExtractTab === 'mdr' && (
+            <div className="mt-4">
+              {' '}
+              {/* Added mt-4 for spacing consistent with LLM tab */}
               {/* Run MDR Button */}
               <div className="flex justify-center items-center mb-6">
                 <button
@@ -1165,141 +1259,176 @@ export default function HomePage() {
                   onClick={handleRunMdr}
                   aria-label="Run MDR Algorithm on Original HTML"
                   className="w-full sm:w-auto px-6 py-3 bg-orange-500 text-white font-semibold rounded-lg shadow-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={!processedData?.originalHtml || mdrResponse.isLoading || overallLlmFetching} // Simplified disabled condition
+                  disabled={
+                    !processedData?.originalHtml ||
+                    mdrResponse.isLoading ||
+                    overallLlmFetching
+                  } // Simplified disabled condition
                 >
-                  {mdrResponse.isLoading ? 'Running MDR...' : 'Run MDR Algorithm'}
+                  {mdrResponse.isLoading
+                    ? 'Running MDR...'
+                    : 'Run MDR Algorithm'}
                 </button>
               </div>
-                {/* MDR Response Card */}
-                {processedData && !isLoading && ( // This outer check might be redundant if section is already conditional
-                <div className="p-4 border rounded-lg shadow-sm bg-gray-50 flex flex-col">
-                  <h3 className="text-lg font-semibold mb-3 text-gray-800 border-b pb-2">
-                    MDR Algorithm Response
-                  </h3>
-                  {mdrResponse.isLoading && (
-                    <p className="text-md font-medium text-blue-600 animate-pulse">
-                      Processing with MDR, please wait...
-                    </p>
-                  )}
-                  {mdrResponse.error && (
-                    <div
-                      className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm"
-                      role="alert"
-                    >
-                      <p className="font-semibold">MDR Error:</p>
-                      <pre className="whitespace-pre-wrap break-all">
-                        {mdrResponse.error}
-                      </pre>
-                    </div>
-                  )}
-                  {!mdrResponse.isLoading &&
-                    (mdrResponse.predictXpathList || mdrResponse.error) && // Ensure something to show or an error
-                    !mdrResponse.error && ( // If no error, show data
-                      <>
-                        {mdrResponse.predictXpathList && (
-                          <div className="mb-3">
-                            <h4 className="text-sm font-semibold mb-1 text-gray-600">
-                              Predicted XPaths:
-                            </h4>
-                            <div className="h-48 overflow-auto bg-gray-100 p-2 border rounded-md text-xs">
-                              <pre className="whitespace-pre-wrap">
-                                {JSON.stringify(
-                                  mdrResponse.predictXpathList,
-                                  null,
-                                  2,
-                                )}
-                              </pre>
-                            </div>
-                          </div>
-                        )} 
-                        {mdrResponse.mappedPredictionText &&
-                          mdrResponse.mappedPredictionText.length > 0 && (
+              {/* MDR Response Card */}
+              {processedData &&
+                !isLoading && ( // This outer check might be redundant if section is already conditional
+                  <div className="p-4 border rounded-lg shadow-sm bg-gray-50 flex flex-col">
+                    <h3 className="text-lg font-semibold mb-3 text-gray-800 border-b pb-2">
+                      MDR Algorithm Response
+                    </h3>
+                    {mdrResponse.isLoading && (
+                      <p className="text-md font-medium text-blue-600 animate-pulse">
+                        Processing with MDR, please wait...
+                      </p>
+                    )}
+                    {mdrResponse.error && (
+                      <div
+                        className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm"
+                        role="alert"
+                      >
+                        <p className="font-semibold">MDR Error:</p>
+                        <pre className="whitespace-pre-wrap break-all">
+                          {mdrResponse.error}
+                        </pre>
+                      </div>
+                    )}
+                    {!mdrResponse.isLoading &&
+                      (mdrResponse.predictXpathList || mdrResponse.error) && // Ensure something to show or an error
+                      !mdrResponse.error && ( // If no error, show data
+                        <>
+                          {mdrResponse.predictXpathList && (
                             <div className="mb-3">
-                              <div className="flex justify-between items-center mb-1">
-                                <h4 className="text-sm font-semibold text-gray-600">
-                                  Predicted Text:
-                                </h4>
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleFeedback(true, mdrResponse.mappedPredictionText.join('\n'))}
-                                    disabled={feedbackSent[getCurrentFeedbackId()]}
-                                    className={`p-1 hover:bg-green-100 rounded-full transition-colors duration-150 ease-in-out ${
-                                      feedbackSent[getCurrentFeedbackId()] 
-                                        ? 'text-green-600' 
-                                        : 'text-gray-400 hover:text-green-600'
-                                    }`}
-                                    aria-label="Give positive feedback"
-                                  >
-                                    <ThumbsUpIcon />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleFeedback(false, mdrResponse.mappedPredictionText.join('\n'))}
-                                    disabled={feedbackSent[getCurrentFeedbackId()]}
-                                    className={`p-1 hover:bg-red-100 rounded-full transition-colors duration-150 ease-in-out ${
-                                      feedbackSent[getCurrentFeedbackId()] 
-                                        ? 'text-red-600' 
-                                        : 'text-gray-400 hover:text-red-600'
-                                    }`}
-                                    aria-label="Give negative feedback"
-                                  >
-                                    <ThumbsDownIcon />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleCopyToClipboard(mdrResponse.mappedPredictionText.join('\n'))}
-                                    className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-full transition-colors duration-150 ease-in-out group relative"
-                                    aria-label="Copy predicted text to clipboard"
-                                  >
-                                    <CopyIcon />
-                                    {copySuccess && (
-                                      <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded">
-                                        {copySuccess}
-                                      </span>
-                                    )}
-                                  </button>
-                                </div>
-                              </div>
-                              <div className="h-40 overflow-auto bg-white p-2 border rounded-md text-xs">
-                                {mdrResponse.mappedPredictionText.map(
-                                  (textBlock, index) => (
-                                    <pre
-                                      key={index}
-                                      className="whitespace-pre-wrap py-1 my-1 border-b border-gray-200 last:border-b-0"
-                                    >
-                                      {textBlock}
-                                    </pre>
-                                  ),
-                                )}
+                              <h4 className="text-sm font-semibold mb-1 text-gray-600">
+                                Predicted XPaths:
+                              </h4>
+                              <div className="h-48 overflow-auto bg-gray-100 p-2 border rounded-md text-xs">
+                                <pre className="whitespace-pre-wrap">
+                                  {JSON.stringify(
+                                    mdrResponse.predictXpathList,
+                                    null,
+                                    2,
+                                  )}
+                                </pre>
                               </div>
                             </div>
                           )}
-                        <div>
-                          <h4 className="text-sm font-semibold mb-1 text-gray-600">
-                            Evaluation Metrics:
-                          </h4>
-                          <div className="p-2 bg-blue-50 border border-blue-100 rounded-md space-y-1 text-xs">
-                            {mdrResponse.numPredictedRecords !== null && (
-                              <p>
-                                <span className="font-semibold">
-                                  Predicted Records:
-                                </span>{' '}
-                                {mdrResponse.numPredictedRecords}
-                              </p>
+                          {mdrResponse.mappedPredictionText &&
+                            mdrResponse.mappedPredictionText.length > 0 && (
+                              <div className="mb-3">
+                                <div className="flex justify-between items-center mb-1">
+                                  <h4 className="text-sm font-semibold text-gray-600">
+                                    Predicted Text:
+                                  </h4>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleFeedback(
+                                          true,
+                                          mdrResponse.mappedPredictionText.join(
+                                            '\n',
+                                          ),
+                                        )
+                                      }
+                                      disabled={
+                                        feedbackSent[getCurrentFeedbackId()]
+                                      }
+                                      className={`p-1 hover:bg-green-100 rounded-full transition-colors duration-150 ease-in-out ${
+                                        feedbackSent[getCurrentFeedbackId()]
+                                          ? 'text-green-600'
+                                          : 'text-gray-400 hover:text-green-600'
+                                      }`}
+                                      aria-label="Give positive feedback"
+                                    >
+                                      <ThumbsUpIcon />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleFeedback(
+                                          false,
+                                          mdrResponse.mappedPredictionText.join(
+                                            '\n',
+                                          ),
+                                        )
+                                      }
+                                      disabled={
+                                        feedbackSent[getCurrentFeedbackId()]
+                                      }
+                                      className={`p-1 hover:bg-red-100 rounded-full transition-colors duration-150 ease-in-out ${
+                                        feedbackSent[getCurrentFeedbackId()]
+                                          ? 'text-red-600'
+                                          : 'text-gray-400 hover:text-red-600'
+                                      }`}
+                                      aria-label="Give negative feedback"
+                                    >
+                                      <ThumbsDownIcon />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleCopyToClipboard(
+                                          mdrResponse.mappedPredictionText.join(
+                                            '\n',
+                                          ),
+                                        )
+                                      }
+                                      className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-full transition-colors duration-150 ease-in-out group relative"
+                                      aria-label="Copy predicted text to clipboard"
+                                    >
+                                      <CopyIcon />
+                                      {copySuccess && (
+                                        <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded">
+                                          {copySuccess}
+                                        </span>
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="h-40 overflow-auto bg-white p-2 border rounded-md text-xs">
+                                  {mdrResponse.mappedPredictionText.map(
+                                    (textBlock, index) => (
+                                      <pre
+                                        key={index}
+                                        className="whitespace-pre-wrap py-1 my-1 border-b border-gray-200 last:border-b-0"
+                                      >
+                                        {textBlock}
+                                      </pre>
+                                    ),
+                                  )}
+                                </div>
+                              </div>
                             )}
-                            {mdrResponse.numPredictedRecords === 0 && (
-                               <p className="text-gray-500">MDR did not predict any records.</p>
-                            )}
+                          <div>
+                            <h4 className="text-sm font-semibold mb-1 text-gray-600">
+                              Evaluation Metrics:
+                            </h4>
+                            <div className="p-2 bg-blue-50 border border-blue-100 rounded-md space-y-1 text-xs">
+                              {mdrResponse.numPredictedRecords !== null && (
+                                <p>
+                                  <span className="font-semibold">
+                                    Predicted Records:
+                                  </span>{' '}
+                                  {mdrResponse.numPredictedRecords}
+                                </p>
+                              )}
+                              {mdrResponse.numPredictedRecords === 0 && (
+                                <p className="text-gray-500">
+                                  MDR did not predict any records.
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </>
-                    )}
-                   {!mdrResponse.isLoading && !mdrResponse.predictXpathList && !mdrResponse.error && ( // Initial state before running MDR
-                     <p className="text-gray-500">Run MDR to see results.</p>
-                   )}
-                </div>
-              )}
+                        </>
+                      )}
+                    {!mdrResponse.isLoading &&
+                      !mdrResponse.predictXpathList &&
+                      !mdrResponse.error && ( // Initial state before running MDR
+                        <p className="text-gray-500">Run MDR to see results.</p>
+                      )}
+                  </div>
+                )}
             </div>
           )}
         </section>

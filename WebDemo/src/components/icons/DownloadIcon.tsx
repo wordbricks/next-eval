@@ -17,4 +17,4 @@ const DownloadIcon = () => (
   </svg>
 );
 
-export default DownloadIcon; 
+export default DownloadIcon;

@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import dotenv from 'dotenv';
+import { NextResponse } from 'next/server';
 
 dotenv.config(); // Ensure environment variables are loaded
 
@@ -50,7 +50,8 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error('Error processing feedback request:', error);
-    let errorMessage = 'An unknown error occurred while processing the feedback request.';
+    let errorMessage =
+      'An unknown error occurred while processing the feedback request.';
     if (error instanceof Error) {
       errorMessage = error.message;
     }
