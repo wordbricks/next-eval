@@ -99,6 +99,24 @@ export default function HomePage() {
   //   }
   // }, [processedData, selectedStage]); // selectedStage removed
 
+  const saveHtmlToServer = async (id: string, content: string) => {
+    try {
+      const response = await fetch('/next-eval/api/save-html', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ htmlId: id, htmlContent: content }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to save HTML and could not parse error.' }));
+        console.error('Failed to save HTML to server:', errorData.message);
+      } else {
+        console.log('HTML saved to server successfully.');
+      }
+    } catch (error) {
+      console.error('Error calling save-html API:', error);
+    }
+  };
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     setRandomNumber(null);
@@ -149,7 +167,9 @@ export default function HomePage() {
         originalHtml: htmlString,
         originalHtmlLength,
       });
-      setHtmlId(uuidv4());
+      const newHtmlId = uuidv4();
+      setHtmlId(newHtmlId);
+      await saveHtmlToServer(newHtmlId, htmlString);
     } catch (error) {
       console.error('Client-side processing error:', error);
       if (error instanceof Error) {
@@ -310,7 +330,6 @@ export default function HomePage() {
       // Validate XPaths (optional, but good for consistency if parseAndValidateXPaths is used elsewhere for LLM)
       // For now, we directly use the output of runMDR assuming it's string[][]
       const validatedMdrXPaths: ValidatedXpathArray = mdrPredictedXPaths as ValidatedXpathArray;
-      console.log("validate", validatedMdrXPaths);
       const textMapFlatForEval = processedData.textMapFlat as Record<
         string,
         string
@@ -325,7 +344,6 @@ export default function HomePage() {
           .map((xpath) => textMapFlatForEval[xpath])
           .join(',')
       );
-      console.log("mappedText", mappedText)
 
       setMdrResponse({
         predictXpathList: validatedMdrXPaths,
@@ -526,7 +544,9 @@ export default function HomePage() {
         originalHtml: htmlString,
         originalHtmlLength,
       });
-      setHtmlId(uuidv4());
+      const newHtmlId = uuidv4(); // Generate ID here
+      setHtmlId(newHtmlId); // Set ID here
+      await saveHtmlToServer(newHtmlId, htmlString); // Save to server
     } catch (error) {
       console.error('Error loading synthetic data', error);
       if (error instanceof Error) {
