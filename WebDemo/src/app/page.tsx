@@ -596,12 +596,13 @@ export default function HomePage() {
     return `${htmlId}-${activeExtractTab === 'llm' ? selectedStage : 'mdr'}`;
   };
 
-  const handleFeedback = async (isPositive: boolean, text: string) => {
-    if (feedbackSent[getCurrentFeedbackId()]) {
+  const handleFeedback = async (isPositive: boolean) => {
+    const id = getCurrentFeedbackId();
+    if (feedbackSent[id]) {
       return; // Prevent multiple feedback for the same text
     }
 
-    const feedbackMessage = `*Extraction Feedback*\\n${isPositive ? '👍' : '👎'} ID: ${getCurrentFeedbackId()}`;
+    const feedbackMessage = `*Extraction Feedback*\\n${isPositive ? '👍' : '👎'} ID: ${id}`;
 
     try {
       const response = await fetch('/next-eval/api/feedback', {
@@ -613,7 +614,7 @@ export default function HomePage() {
       });
 
       if (response.ok) {
-        setFeedbackSent((prev) => ({ ...prev, [text]: true }));
+        setFeedbackSent((prev) => ({ ...prev, [id]: true }));
       } else {
         console.error(
           'Failed to send feedback via API. Status:',
@@ -1088,14 +1089,7 @@ export default function HomePage() {
                                     <div className="flex items-center gap-2">
                                       <button
                                         type="button"
-                                        onClick={() =>
-                                          handleFeedback(
-                                            true,
-                                            stageResponse.mappedPredictionText.join(
-                                              '\n',
-                                            ),
-                                          )
-                                        }
+                                        onClick={() => handleFeedback(true)}
                                         disabled={
                                           feedbackSent[getCurrentFeedbackId()]
                                         }
@@ -1110,14 +1104,7 @@ export default function HomePage() {
                                       </button>
                                       <button
                                         type="button"
-                                        onClick={() =>
-                                          handleFeedback(
-                                            false,
-                                            stageResponse.mappedPredictionText.join(
-                                              '\n',
-                                            ),
-                                          )
-                                        }
+                                        onClick={() => handleFeedback(false)}
                                         disabled={
                                           feedbackSent[getCurrentFeedbackId()]
                                         }
@@ -1323,14 +1310,7 @@ export default function HomePage() {
                                   <div className="flex items-center gap-2">
                                     <button
                                       type="button"
-                                      onClick={() =>
-                                        handleFeedback(
-                                          true,
-                                          mdrResponse.mappedPredictionText.join(
-                                            '\n',
-                                          ),
-                                        )
-                                      }
+                                      onClick={() => handleFeedback(true)}
                                       disabled={
                                         feedbackSent[getCurrentFeedbackId()]
                                       }
@@ -1345,14 +1325,7 @@ export default function HomePage() {
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() =>
-                                        handleFeedback(
-                                          false,
-                                          mdrResponse.mappedPredictionText.join(
-                                            '\n',
-                                          ),
-                                        )
-                                      }
+                                      onClick={() => handleFeedback(false)}
                                       disabled={
                                         feedbackSent[getCurrentFeedbackId()]
                                       }
