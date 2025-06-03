@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 type Database = {
   public: {
     Tables: {
-      next_eval: {
+      next_eval_user_htmls: {
         Row: {
           id: string;
           created_at: string;
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     }
 
     const { data, error } = await supabaseClient
-      .from('next_eval') // Make sure 'html_documents' matches your table name
+      .from('next_eval_user_htmls') // Make sure 'html_documents' matches your table name
       .insert([{ id: htmlId, html: htmlContent }]);
 
     if (error) {
