@@ -1,7 +1,7 @@
 import { parse } from 'node-html-parser';
-import { type TagNode, buildTagTree } from './buildTagTree';
-import { editDistance } from './editDistance';
-import { removeCommentScriptStyleFromHTML } from './removeCommentScriptStyleFromHTML';
+import { type TagNode, buildTagTree } from '@/lib/utils/buildTagTree';
+import { editDistance } from '@/lib/utils/editDistance';
+import { removeCommentScriptStyleFromHTML } from '@/lib/utils/removeCommentScriptStyleFromHTML';
 
 // MDR (Mining Data Region) constants
 export const MDR_K = 10; // Maximum length of a data region pattern

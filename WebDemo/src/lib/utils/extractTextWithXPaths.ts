@@ -1,5 +1,5 @@
-import type { NestedTextMap } from '../interfaces';
-import { generateXPath } from './generateXPath';
+import type { NestedTextMap } from '@/lib/interfaces';
+import { generateXPath } from '@/lib/utils/generateXPath';
 
 // Helper function to extract text and build flat/hierarchical maps
 export const extractTextWithXPaths = (

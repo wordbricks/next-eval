@@ -3,21 +3,21 @@
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import CopyIcon from '../components/icons/CopyIcon';
-import DownloadIcon from '../components/icons/DownloadIcon';
-import ThumbsDownIcon from '../components/icons/ThumbsDownIcon';
-import ThumbsUpIcon from '../components/icons/ThumbsUpIcon';
-import type { HtmlResult } from '../lib/interfaces';
-import { handleDownload } from '../lib/utils/handleDownload';
-// import { calculateEvaluationMetrics } from '../lib/utils/evaluation';
-import { mapResponseToFullXPath } from '../lib/utils/mapResponseToFullXpath';
-import { processHtmlContent } from '../lib/utils/processHtmlContent';
-import { readFileAsText } from '../lib/utils/readFileAsText';
-import { runMDR } from '../lib/utils/runMDR';
+import CopyIcon from '@/components/icons/CopyIcon';
+import DownloadIcon from '@/components/icons/DownloadIcon';
+import ThumbsDownIcon from '@/components/icons/ThumbsDownIcon';
+import ThumbsUpIcon from '@/components/icons/ThumbsUpIcon';
+import type { HtmlResult } from '@/lib/interfaces';
+import { handleDownload } from '@/lib/utils/handleDownload';
+// import { calculateEvaluationMetrics } from '@/lib/utils/evaluation';
+import { mapResponseToFullXPath } from '@/lib/utils/mapResponseToFullXpath';
+import { processHtmlContent } from '@/lib/utils/processHtmlContent';
+import { readFileAsText } from '@/lib/utils/readFileAsText';
+import { runMDR } from '@/lib/utils/runMDR';
 import {
   type ValidatedXpathArray,
   parseAndValidateXPaths,
-} from '../lib/utils/xpathValidation';
+} from '@/lib/utils/xpathValidation';
 
 interface LlmStageResponse {
   content: string | null;

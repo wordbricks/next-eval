@@ -4,7 +4,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import dotenv from 'dotenv';
 import { type NextRequest, NextResponse } from 'next/server';
-import type { LLMResponse } from '../../../lib/interfaces';
+import type { LLMResponse } from '@/lib/interfaces';
 
 dotenv.config(); // Ensure environment variables are loaded
 

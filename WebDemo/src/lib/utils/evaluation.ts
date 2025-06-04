@@ -1,4 +1,4 @@
-//import type { EvaluationResult } from '../interfaces';
+//import type { EvaluationResult } from '@/lib/interfaces';
 //
 //export const calculateEvaluationMetrics = (
 //  predictRecords: string[][],
