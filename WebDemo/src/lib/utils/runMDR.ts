@@ -1,6 +1,5 @@
 import { parse } from 'node-html-parser';
 import { type TagNode, buildTagTree } from '@/lib/utils/buildTagTree';
-import { editDistance } from '@/lib/utils/editDistance';
 import { removeCommentScriptStyleFromHTML } from '@/lib/utils/removeCommentScriptStyleFromHTML';
 
 // MDR (Mining Data Region) constants
@@ -10,6 +9,30 @@ export const MDR_T = 0.3; // Similarity threshold for data region detection
 type DataRegion = [number, number, number];
 type DataRecord = TagNode | TagNode[];
 const nodeDataRegions = new Map<TagNode, DataRegion[]>();
+
+// Wasm module integration
+let wasmModule: typeof import('../../../public/rust_mdr_pkg/rust_mdr_utils') | null = null;
+let wasmInitializationPromise: Promise<void> | null = null;
+
+const initializeWasm = async (): Promise<void> => {
+  if (wasmModule) return;
+  if (wasmInitializationPromise) return wasmInitializationPromise;
+
+  wasmInitializationPromise = (async () => {
+    try {
+      const importedModule = await import('../../../public/rust_mdr_pkg/rust_mdr_utils');
+      await importedModule.default(); // Initialize Wasm (usually the default export)
+      wasmModule = importedModule;
+    } catch (error) {
+      console.error('Failed to initialize Wasm module:', error);
+      wasmInitializationPromise = null; // Allow retry on next call
+      throw error; // Re-throw to indicate failure
+    }
+  })();
+  await wasmInitializationPromise;
+  // Do not set wasmInitializationPromise back to null here if you want to prevent re-initialization attempts after success.
+  // If retries on failure are desired, the current logic is okay.
+};
 
 function getChildren(node: TagNode): TagNode[] {
   return node.children || [];
@@ -37,30 +60,40 @@ function flattenNodeSequence(nodes: TagNode[]): string {
   return nodes.map(flattenSubtree).join('');
 }
 
-function getNormalizedEditDistance(
+async function getNormalizedEditDistance(
   nodeSeq1: TagNode[],
   nodeSeq2: TagNode[],
-): number {
+): Promise<number> {
+  await initializeWasm();
+  if (!wasmModule) {
+    throw new Error(
+      'Wasm module not initialized. Call initializeWasm first.',
+    );
+  }
+
   const s1 = flattenNodeSequence(nodeSeq1);
   const s2 = flattenNodeSequence(nodeSeq2);
-  const len1 = s1.length;
-  const len2 = s2.length;
+  const len1Bytes = s1.length;
+  const len2Bytes = s2.length;
 
-  if (len1 > 2 * len2 || len2 > 2 * len1) {
+  if (len1Bytes > 2 * len2Bytes || len2Bytes > 2 * len1Bytes) {
     return 1.0; // Consider highly dissimilar
   }
 
-  const distance = editDistance(s1, s2);
-  return distance;
+  // Call the Wasm function
+  return wasmModule.get_normalized_edit_distance_wasm(s1, s2);
 }
 
-function areSiblingsSimilar(siblings: TagNode[], T: number): boolean {
+async function areSiblingsSimilar(
+  siblings: TagNode[],
+  T: number,
+): Promise<boolean> {
   if (siblings.length < 2) {
     return true; // No comparison needed for 0 or 1 sibling
   }
   for (let i = 0; i < siblings.length - 1; i++) {
     for (let j = i + 1; j < siblings.length; j++) {
-      if (getNormalizedEditDistance([siblings[i]], [siblings[j]]) > T) {
+      if ((await getNormalizedEditDistance([siblings[i]], [siblings[j]])) > T) {
         return false;
       }
     }
@@ -68,12 +101,12 @@ function areSiblingsSimilar(siblings: TagNode[], T: number): boolean {
   return true;
 }
 
-function IdentDRs(
+async function IdentDRs(
   startChildIndex: number,
   children: TagNode[],
   K: number,
   T: number,
-): DataRegion[] {
+): Promise<DataRegion[]> {
   const identifiedRegions: DataRegion[] = [];
   const n = getNodeListSize(children);
   let currentMaxDR: DataRegion | null = null;
@@ -98,7 +131,7 @@ function IdentDRs(
           checkIdx + 2 * gnLength,
         );
 
-        if (getNormalizedEditDistance(gn1, gn2) <= T) {
+        if ((await getNormalizedEditDistance(gn1, gn2)) <= T) {
           if (!isContinuingRegion) {
             currentDR = [gnLength, checkIdx, 2 * gnLength];
             isContinuingRegion = true;
@@ -137,7 +170,9 @@ function IdentDRs(
     identifiedRegions.push(currentMaxDR);
     const nextStartIndex = currentMaxDR[1] + currentMaxDR[2];
     if (nextStartIndex < n) {
-      identifiedRegions.push(...IdentDRs(nextStartIndex, children, K, T));
+      identifiedRegions.push(
+        ...(await IdentDRs(nextStartIndex, children, K, T)),
+      );
     }
   }
   return identifiedRegions;
@@ -162,12 +197,12 @@ function UnCoveredDRs(
   return childDRs;
 }
 
-function findDRsRecursive(
+async function findDRsRecursive(
   node: TagNode,
   K: number,
   T: number,
   depth = 0,
-): void {
+): Promise<void> {
   nodeDataRegions.set(node, []);
   let hasGrandchildren = false;
   if (getChildren(node).length > 0) {
@@ -183,7 +218,7 @@ function findDRsRecursive(
   if (hasGrandchildren) {
     const children = getChildren(node);
     if (getNodeListSize(children) >= 2) {
-      nodeDRs = IdentDRs(0, children, K, T);
+      nodeDRs = await IdentDRs(0, children, K, T);
       nodeDataRegions.set(node, nodeDRs);
     }
   }
@@ -192,7 +227,7 @@ function findDRsRecursive(
   const children = getChildren(node);
   for (let i = 0; i < children.length; i++) {
     const child = children[i];
-    findDRsRecursive(child, K, T, depth + 1);
+    await findDRsRecursive(child, K, T, depth + 1);
     const uncoveredChildDRs = UnCoveredDRs(node, child, i);
     tempDRs = tempDRs.concat(uncoveredChildDRs);
   }
@@ -201,13 +236,13 @@ function findDRsRecursive(
   nodeDataRegions.set(node, finalDRs);
 }
 
-function runMDRAlgorithm(
+async function runMDRAlgorithm(
   rootNode: TagNode,
   K: number,
   T: number,
-): Map<TagNode, DataRegion[]> {
+): Promise<Map<TagNode, DataRegion[]>> {
   nodeDataRegions.clear();
-  findDRsRecursive(rootNode, K, T);
+  await findDRsRecursive(rootNode, K, T);
 
   const finalRegionsMap = new Map<TagNode, DataRegion[]>();
   for (const [node, drs] of nodeDataRegions.entries()) {
@@ -218,10 +253,10 @@ function runMDRAlgorithm(
   return finalRegionsMap;
 }
 
-function findRecords1(G: TagNode, T: number): TagNode[] {
+async function findRecords1(G: TagNode, T: number): Promise<TagNode[]> {
   const children = getChildren(G);
   const isTableRow = G.tag === 'tr';
-  const childrenAreSimilar = areSiblingsSimilar(children, T);
+  const childrenAreSimilar = await areSiblingsSimilar(children, T);
 
   if (children.length > 0 && childrenAreSimilar && !isTableRow) {
     return children;
@@ -230,7 +265,7 @@ function findRecords1(G: TagNode, T: number): TagNode[] {
 }
 
 // --- Figure 15: FindRecords-n ---
-function findRecordsN(G: TagNode[], T: number): DataRecord[] {
+async function findRecordsN(G: TagNode[], T: number): Promise<DataRecord[]> {
   if (G.length === 0) return [];
   const n = G.length;
   let childrenAreSimilarWithinComponents = true;
@@ -243,7 +278,7 @@ function findRecordsN(G: TagNode[], T: number): DataRecord[] {
       sameNumberOfChildren = false;
       break;
     }
-    if (!areSiblingsSimilar(children, T)) {
+    if (!(await areSiblingsSimilar(children, T))) {
       childrenAreSimilarWithinComponents = false;
       break;
     }
@@ -274,7 +309,7 @@ function findRecordsN(G: TagNode[], T: number): DataRecord[] {
 }
 
 // --- Helper for Adjacent Region Merging ---
-function wouldProduceNonContiguous(G: TagNode[], T: number): boolean {
+async function wouldProduceNonContiguous(G: TagNode[], T: number): Promise<boolean> {
   if (G.length <= 1) return false;
   let childrenAreSimilarWithinComponents = true;
   let sameNumberOfChildren = true;
@@ -287,7 +322,7 @@ function wouldProduceNonContiguous(G: TagNode[], T: number): boolean {
       sameNumberOfChildren = false;
       break;
     }
-    if (!areSiblingsSimilar(children, T)) {
+    if (!(await areSiblingsSimilar(children, T))) {
       childrenAreSimilarWithinComponents = false;
       break;
     }
@@ -296,10 +331,10 @@ function wouldProduceNonContiguous(G: TagNode[], T: number): boolean {
 }
 
 // --- Section 3.3 Post-processing (Adjacent Region Merging) & Record Identification ---
-function identifyAllDataRecords(
+async function identifyAllDataRecords(
   regionsMap: Map<TagNode, DataRegion[]>,
   T: number,
-): DataRecord[] {
+): Promise<DataRecord[]> {
   const allRecords: DataRecord[] = [];
   const processedRegionKeys = new Set<string>();
 
@@ -337,10 +372,10 @@ function identifyAllDataRecords(
             );
 
             if (currentGNs.length > 0 && nextGNs.length > 0) {
-              if (getNormalizedEditDistance(currentGNs, nextGNs) > T) {
+              if ((await getNormalizedEditDistance(currentGNs, nextGNs)) > T) {
                 if (
-                  wouldProduceNonContiguous(currentGNs, T) &&
-                  wouldProduceNonContiguous(nextGNs, T)
+                  (await wouldProduceNonContiguous(currentGNs, T)) &&
+                  (await wouldProduceNonContiguous(nextGNs, T))
                 ) {
                   merged = true;
                   const mergedRecordsNonContiguous: TagNode[][] = [];
@@ -394,8 +429,8 @@ function identifyAllDataRecords(
 
         const identifiedRecords: DataRecord[] =
           gnLength === 1
-            ? findRecords1(generalizedNodeComponents[0], T)
-            : findRecordsN(generalizedNodeComponents, T);
+            ? await findRecords1(generalizedNodeComponents[0], T)
+            : await findRecordsN(generalizedNodeComponents, T);
         allRecords.push(...identifiedRecords);
       }
       processedRegionKeys.add(regionKey);
@@ -405,10 +440,10 @@ function identifyAllDataRecords(
 }
 
 // --- Section 3.4 Post-processing (Orphan Records) ---
-function findOrphanRecords(
+async function findOrphanRecords(
   regionsMap: Map<TagNode, DataRegion[]>,
   T: number,
-): Set<TagNode> {
+): Promise<Set<TagNode>> {
   const foundOrphans = new Set<TagNode>();
 
   for (const [parentNode, regions] of regionsMap.entries()) {
@@ -448,10 +483,10 @@ function findOrphanRecords(
         const orphanChildString = flattenSubtree(orphanChild);
         if (orphanChildString.length > 0) {
           if (
-            getNormalizedEditDistance(
+            (await getNormalizedEditDistance(
               [orphanChild],
               [representativeRecordNode],
-            ) <= T
+            )) <= T
           ) {
             foundOrphans.add(orphanChild);
           }
@@ -460,8 +495,10 @@ function findOrphanRecords(
       const orphanNodeString = flattenSubtree(orphanNode);
       if (orphanNodeString.length > 0) {
         if (
-          getNormalizedEditDistance([orphanNode], [representativeRecordNode]) <=
-          T
+          (await getNormalizedEditDistance(
+            [orphanNode],
+            [representativeRecordNode],
+          )) <= T
         ) {
           foundOrphans.add(orphanNode);
         }
@@ -471,7 +508,12 @@ function findOrphanRecords(
   return foundOrphans;
 }
 
-export function runMDR(rawHtml: string): string[][] {
+export async function runMDR(rawHtml: string): Promise<string[][]> {
+  // Ensure Wasm is initialized before any processing that might use it.
+  // While individual functions await initializeWasm(), calling it here once
+  // can pre-warm it or handle initial load errors more centrally if desired.
+  await initializeWasm();
+
   const cleanedHtml = removeCommentScriptStyleFromHTML(rawHtml);
   const rootDom = parse(cleanedHtml, {
     lowerCaseTagName: true,
@@ -480,11 +522,11 @@ export function runMDR(rawHtml: string): string[][] {
   const rootNode = buildTagTree(rootDom.childNodes[0]);
 
   // Step 1 & 2: Find Data Regions
-  const allDataRegions = runMDRAlgorithm(rootNode, MDR_K, MDR_T);
+  const allDataRegions = await runMDRAlgorithm(rootNode, MDR_K, MDR_T);
   // Step 3: Identify Records from Regions (with adjacent merging)
-  const initialRecords = identifyAllDataRecords(allDataRegions, MDR_T);
+  const initialRecords = await identifyAllDataRecords(allDataRegions, MDR_T);
   // Step 4: Find Orphan Records
-  const orphanRecordsSet = findOrphanRecords(allDataRegions, MDR_T);
+  const orphanRecordsSet = await findOrphanRecords(allDataRegions, MDR_T);
   const orphanRecords = Array.from(orphanRecordsSet);
 
   // Combine and Finalize Records

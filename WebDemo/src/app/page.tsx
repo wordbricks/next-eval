@@ -325,7 +325,7 @@ export default function HomePage() {
     try {
       // Assuming runMDR is not excessively long-running for now.
       // For very large HTML or complex MDR, consider a Web Worker.
-      const mdrPredictedXPaths = runMDR(processedData.html);
+      const mdrPredictedXPaths = await runMDR(processedData.html);
 
       if (!mdrPredictedXPaths || mdrPredictedXPaths.length === 0) {
         setMdrResponse((prev) => ({
@@ -544,7 +544,7 @@ export default function HomePage() {
 
     const newRandomNumber = Math.floor(Math.random() * 20) + 1; // Generate number between 1 and 20
     setRandomNumber(newRandomNumber); // Set the randomNumber state
-    const htmlPath = `/next-eval/sample${newRandomNumber}.html`; // Use newRandomNumber for the path
+    const htmlPath = `/next-eval/samples/sample${newRandomNumber}.html`; // Use newRandomNumber for the path
 
     try {
       const htmlResponse = await fetch(htmlPath);

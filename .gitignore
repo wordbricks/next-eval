@@ -6,3 +6,8 @@ bin
 data
 synthetic
 *.old
+
+target
+pkg
+Cargo.lock
+
