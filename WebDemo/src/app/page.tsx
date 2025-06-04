@@ -67,6 +67,25 @@ const initialMdrResponseState: MdrResponseState = {
   error: null,
 };
 
+// Helper function for timeout
+const timeoutPromise = <T,>(promise: Promise<T>, ms: number, timeoutError = new Error('Operation timed out')) => {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(timeoutError);
+    }, ms);
+
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+};
+
 export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false); // For file processing
@@ -325,7 +344,12 @@ export default function HomePage() {
     try {
       // Assuming runMDR is not excessively long-running for now.
       // For very large HTML or complex MDR, consider a Web Worker.
-      const mdrPredictedXPaths = await runMDR(processedData.html);
+      const mdrPromise = runMDR(processedData.html);
+      const mdrPredictedXPaths = await timeoutPromise(
+        mdrPromise,
+        60000, // 1 minute in milliseconds
+        new Error('MDR processing timed out after 1 minute')
+      );
 
       if (!mdrPredictedXPaths || mdrPredictedXPaths.length === 0) {
         setMdrResponse((prev) => ({
