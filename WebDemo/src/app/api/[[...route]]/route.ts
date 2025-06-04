@@ -1,18 +1,28 @@
+import { Hono } from 'hono';
+import { handle } from 'hono/vercel';
+import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { google } from '@ai-sdk/google';
-import { createClient } from '@supabase/supabase-js';
 import { generateText } from 'ai';
-import dotenv from 'dotenv';
-import { Hono } from 'hono';
-import { handle } from 'hono/vercel';
-import type { LLMResponse } from '@/lib/interfaces';
+import dotenv from 'dotenv'; // Added for process.env access if not globally configured
 
-dotenv.config();
+dotenv.config(); // Ensure environment variables are loaded
 
-// Types
-type PromptType = 'slim' | 'flat' | 'hier';
+// Define LLMResponse interface (assuming from @/lib/interfaces)
+// If this is incorrect, please provide the correct definition from @/lib/interfaces/index.ts or similar
+export interface LLMResponse {
+  content?: string;
+  error?: string;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  systemPromptUsed?: string;
+}
 
+// Type definitions for save-html
 type Database = {
   public: {
     Tables: {
@@ -47,22 +57,17 @@ type Database = {
   };
 };
 
-// Constants
-const GEMINI_PRO_2_5_PREVIEW_03 = 'gemini-2.5-pro-preview-03-25';
-
-// Initialize Supabase client
+// Supabase client for save-html
 const supabaseClient = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL || '',
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
 );
 
-// Create Hono app
-const app = new Hono().basePath('/api').route('/', router);
-// Health check route
-app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
+// Type definitions and constants for llm
+type PromptType = 'slim' | 'flat' | 'hier';
+const GEMINI_PRO_2_5_PREVIEW_03 = 'gemini-2.5-pro-preview-03-25';
 
-
-// Utility Functions
+// Helper function for llm (moved from llm/route.ts)
 const loadPromptContent = async (promptType: PromptType): Promise<string> => {
   const filePath = path.join(process.cwd(), 'src', 'prompts', `system-llm-${promptType}.md`);
   try {
@@ -73,9 +78,21 @@ const loadPromptContent = async (promptType: PromptType): Promise<string> => {
   }
 };
 
-// Routes
+const app = new Hono().basePath('/api');
 
-// Feedback Route
+// Root handler (existing)
+app.get('/', (c) => {
+  return c.json({ message: 'Welcome to the Hono API root at /api/' });
+});
+
+// Hello handler (existing)
+app.get('/hello', (c) => {
+  return c.json({
+    message: 'Hello from Hono!',
+  });
+});
+
+// Feedback handler (from feedback/route.ts)
 app.post('/feedback', async (c) => {
   const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 
@@ -113,11 +130,14 @@ app.post('/feedback', async (c) => {
       );
       return c.json(
         { message: 'Failed to send feedback to Slack.', error: errorText },
-        500,
+        slackResponse.status as any, // Use 'as any' if status is not directly a ContentfulStatusCode
       );
     }
 
-    return c.json({ message: 'Feedback sent successfully.' }, 200);
+    return c.json(
+      { message: 'Feedback sent successfully.' },
+      200,
+    );
   } catch (error) {
     console.error('Error processing feedback request:', error);
     let errorMessage =
@@ -132,21 +152,57 @@ app.post('/feedback', async (c) => {
   }
 });
 
-// LLM Route
+// Save HTML handler (from save-html/route.ts)
+app.post('/save-html', async (c) => {
+  try {
+    const { htmlId, htmlContent } = await c.req.json();
+
+    if (!htmlId || !htmlContent) {
+      return c.json(
+        { error: 'Missing htmlId or htmlContent' },
+        400,
+      );
+    }
+
+    const { data, error } = await supabaseClient
+      .from('next_eval_user_htmls')
+      .insert([{ id: htmlId, html: htmlContent }]);
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return c.json({ error: error.message }, 500);
+    }
+
+    return c.json({ success: true, data }, 200);
+  } catch (error) {
+    console.error('API error:', error);
+    let errorMessage = 'Internal Server Error';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    return c.json({ error: errorMessage }, 500);
+  }
+});
+
+// LLM handler (from llm/route.ts)
 app.post('/llm', async (c) => {
   try {
-    const { promptType, data, randomNumber } = await c.req.json() as {
+    const { promptType, data, randomNumber } = (await c.req.json()) as {
       promptType: PromptType;
       data: string;
       randomNumber?: number | null;
     };
 
+    // Reinstate API key check
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) {
       console.error(
         'API key is not set in .env or not accessible. Please set the GOOGLE_GENERATIVE_AI_API_KEY environment variable.',
       );
-      return c.json({ error: 'API key not configured' } as LLMResponse, 500);
+      return c.json(
+        { error: 'API key not configured' } as LLMResponse,
+        500,
+      );
     }
 
     if (randomNumber !== null && randomNumber !== undefined) {
@@ -167,7 +223,7 @@ app.post('/llm', async (c) => {
         const contentFile = await fs.readFile(contentPath, 'utf-8');
         const usageFile = await fs.readFile(usagePath, 'utf-8');
 
-        const contentData = contentFile;
+        const contentData = contentFile; // Assuming content is string, not parsed JSON
         const usageData = JSON.parse(usageFile);
 
         const responsePayload: LLMResponse = {
@@ -193,38 +249,24 @@ app.post('/llm', async (c) => {
     const modelName = GEMINI_PRO_2_5_PREVIEW_03;
 
     if (!promptType || !['slim', 'flat', 'hier'].includes(promptType)) {
-      return c.json({ error: 'Invalid prompt type' } as LLMResponse, 400);
+      return c.json(
+        { error: 'Invalid prompt type' } as LLMResponse,
+        400,
+      );
     }
 
-    // Load system prompt content from markdown file
     const systemPromptContent = await loadPromptContent(promptType);
-
     const combinedPrompt = `${systemPromptContent}\n\nInput Data:\n${data}`;
     const temperature = 1.0;
 
     const { text, usage } = await generateText({
-      model: google(modelName),
+      model: google(modelName), // API key is picked from env by the SDK
       prompt: combinedPrompt,
       temperature: temperature,
     });
 
-    if (!text) {
-      const responsePayload: LLMResponse = {
-        content: '```json[]```',
-        usage: usage
-          ? {
-              promptTokens: usage.promptTokens,
-              completionTokens: usage.completionTokens,
-              totalTokens: usage.totalTokens,
-            }
-          : undefined,
-        systemPromptUsed: `Loaded from file: system-llm-${promptType}.md`,
-      };
-      return c.json(responsePayload);
-    }
-
     const responsePayload: LLMResponse = {
-      content: text,
+      content: text || '```json[]```', // Ensure content is never undefined if text is empty
       usage: usage
         ? {
             promptTokens: usage.promptTokens,
@@ -236,57 +278,24 @@ app.post('/llm', async (c) => {
     };
 
     return c.json(responsePayload);
-  } catch (e) {
-    console.error('Error in /api/llm:', e);
-    let errorMessage = 'An unknown error occurred';
-    if (e instanceof Error) {
-      errorMessage = e.message;
-      // Safely access cause if it exists
-      if (typeof (e as any).cause !== 'undefined') {
-        errorMessage += ` - Cause: ${JSON.stringify((e as any).cause)}`;
-      }
-    } else if (typeof e === 'string') {
-      errorMessage = e;
-    } else if (e && typeof e === 'object' && 'message' in e) {
-      errorMessage = String((e as { message: unknown }).message);
-      if ('cause' in e && typeof (e as { cause: unknown }).cause !== 'undefined') {
-        errorMessage += ` - Cause: ${JSON.stringify((e as { cause: unknown }).cause)}`;
-      }
-    }
-    return c.json({ error: errorMessage } as LLMResponse, 500);
-  }
-});
-
-// Save HTML Route
-app.post('/save-html', async (c) => {
-  try {
-    const { htmlId, htmlContent } = await c.req.json();
-
-    if (!htmlId || !htmlContent) {
-      return c.json({ error: 'Missing htmlId or htmlContent' }, 400);
-    }
-
-    const { data, error } = await supabaseClient
-      .from('next_eval_user_htmls')
-      .insert([{ id: htmlId, html: htmlContent }]);
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return c.json({ error: error.message }, 500);
-    }
-
-    return c.json({ success: true, data }, 200);
   } catch (error) {
-    console.error('API error:', error);
-    let errorMessage = 'Internal Server Error';
-    if (error instanceof Error) {
+    console.error('Error in /api/llm:', error);
+    let errorMessage = 'An unknown error occurred';
+    if (error instanceof Error) { // Check if error is an instance of Error
       errorMessage = error.message;
+      // Hono errors might have a cause property, Next.js errors might too
+      if (error.cause) {
+        errorMessage += ` - Cause: ${JSON.stringify(error.cause)}`;
+      }
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else if (typeof error === 'object' && error !== null && 'message' in error) {
+      errorMessage = String(error.message);
     }
-    return c.json({ error: errorMessage }, 500);
+    
+    return c.json({ error: errorMessage } as LLMResponse, 500 ); // Corrected status code
   }
 });
 
-
-// Export handlers for Vercel
 export const GET = handle(app);
 export const POST = handle(app);
