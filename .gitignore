@@ -11,3 +11,4 @@ target
 pkg
 Cargo.lock
 
+tsconfig.tsbuildinfo

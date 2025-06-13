@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createClient } from "@supabase/supabase-js";
 import type { Database, PromptType } from "@/app/api/types";
+import { createClient } from "@supabase/supabase-js";
 
 // Constants
 export const GEMINI_PRO_2_5_PREVIEW_03 = "gemini-2.5-pro-preview-03-25";

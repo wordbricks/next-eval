@@ -1,10 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import type { LLMResponse, PromptType } from "@/app/api/types";
+import { GEMINI_PRO_2_5_PREVIEW_03, loadPromptContent } from "@/app/api/utils";
 import { google } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { Hono } from "hono";
-import type { LLMResponse, PromptType } from "@/app/api/types";
-import { GEMINI_PRO_2_5_PREVIEW_03, loadPromptContent } from "@/app/api/utils";
 
 const llmApp = new Hono();
 
