@@ -4,6 +4,7 @@ import { handle } from "hono/vercel";
 
 // Import individual app modules
 import feedbackApp from "@/app/api/apps/feedback";
+import fetchApp from "@/app/api/apps/fetch";
 import llmApp from "@/app/api/apps/llm";
 import saveHtmlApp from "@/app/api/apps/save-html";
 
@@ -17,6 +18,7 @@ const app = new Hono().basePath("/api");
 app.route("/feedback", feedbackApp);
 app.route("/save-html", saveHtmlApp);
 app.route("/llm", llmApp);
+app.route("/fetch", fetchApp);
 
 // Export handlers for Vercel
 export const GET = handle(app);
