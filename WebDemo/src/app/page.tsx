@@ -26,7 +26,7 @@ interface LlmStageResponse {
   predictXpathList: ValidatedXpathArray | null;
   numPredictedRecords: number | null;
   numHallucination: number | null;
-  mappedPredictionText: string[];
+  mappedPredictionText: string[] | null;
   isLoading: boolean;
   isEvaluating: boolean;
 }
@@ -491,7 +491,7 @@ export default function HomePage() {
                 error: `${stageData.error ? `${stageData.error}\n` : ""}Evaluation Error: XPaths disappeared during evaluation. Resetting metrics.`,
               };
               updateScheduled = true;
-              return; // continue to next stageKey in forEach
+              continue; // continue to next stageKey in forEach
             }
 
             const localNumPredictedRecords = stageData.predictXpathList.length;
@@ -735,7 +735,7 @@ export default function HomePage() {
                   </pre>
                 </div>
                 <p className="text-xs text-gray-500 text-right">
-                  {processedData.originalHtmlLength.toLocaleString()} characters
+                  {(processedData.originalHtmlLength ?? 0).toLocaleString()} characters
                 </p>
               </div>
             </div>
@@ -1148,9 +1148,9 @@ export default function HomePage() {
                                         type="button"
                                         onClick={() =>
                                           handleCopyToClipboard(
-                                            stageResponse.mappedPredictionText.join(
+                                            stageResponse.mappedPredictionText?.join(
                                               "\n",
-                                            ),
+                                            ) || "",
                                           )
                                         }
                                         className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-full transition-colors duration-150 ease-in-out group relative"
@@ -1369,9 +1369,9 @@ export default function HomePage() {
                                       type="button"
                                       onClick={() =>
                                         handleCopyToClipboard(
-                                          mdrResponse.mappedPredictionText.join(
+                                          mdrResponse.mappedPredictionText?.join(
                                             "\n",
-                                          ),
+                                          ) || "",
                                         )
                                       }
                                       className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-full transition-colors duration-150 ease-in-out group relative"

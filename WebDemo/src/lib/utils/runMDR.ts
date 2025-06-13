@@ -23,7 +23,7 @@ const initializeWasm = async (): Promise<void> => {
   wasmInitializationPromise = (async () => {
     try {
       const importedModule = await import(
-        "../../../public/rust_mdr_pkg/rust_mdr_utils"
+        "../../../public/rust_mdr_pkg/rust_mdr_utils.js"
       );
       await importedModule.default(); // Initialize Wasm (usually the default export)
       wasmModule = importedModule;

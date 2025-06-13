@@ -67,7 +67,7 @@ const LlmInteraction: React.FC = () => {
       );
     } catch (err) {
       console.error("Network or parsing error interacting with LLM API:", err);
-      setError(err.message || "An unexpected error occurred.");
+      setError((err as Error).message || "An unexpected error occurred.");
       setLlmResponse("Error fetching response from LLM.");
     } finally {
       setIsLoading(false);
