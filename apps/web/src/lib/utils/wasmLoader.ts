@@ -14,11 +14,13 @@ export const initializeWasm = async (): Promise<void> => {
 
   wasmInitializationPromise = (async () => {
     try {
-      // Dynamic import with a more reliable path
+      // Dynamic import with Next.js basePath
       const importedModule = await import(
         /* webpackIgnore: true */
         "/next-eval/rust_mdr_pkg/rust_mdr_utils.js"
-      );
+      ).catch((error) => {
+        throw new Error(`Failed to load WASM module: ${error.message}`);
+      });
 
       // Initialize Wasm (usually the default export)
       if (typeof importedModule.default === "function") {

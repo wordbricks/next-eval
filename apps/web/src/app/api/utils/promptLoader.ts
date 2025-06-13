@@ -1,18 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { Database, PromptType } from "@/app/api/types";
-import { createClient } from "@supabase/supabase-js";
+import type { PromptType } from "@/app/api/types/llmTypes";
 
-// Constants
-export const GEMINI_PRO_2_5_PREVIEW_03 = "gemini-2.5-pro-preview-03-25";
-
-// Supabase client
-export const supabaseClient = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
-);
-
-// Helper function to load prompt content
 export const loadPromptContent = async (
   promptType: PromptType,
 ): Promise<string> => {

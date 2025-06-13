@@ -1,19 +1,17 @@
-// Re-export base interfaces from shared package
-export {
-  NestedTextMap,
-  HtmlResult as BaseHtmlResult,
-  LLMUsage,
-  LLMResponse as BaseLLMResponse,
-  EvaluationResult as BaseEvaluationResult,
-  TagNode,
-} from "@next-eval/shared";
-
-// Extend interfaces for web app specific needs
+// Import base interfaces from shared package
 import type {
+  EvaluationResult as BaseEvaluationResult,
   HtmlResult as BaseHtmlResult,
   LLMResponse as BaseLLMResponse,
-  EvaluationResult as BaseEvaluationResult,
-} from "@next-eval/shared";
+  LLMUsage as SharedLLMUsage,
+  NestedTextMap as SharedNestedTextMap,
+  TagNode as SharedTagNode,
+} from "@next-eval/shared/interfaces";
+
+// Export the types that are used elsewhere
+export type NestedTextMap = SharedNestedTextMap;
+export type LLMUsage = SharedLLMUsage;
+export type TagNode = SharedTagNode;
 
 export interface HtmlResult extends BaseHtmlResult {
   htmlLength: number;

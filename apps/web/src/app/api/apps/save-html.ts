@@ -1,4 +1,4 @@
-import { supabaseClient } from "@/app/api/utils";
+import { supabaseClient } from "@/app/api/utils/supabase";
 import { Hono } from "hono";
 
 const saveHtmlApp = new Hono();

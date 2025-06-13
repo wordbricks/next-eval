@@ -1,8 +1,8 @@
+import type { TagNode } from "@next-eval/shared/interfaces";
 import {
-  type TagNode,
   buildTagTree,
   removeCommentScriptStyleFromHTML,
-} from "@next-eval/shared";
+} from "@next-eval/shared/utils";
 import { parse } from "node-html-parser";
 
 // MDR (Mining Data Region) constants
@@ -14,7 +14,7 @@ type DataRecord = TagNode | TagNode[];
 const nodeDataRegions = new Map<TagNode, DataRegion[]>();
 
 // Import WASM loader utilities
-import { initializeWasm, getWasmModule } from "./wasmLoader";
+import { getWasmModule, initializeWasm } from "@/lib/utils/wasmLoader";
 
 function getChildren(node: TagNode): TagNode[] {
   return node.children || [];
