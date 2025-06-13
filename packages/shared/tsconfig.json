@@ -1,8 +1,11 @@
 {
   "extends": "@next-eval/tsconfig/library.json",
   "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "./dist"
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@next-eval/shared/*": ["./src/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

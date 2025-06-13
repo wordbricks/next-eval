@@ -4,4 +4,4 @@ export interface ResponseSummary {
   totalProcessed: number;
   totalPending: number;
   lastUpdated: string;
-} 
+}

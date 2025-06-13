@@ -5,13 +5,21 @@
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"],
-      "env": ["GOOGLE_GENERATIVE_AI_API_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"],
+      "env": [
+        "GOOGLE_GENERATIVE_AI_API_KEY",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+      ],
       "cache": true
     },
     "dev": {
       "persistent": true,
       "cache": false,
-      "env": ["GOOGLE_GENERATIVE_AI_API_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]
+      "env": [
+        "GOOGLE_GENERATIVE_AI_API_KEY",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"],
@@ -34,7 +42,11 @@
     },
     "runLLM": {
       "cache": false,
-      "env": ["GOOGLE_GENERATIVE_AI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY"]
+      "env": [
+        "GOOGLE_GENERATIVE_AI_API_KEY",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY"
+      ]
     },
     "mdr": {
       "cache": true,

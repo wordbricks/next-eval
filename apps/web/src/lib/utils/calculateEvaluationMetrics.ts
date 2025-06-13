@@ -1,4 +1,4 @@
-import type { EvaluationResult } from "@/lib/interfaces";
+import type { ExtendedEvaluationResult } from "@next-eval/shared/interfaces/EvaluationResult";
 import munkres from "munkres-js";
 
 export const calculateOverlap = (
@@ -21,7 +21,7 @@ export const calculateOverlap = (
 export const calculateEvaluationMetrics = (
   predictedRecords: string[][],
   groundTruthRecords: string[][],
-): EvaluationResult => {
+): ExtendedEvaluationResult => {
   const M = predictedRecords.length; // Number of predicted records
   const N = groundTruthRecords.length; // Number of ground-truth records
 

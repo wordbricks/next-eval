@@ -1,10 +1,12 @@
-import { NodeType, type Node, type HTMLElement, type TextNode } from "node-html-parser";
-import type { TagNode } from "../interfaces";
+import type { TagNode } from "@next-eval/shared/interfaces/TagNode";
+import {
+  type HTMLElement,
+  type Node,
+  NodeType,
+  type TextNode,
+} from "node-html-parser";
 
-export function buildTagTree(
-  domNode: Node,
-  parentElementXPath: string = "",
-): TagNode {
+export function buildTagTree(domNode: Node, parentElementXPath = ""): TagNode {
   if (!domNode) {
     return { tag: "text", children: [], rawText: "", xpath: "" };
   }

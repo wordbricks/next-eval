@@ -1,6 +1,6 @@
-import type { NestedTextMap } from "@/lib/interfaces"; // TextMapNode is part of the return type of extractTextWithXPaths
 import { extractTextWithXPaths } from "@/lib/utils/extractTextWithXPaths";
 import { slimHtml } from "@/lib/utils/slimHtml";
+import type { NestedTextMap } from "@next-eval/shared/interfaces/HtmlResult";
 
 // Helper function to process HTML content
 export const processHtmlContent = async (

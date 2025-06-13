@@ -7,7 +7,9 @@
 export function longestCommonSequence(s1: string, s2: string): number {
   const m = s1.length;
   const n = s2.length;
-  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  const dp: number[][] = Array.from({ length: m + 1 }, () =>
+    Array(n + 1).fill(0),
+  );
 
   // Build LCS matrix
   for (let i = 1; i <= m; i++) {
@@ -39,8 +41,8 @@ export function editDistance(s1: string, s2: string): number {
   }
 
   const lcsLength = longestCommonSequence(s1, s2);
-  const totalOperations = (len1 + len2) - (2 * lcsLength);
-  
+  const totalOperations = len1 + len2 - 2 * lcsLength;
+
   // Normalize by average length of strings
   return totalOperations / ((len1 + len2) / 2);
-} 
+}

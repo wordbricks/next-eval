@@ -4,7 +4,6 @@ import CopyIcon from "@/components/icons/CopyIcon";
 import DownloadIcon from "@/components/icons/DownloadIcon";
 import ThumbsDownIcon from "@/components/icons/ThumbsDownIcon";
 import ThumbsUpIcon from "@/components/icons/ThumbsUpIcon";
-import type { HtmlResult } from "@/lib/interfaces";
 import { handleDownload } from "@/lib/utils/handleDownload";
 import { processHtmlContent } from "@/lib/utils/processHtmlContent";
 import { readFileAsText } from "@/lib/utils/readFileAsText";
@@ -13,8 +12,9 @@ import {
   type ValidatedXpathArray,
   parseAndValidateXPaths,
 } from "@/lib/utils/xpathValidation";
+import type { ExtendedHtmlResult } from "@next-eval/shared/interfaces/HtmlResult";
 // import { calculateEvaluationMetrics } from '@/lib/utils/evaluation';
-import { mapResponseToFullXPath } from "@next-eval/shared/utils";
+import { mapResponseToFullXPath } from "@next-eval/shared/utils/mapResponseToFullXPath";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -93,7 +93,9 @@ const timeoutPromise = <T,>(
 export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false); // For file processing
-  const [processedData, setProcessedData] = useState<HtmlResult | null>(null);
+  const [processedData, setProcessedData] = useState<ExtendedHtmlResult | null>(
+    null,
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null); // For file processing errors
   const [selectedStage, setSelectedStage] =
     useState<keyof LlmAllResponses>("textMapFlat");

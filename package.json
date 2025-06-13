@@ -3,10 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "description": "NEXT-EVAL: From Web URLs to Structured Tables – Extraction and Evaluation",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "preinstall": "bunx only-allow bun",
     "build": "turbo build",

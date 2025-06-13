@@ -5,10 +5,10 @@
   "main": "./pkg/rust_mdr_utils.js",
   "types": "./pkg/rust_mdr_utils.d.ts",
   "scripts": {
-    "build": "wasm-pack build --target web --out-dir pkg"
+    "build": "wasm-pack build --target web --out-dir pkg",
+    "lint": "biome check --diagnostic-level=error",
+    "format": "biome format --fix"
   },
-  "files": [
-    "pkg"
-  ],
+  "files": ["pkg"],
   "packageManager": "bun@1.2.15"
 }

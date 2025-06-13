@@ -3,5 +3,9 @@
   "version": "0.0.0",
   "publishConfig": {
     "access": "public"
+  },
+  "scripts": {
+    "lint": "biome check --diagnostic-level=error",
+    "format": "biome format --fix"
   }
 }
