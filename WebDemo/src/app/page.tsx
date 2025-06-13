@@ -118,6 +118,23 @@ export default function HomePage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Add new state for input method and URL input
+  const [inputMethod, setInputMethod] = useState<'file' | 'url'>('file');
+  const [urlInput, setUrlInput] = useState<string>('');
+  const [urlError, setUrlError] = useState<string | null>(null);
+
+  // Move sampleUrls and handler inside the component
+  const sampleUrls = [
+    { label: "Product Hunt", value: "https://www.producthunt.com" },
+    { label: "Fortune 500", value: "https://fortune.com/fortune500/" },
+    { label: "Betalist/ai-tools", value: "https://betalist.com/topics/ai-tools" },
+    { label: "Future Tools", value: "https://getgpt.app/marketplace/productivity" },
+  ];
+
+  const handleSampleUrlClick = (url: string) => {
+    setUrlInput(url);
+  };
+
   // useEffect(() => {
   //   if (processedData && !selectedStage) { // selectedStage is removed
   //     setSelectedStage('textMapFlat');
@@ -651,6 +668,60 @@ export default function HomePage() {
     }
   };
 
+  // Add handler for fetching and processing HTML from URL
+  const handleFetchUrl = async () => {
+    setUrlError(null);
+    setRandomNumber(null);
+    if (!urlInput.trim()) {
+      setUrlError('Please enter a URL.');
+      return;
+    }
+    if (!/^https?:\/\//i.test(urlInput.trim())) {
+      setUrlError('URL must start with http:// or https://');
+      return;
+    }
+    setIsLoading(true);
+    setErrorMessage(null);
+    setProcessedData(null);
+    setLlmResponses({
+      html: { ...initialLlmStageResponse },
+      textMap: { ...initialLlmStageResponse },
+      textMapFlat: { ...initialLlmStageResponse },
+    });
+    setOverallLlmFetching(false);
+    setSelectedStage('textMapFlat');
+    setMdrResponse({ ...initialMdrResponseState });
+    try {
+      const response = await fetch('/next-eval/api/fetch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: urlInput.trim() }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error.' }));
+        throw new Error(errorData.error || `Failed to fetch URL: ${response.status} ${response.statusText}`);
+      }
+      const data = await response.json();
+      const htmlString = data.html;
+      const originalHtmlLength = htmlString.length;
+      const processedContent = await processHtmlContent(htmlString);
+      setProcessedData({
+        ...processedContent,
+        originalHtml: htmlString,
+        originalHtmlLength,
+      });
+      const newHtmlId = uuidv4();
+      setHtmlId(newHtmlId);
+      await saveHtmlToServer(newHtmlId, htmlString);
+    } catch (error) {
+      console.error('Error fetching or processing URL:', error);
+      setUrlError(error instanceof Error ? error.message : 'Unknown error fetching URL.');
+      setProcessedData(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <main className="container mx-auto p-4 max-w-[1000px]">
       <h1 className="text-3xl font-bold text-center my-8">
@@ -661,41 +732,130 @@ export default function HomePage() {
         <h2 className="text-2xl font-semibold mb-4">
           1.Upload and process HTML
         </h2>
-        <div className="space-y-3">
-          {' '}
-          {/* Main container for upload elements */}
-          {/* Combined Upload and Load Sample section */}
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-700">
-              Upload your own HTML file.
-            </p>
-            <button
-              type="button"
-              onClick={handleLoadSyntheticData}
-              className="px-4 py-1.5 bg-orange-500 text-white text-xs font-semibold rounded-md shadow-sm hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 transition-colors duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isLoading || overallLlmFetching}
-              aria-label="Load sample HTML data"
-            >
-              Load sample
-            </button>
-          </div>
-          <input
-            type="file"
-            aria-label="Upload HTML or MHTML file"
-            className="block w-full text-sm text-slate-500
-              file:mr-4 file:py-2 file:px-4
-              file:rounded-full file:border-0
-              file:text-sm file:font-semibold
-              file:bg-orange-50 file:text-orange-600
-              hover:file:bg-orange-100
-              focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2
-              p-2 border border-gray-300 rounded-md shadow-sm"
-            accept=".html"
-            onChange={handleFileChange}
-            disabled={isLoading || overallLlmFetching}
-            ref={fileInputRef}
-          />
+        {/* Toggle for input method */}
+        <div className="mb-4 flex space-x-2" role="tablist" aria-label="Input method tabs">
+          <button
+            type="button"
+            className={`px-4 py-2 rounded-t-md font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors duration-150 ${inputMethod === 'file' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-orange-100'}`}
+            aria-selected={inputMethod === 'file'}
+            aria-controls="file-upload-panel"
+            id="file-upload-tab"
+            tabIndex={0}
+            onClick={() => setInputMethod('file')}
+            onKeyDown={e => e.key === 'Enter' && setInputMethod('file')}
+          >
+            Upload File
+          </button>
+          <button
+            type="button"
+            className={`px-4 py-2 rounded-t-md font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors duration-150 ${inputMethod === 'url' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-orange-100'}`}
+            aria-selected={inputMethod === 'url'}
+            aria-controls="url-fetch-panel"
+            id="url-fetch-tab"
+            tabIndex={0}
+            onClick={() => setInputMethod('url')}
+            onKeyDown={e => e.key === 'Enter' && setInputMethod('url')}
+          >
+            Fetch from URL
+          </button>
         </div>
+        {/* Input panels */}
+        {inputMethod === 'file' && (
+          <div id="file-upload-panel" role="tabpanel" aria-labelledby="file-upload-tab" className="space-y-3">
+            {/* Main container for upload elements */}
+            {/* Combined Upload and Load Sample section */}
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-gray-700">
+                Upload your own HTML file.
+              </p>
+              <button
+                type="button"
+                onClick={handleLoadSyntheticData}
+                className="px-4 py-1.5 bg-orange-500 text-white text-xs font-semibold rounded-md shadow-sm hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 transition-colors duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading || overallLlmFetching}
+                aria-label="Load sample HTML data"
+              >
+                Load sample
+              </button>
+            </div>
+            <input
+              type="file"
+              aria-label="Upload HTML or MHTML file"
+              className="block w-full text-sm text-slate-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-full file:border-0
+                file:text-sm file:font-semibold
+                file:bg-orange-50 file:text-orange-600
+                hover:file:bg-orange-100
+                focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2
+                p-2 border border-gray-300 rounded-md shadow-sm"
+              accept=".html"
+              onChange={handleFileChange}
+              disabled={isLoading || overallLlmFetching}
+              ref={fileInputRef}
+            />
+          </div>
+        )}
+        {inputMethod === 'url' && (
+          <div id="url-fetch-panel" role="tabpanel" aria-labelledby="url-fetch-tab" className="space-y-3">
+            {/* Sample URL buttons */}
+            <div className="flex flex-wrap gap-2 mb-2">
+              {sampleUrls.map(sample => (
+                <button
+                  key={sample.value}
+                  type="button"
+                  className="px-3 py-1 bg-orange-100 text-orange-700 rounded-md text-xs font-semibold shadow-sm hover:bg-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  aria-label={`Fetch sample: ${sample.label}`}
+                  tabIndex={0}
+                  disabled={isLoading || overallLlmFetching}
+                  onClick={() => handleSampleUrlClick(sample.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSampleUrlClick(sample.value)}
+                >
+                  {sample.label}
+                </button>
+              ))}
+            </div>
+            <label htmlFor="url-input" className="block text-sm font-medium text-gray-700">
+              Enter a public web page URL to fetch HTML
+            </label>
+            <input
+              id="url-input"
+              type="url"
+              value={urlInput}
+              onChange={e => setUrlInput(e.target.value)}
+              className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
+              placeholder="https://example.com"
+              aria-label="Web page URL"
+              disabled={isLoading || overallLlmFetching}
+              autoComplete="off"
+            />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleFetchUrl}
+                className="px-4 py-1.5 bg-orange-500 text-white text-xs font-semibold rounded-md shadow-sm hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 transition-colors duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading || overallLlmFetching}
+                aria-label="Fetch HTML from URL"
+              >
+                Fetch & Process
+              </button>
+              <button
+                type="button"
+                onClick={() => setUrlInput('')}
+                className="px-2 py-1 text-xs text-gray-500 hover:text-orange-600 focus:outline-none"
+                aria-label="Clear URL input"
+                disabled={isLoading || overallLlmFetching}
+              >
+                Clear
+              </button>
+            </div>
+            {urlError && (
+              <p className="mt-2 text-sm text-red-600" role="alert">
+                Error: {urlError}
+              </p>
+            )}
+          </div>
+        )}
         {errorMessage && (
           <p className="mt-4 text-sm text-red-600" role="alert">
             {' '}

@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import feedbackApp from '../apps/feedback';
 import saveHtmlApp from '../apps/save-html';
 import llmApp from '../apps/llm';
+import fetchApp from '../apps/fetch';
 
 // Ensure environment variables are loaded
 dotenv.config();
@@ -17,6 +18,7 @@ const app = new Hono().basePath('/api');
 app.route('/feedback', feedbackApp);
 app.route('/save-html', saveHtmlApp);
 app.route('/llm', llmApp);
+app.route('/fetch', fetchApp);
 
 // Export handlers for Vercel
 export const GET = handle(app);
