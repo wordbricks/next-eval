@@ -1,0 +1,31 @@
+{
+  "name": "@next-eval/shared",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./interfaces": "./src/interfaces/index.ts",
+    "./utils": "./src/utils/index.ts",
+    "./constants": "./src/constants/index.ts"
+  },
+  "scripts": {
+    "lint": "biome check --diagnostic-level=error",
+    "format": "biome format --fix",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "node-html-parser": "^7.0.1",
+    "munkres-js": "1.2.2",
+    "zod": "^3.22.4",
+    "mustache": "4.2.0"
+  },
+  "devDependencies": {
+    "@next-eval/tsconfig": "workspace:*",
+    "@types/node": "22.14.0",
+    "typescript": "5.8.3",
+    "@types/mustache": "^4.2.6"
+  },
+  "packageManager": "bun@1.2.15"
+}

@@ -1,0 +1,35 @@
+{
+  "name": "next-eval-monorepo",
+  "version": "0.0.1",
+  "private": true,
+  "description": "NEXT-EVAL: From Web URLs to Structured Tables – Extraction and Evaluation",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "preinstall": "bunx only-allow bun",
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "format": "turbo format",
+    "clean": "turbo clean",
+    "check-types": "turbo check-types",
+    "preprocess": "turbo run preprocess --filter=@next-eval/core",
+    "runLLM": "turbo run runLLM --filter=@next-eval/core",
+    "mdr": "turbo run mdr --filter=@next-eval/core",
+    "evaluate": "turbo run evaluate --filter=@next-eval/core"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "lefthook": "1.11.13",
+    "turbo": "^2.3.3",
+    "typescript": "5.8.3"
+  },
+  "packageManager": "bun@1.2.15",
+  "engines": {
+    "node": ">=22",
+    "bun": ">=1.2.0"
+  },
+  "trustedDependencies": ["@biomejs/biome", "lefthook"]
+}
