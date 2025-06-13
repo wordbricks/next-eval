@@ -1,5 +1,5 @@
-import munkres from 'munkres-js';
-import type { EvaluationResult } from '@/lib/interfaces';
+import type { EvaluationResult } from "@/lib/interfaces";
+import munkres from "munkres-js";
 
 export const calculateOverlap = (
   record1: string[],

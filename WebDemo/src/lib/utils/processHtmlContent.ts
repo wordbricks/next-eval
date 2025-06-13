@@ -1,6 +1,6 @@
-import type { NestedTextMap } from '@/lib/interfaces'; // TextMapNode is part of the return type of extractTextWithXPaths
-import { extractTextWithXPaths } from '@/lib/utils/extractTextWithXPaths';
-import { slimHtml } from '@/lib/utils/slimHtml';
+import type { NestedTextMap } from "@/lib/interfaces"; // TextMapNode is part of the return type of extractTextWithXPaths
+import { extractTextWithXPaths } from "@/lib/utils/extractTextWithXPaths";
+import { slimHtml } from "@/lib/utils/slimHtml";
 
 // Helper function to process HTML content
 export const processHtmlContent = async (
@@ -14,14 +14,14 @@ export const processHtmlContent = async (
   textMapLength: number;
 }> => {
   const parser = new DOMParser();
-  const doc = parser.parseFromString(htmlString, 'text/html');
+  const doc = parser.parseFromString(htmlString, "text/html");
 
   // 1. Slim the HTML
   const cleanedHtml = slimHtml(doc);
   const htmlLength = cleanedHtml.length;
 
   // Re-parse the cleaned HTML to ensure XPaths are generated from the modified structure
-  const cleanedDoc = parser.parseFromString(cleanedHtml, 'text/html');
+  const cleanedDoc = parser.parseFromString(cleanedHtml, "text/html");
 
   // 2. Extract text and XPaths
   const { textMapFlat, textMap } = extractTextWithXPaths(cleanedDoc);

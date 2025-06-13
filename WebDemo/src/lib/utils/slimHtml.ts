@@ -1,42 +1,42 @@
 // Helper function to remove script, style tags, and comments from HTML
 export const slimHtml = (doc: Document): string => {
   // 1. Initial DOM-based removal of specific tags
-  for (const el of doc.querySelectorAll('script')) {
+  for (const el of doc.querySelectorAll("script")) {
     el.remove();
   }
-  for (const el of doc.querySelectorAll('style')) {
+  for (const el of doc.querySelectorAll("style")) {
     el.remove();
   }
-  for (const el of doc.querySelectorAll('meta')) {
-    if (el.getAttribute('charset') === null) {
+  for (const el of doc.querySelectorAll("meta")) {
+    if (el.getAttribute("charset") === null) {
       el.remove();
     }
   }
-  for (const el of doc.querySelectorAll('link')) {
+  for (const el of doc.querySelectorAll("link")) {
     el.remove();
   }
 
   // 2. Convert to string
-  const htmlContent = doc.documentElement ? doc.documentElement.outerHTML : '';
+  const htmlContent = doc.documentElement ? doc.documentElement.outerHTML : "";
   if (!htmlContent) {
-    return ''; // Return empty if no content after initial cleaning
+    return ""; // Return empty if no content after initial cleaning
   }
 
   // Perform string-based cleaning (includes comment removal)
   const stringCleanedContent = htmlContent
-    .replace(/<!--[\s\S]*?-->/g, '') // Remove comments
-    .replace(/\n\s*\n/g, '\n') // Remove multiple consecutive line breaks
-    .replace(/>\s+</g, '><') // Remove whitespace between tags
-    .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+    .replace(/<!--[\s\S]*?-->/g, "") // Remove comments
+    .replace(/\n\s*\n/g, "\n") // Remove multiple consecutive line breaks
+    .replace(/>\s+</g, "><") // Remove whitespace between tags
+    .replace(/\s+/g, " ") // Replace multiple spaces with single space
     .trim(); // Remove leading/trailing whitespace
 
   // 3. Create a new document from the string-cleaned content
   const parser = new DOMParser();
-  const tempDoc = parser.parseFromString(stringCleanedContent, 'text/html');
+  const tempDoc = parser.parseFromString(stringCleanedContent, "text/html");
 
   // 4. Remove all attributes from all elements in the new document
   if (tempDoc.documentElement) {
-    const elements = tempDoc.getElementsByTagName('*');
+    const elements = tempDoc.getElementsByTagName("*");
     for (let i = 0; i < elements.length; i++) {
       const element = elements[i];
       const attributes = element.attributes;
@@ -49,5 +49,5 @@ export const slimHtml = (doc: Document): string => {
   }
 
   // 5. Return the final cleaned HTML
-  return tempDoc.documentElement ? tempDoc.documentElement.outerHTML : '';
+  return tempDoc.documentElement ? tempDoc.documentElement.outerHTML : "";
 };

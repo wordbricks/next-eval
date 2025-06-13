@@ -11,7 +11,7 @@ export interface LLMResponse {
   systemPromptUsed?: string;
 }
 
-export type PromptType = 'slim' | 'flat' | 'hier';
+export type PromptType = "slim" | "flat" | "hier";
 
 export type Database = {
   public: {
@@ -37,12 +37,12 @@ export type Database = {
       [_ in never]: never;
     };
     Enums: {
-      access_role: 'editor' | 'owner' | 'viewer';
-      next_eval_type: 'decision' | 'result';
-      role: 'user' | 'admin';
+      access_role: "editor" | "owner" | "viewer";
+      next_eval_type: "decision" | "result";
+      role: "user" | "admin";
     };
     CompositeTypes: {
       [_ in never]: never;
     };
   };
-}; 
+};

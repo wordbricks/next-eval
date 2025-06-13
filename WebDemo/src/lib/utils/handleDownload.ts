@@ -5,7 +5,7 @@ export const handleDownload = (
   contentType: string,
 ) => {
   const blob = new Blob([content], { type: contentType });
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
   link.download = fileName;
   document.body.appendChild(link); // Required for Firefox

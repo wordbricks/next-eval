@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 
-type PromptType = 'slim' | 'flat' | 'hierarchical';
+type PromptType = "slim" | "flat" | "hierarchical";
 
 interface LlmApiResponse {
   llmResponse: string;
@@ -14,34 +14,34 @@ interface LlmApiResponse {
 }
 
 const LlmInteraction: React.FC = () => {
-  const [selectedPrompt, setSelectedPrompt] = useState<PromptType>('slim');
-  const [llmResponse, setLlmResponse] = useState<string>('');
-  const [systemPromptContent, setSystemPromptContent] = useState<string>('');
-  const [userInputContent, setUserInputContent] = useState<string>('');
+  const [selectedPrompt, setSelectedPrompt] = useState<PromptType>("slim");
+  const [llmResponse, setLlmResponse] = useState<string>("");
+  const [systemPromptContent, setSystemPromptContent] = useState<string>("");
+  const [userInputContent, setUserInputContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const handlePromptChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedPrompt(event.target.value as PromptType);
     // Clear previous results when prompt changes
-    setLlmResponse('');
-    setSystemPromptContent('');
-    setUserInputContent('');
+    setLlmResponse("");
+    setSystemPromptContent("");
+    setUserInputContent("");
     setError(null);
   };
 
   const handleAskLlm = async () => {
     setIsLoading(true);
-    setLlmResponse('');
-    setSystemPromptContent('');
-    setUserInputContent('');
+    setLlmResponse("");
+    setSystemPromptContent("");
+    setUserInputContent("");
     setError(null);
 
     try {
-      const response = await fetch('/api/llm', {
-        method: 'POST',
+      const response = await fetch("/api/llm", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ promptType: selectedPrompt }),
       });
@@ -49,11 +49,11 @@ const LlmInteraction: React.FC = () => {
       const data: LlmApiResponse = await response.json();
 
       if (!response.ok || data.error) {
-        console.error('API Error:', data.error);
+        console.error("API Error:", data.error);
         setError(
           data.error || `Error: ${response.status} ${response.statusText}`,
         );
-        setLlmResponse('Failed to get response from LLM.');
+        setLlmResponse("Failed to get response from LLM.");
         return;
       }
 
@@ -66,9 +66,9 @@ const LlmInteraction: React.FC = () => {
         data.fullUserInput || `User Input File: ${data.userInputUsed}`,
       );
     } catch (err) {
-      console.error('Network or parsing error interacting with LLM API:', err);
-      setError(err.message || 'An unexpected error occurred.');
-      setLlmResponse('Error fetching response from LLM.');
+      console.error("Network or parsing error interacting with LLM API:", err);
+      setError(err.message || "An unexpected error occurred.");
+      setLlmResponse("Error fetching response from LLM.");
     } finally {
       setIsLoading(false);
     }
@@ -107,7 +107,7 @@ const LlmInteraction: React.FC = () => {
         className="w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-md shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-150 ease-in-out transform hover:scale-105 active:scale-95"
         aria-label="Submit query to LLM"
         tabIndex={0} // Make it focusable
-        onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleAskLlm()} // Trigger on Enter key
+        onKeyDown={(e) => e.key === "Enter" && !isLoading && handleAskLlm()} // Trigger on Enter key
       >
         {isLoading ? (
           <span className="flex items-center justify-center">
@@ -136,7 +136,7 @@ const LlmInteraction: React.FC = () => {
             Asking Gemini...
           </span>
         ) : (
-          'Ask Gemini'
+          "Ask Gemini"
         )}
       </button>
 

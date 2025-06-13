@@ -1,6 +1,6 @@
-import { parse } from 'node-html-parser';
-import { type TagNode, buildTagTree } from '@/lib/utils/buildTagTree';
-import { removeCommentScriptStyleFromHTML } from '@/lib/utils/removeCommentScriptStyleFromHTML';
+import { type TagNode, buildTagTree } from "@/lib/utils/buildTagTree";
+import { removeCommentScriptStyleFromHTML } from "@/lib/utils/removeCommentScriptStyleFromHTML";
+import { parse } from "node-html-parser";
 
 // MDR (Mining Data Region) constants
 export const MDR_K = 10; // Maximum length of a data region pattern
@@ -11,7 +11,9 @@ type DataRecord = TagNode | TagNode[];
 const nodeDataRegions = new Map<TagNode, DataRegion[]>();
 
 // Wasm module integration
-let wasmModule: typeof import('../../../public/rust_mdr_pkg/rust_mdr_utils') | null = null;
+let wasmModule:
+  | typeof import("../../../public/rust_mdr_pkg/rust_mdr_utils")
+  | null = null;
 let wasmInitializationPromise: Promise<void> | null = null;
 
 const initializeWasm = async (): Promise<void> => {
@@ -20,11 +22,13 @@ const initializeWasm = async (): Promise<void> => {
 
   wasmInitializationPromise = (async () => {
     try {
-      const importedModule = await import('../../../public/rust_mdr_pkg/rust_mdr_utils');
+      const importedModule = await import(
+        "../../../public/rust_mdr_pkg/rust_mdr_utils"
+      );
       await importedModule.default(); // Initialize Wasm (usually the default export)
       wasmModule = importedModule;
     } catch (error) {
-      console.error('Failed to initialize Wasm module:', error);
+      console.error("Failed to initialize Wasm module:", error);
       wasmInitializationPromise = null; // Allow retry on next call
       throw error; // Re-throw to indicate failure
     }
@@ -43,21 +47,21 @@ function getNodeListSize(nodes: TagNode[]): number {
 }
 
 function flattenSubtree(node: TagNode): string {
-  if (node.tag === 'text' && node.rawText && node.rawText.trim() !== '') {
-    return ''; // Ignore text content for structural comparison
+  if (node.tag === "text" && node.rawText && node.rawText.trim() !== "") {
+    return ""; // Ignore text content for structural comparison
   }
   let result = `<${node.tag}>`;
   for (const child of getChildren(node)) {
     result += flattenSubtree(child);
   }
-  if (node.tag !== 'text') {
+  if (node.tag !== "text") {
     result += `</${node.tag}>`;
   }
   return result;
 }
 
 function flattenNodeSequence(nodes: TagNode[]): string {
-  return nodes.map(flattenSubtree).join('');
+  return nodes.map(flattenSubtree).join("");
 }
 
 async function getNormalizedEditDistance(
@@ -66,9 +70,7 @@ async function getNormalizedEditDistance(
 ): Promise<number> {
   await initializeWasm();
   if (!wasmModule) {
-    throw new Error(
-      'Wasm module not initialized. Call initializeWasm first.',
-    );
+    throw new Error("Wasm module not initialized. Call initializeWasm first.");
   }
 
   const s1 = flattenNodeSequence(nodeSeq1);
@@ -255,7 +257,7 @@ async function runMDRAlgorithm(
 
 async function findRecords1(G: TagNode, T: number): Promise<TagNode[]> {
   const children = getChildren(G);
-  const isTableRow = G.tag === 'tr';
+  const isTableRow = G.tag === "tr";
   const childrenAreSimilar = await areSiblingsSimilar(children, T);
 
   if (children.length > 0 && childrenAreSimilar && !isTableRow) {
@@ -309,7 +311,10 @@ async function findRecordsN(G: TagNode[], T: number): Promise<DataRecord[]> {
 }
 
 // --- Helper for Adjacent Region Merging ---
-async function wouldProduceNonContiguous(G: TagNode[], T: number): Promise<boolean> {
+async function wouldProduceNonContiguous(
+  G: TagNode[],
+  T: number,
+): Promise<boolean> {
   if (G.length <= 1) return false;
   let childrenAreSimilarWithinComponents = true;
   let sameNumberOfChildren = true;
@@ -538,8 +543,8 @@ export async function runMDR(rawHtml: string): Promise<string[][]> {
   for (const orphan of orphanRecords) {
     if (
       orphan &&
-      typeof orphan === 'object' &&
-      'xpath' in orphan &&
+      typeof orphan === "object" &&
+      "xpath" in orphan &&
       !Array.isArray(orphan)
     ) {
       if (!initialTagNodes.has(orphan)) {
@@ -558,10 +563,10 @@ export async function runMDR(rawHtml: string): Promise<string[][]> {
         // Handle TagNode[] case (including potentially empty arrays or non-contiguous results)
         // We map each item, assuming it's a TagNode, filtering out any potential invalid entries just in case.
         return record
-          .filter((node) => node && typeof node === 'object' && 'xpath' in node)
+          .filter((node) => node && typeof node === "object" && "xpath" in node)
           .map((node) => node.xpath);
       }
-      if (record && typeof record === 'object' && 'xpath' in record) {
+      if (record && typeof record === "object" && "xpath" in record) {
         // Handle single TagNode case
         return [record.xpath];
       }
