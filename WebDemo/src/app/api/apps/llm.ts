@@ -3,8 +3,8 @@ import path from "node:path";
 import { google } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { Hono } from "hono";
-import type { LLMResponse, PromptType } from "../types";
-import { GEMINI_PRO_2_5_PREVIEW_03, loadPromptContent } from "../utils";
+import type { LLMResponse, PromptType } from "@/app/api/types";
+import { GEMINI_PRO_2_5_PREVIEW_03, loadPromptContent } from "@/app/api/utils";
 
 const llmApp = new Hono();
 

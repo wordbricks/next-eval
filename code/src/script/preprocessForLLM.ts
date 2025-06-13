@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { SYN_DATA_PATH } from "../constant";
-import { getHTMLAndTextMapFromMHTML } from "../utils";
+import { SYN_DATA_PATH } from "@/constant";
+import { getHTMLAndTextMapFromMHTML } from "@/utils";
 
 const main = async () => {
 	const flatDstDirPath = path.join(SYN_DATA_PATH, "flat");

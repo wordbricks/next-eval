@@ -1,9 +1,9 @@
 import munkres from "munkres-js";
-import { calculateOverlap, mapResponseToFullXPath } from "../utils";
-import { EvaluationResult } from "../interfaces/EvaluationResult";
+import { calculateOverlap, mapResponseToFullXPath } from "@/utils";
+import { EvaluationResult } from "@/interfaces/EvaluationResult";
 import path from "path";
 import fs from "fs";
-import { SYN_DATA_PATH } from "../constant";
+import { SYN_DATA_PATH } from "@/constant";
 
 const calculateEvaluationMetrics = (
   predictedRecords: string[][],

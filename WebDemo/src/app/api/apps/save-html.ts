@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { supabaseClient } from "../utils";
+import { supabaseClient } from "@/app/api/utils";
 
 const saveHtmlApp = new Hono();
 

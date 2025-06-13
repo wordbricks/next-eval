@@ -3,9 +3,9 @@ import { Hono } from "hono";
 import { handle } from "hono/vercel";
 
 // Import individual app modules
-import feedbackApp from "../apps/feedback";
-import llmApp from "../apps/llm";
-import saveHtmlApp from "../apps/save-html";
+import feedbackApp from "@/app/api/apps/feedback";
+import llmApp from "@/app/api/apps/llm";
+import saveHtmlApp from "@/app/api/apps/save-html";
 
 // Ensure environment variables are loaded
 dotenv.config();

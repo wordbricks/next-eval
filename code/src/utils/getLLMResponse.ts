@@ -5,7 +5,7 @@ import { generateText } from "ai";
 
 import dotenv from "dotenv";
 
-import type { LLMResponse } from "../interfaces";
+import type { LLMResponse } from "@/interfaces";
 dotenv.config();
 
 const getGeminiResponse = async (
