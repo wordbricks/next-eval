@@ -12,3 +12,5 @@ pkg
 Cargo.lock
 
 tsconfig.tsbuildinfo
+
+.claude/
