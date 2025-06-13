@@ -1,23 +1,23 @@
-'use client';
+"use client";
 
-import type React from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
-import CopyIcon from '@/components/icons/CopyIcon';
-import DownloadIcon from '@/components/icons/DownloadIcon';
-import ThumbsDownIcon from '@/components/icons/ThumbsDownIcon';
-import ThumbsUpIcon from '@/components/icons/ThumbsUpIcon';
-import type { HtmlResult } from '@/lib/interfaces';
-import { handleDownload } from '@/lib/utils/handleDownload';
+import CopyIcon from "@/components/icons/CopyIcon";
+import DownloadIcon from "@/components/icons/DownloadIcon";
+import ThumbsDownIcon from "@/components/icons/ThumbsDownIcon";
+import ThumbsUpIcon from "@/components/icons/ThumbsUpIcon";
+import type { HtmlResult } from "@/lib/interfaces";
+import { handleDownload } from "@/lib/utils/handleDownload";
 // import { calculateEvaluationMetrics } from '@/lib/utils/evaluation';
-import { mapResponseToFullXPath } from '@/lib/utils/mapResponseToFullXpath';
-import { processHtmlContent } from '@/lib/utils/processHtmlContent';
-import { readFileAsText } from '@/lib/utils/readFileAsText';
-import { runMDR } from '@/lib/utils/runMDR';
+import { mapResponseToFullXPath } from "@/lib/utils/mapResponseToFullXpath";
+import { processHtmlContent } from "@/lib/utils/processHtmlContent";
+import { readFileAsText } from "@/lib/utils/readFileAsText";
+import { runMDR } from "@/lib/utils/runMDR";
 import {
   type ValidatedXpathArray,
   parseAndValidateXPaths,
-} from '@/lib/utils/xpathValidation';
+} from "@/lib/utils/xpathValidation";
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
 
 interface LlmStageResponse {
   content: string | null;
@@ -26,7 +26,7 @@ interface LlmStageResponse {
   predictXpathList: ValidatedXpathArray | null;
   numPredictedRecords: number | null;
   numHallucination: number | null;
-  mappedPredictionText: string[];
+  mappedPredictionText: string[] | null;
   isLoading: boolean;
   isEvaluating: boolean;
 }
@@ -45,7 +45,7 @@ interface LlmAllResponses {
   textMapFlat: LlmStageResponse;
 }
 
-type ExtractTab = 'llm' | 'mdr';
+type ExtractTab = "llm" | "mdr";
 
 const initialLlmStageResponse: LlmStageResponse = {
   content: null,
@@ -68,7 +68,11 @@ const initialMdrResponseState: MdrResponseState = {
 };
 
 // Helper function for timeout
-const timeoutPromise = <T,>(promise: Promise<T>, ms: number, timeoutError = new Error('Operation timed out')) => {
+const timeoutPromise = <T,>(
+  promise: Promise<T>,
+  ms: number,
+  timeoutError = new Error("Operation timed out"),
+) => {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(timeoutError);
@@ -92,7 +96,7 @@ export default function HomePage() {
   const [processedData, setProcessedData] = useState<HtmlResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null); // For file processing errors
   const [selectedStage, setSelectedStage] =
-    useState<keyof LlmAllResponses>('textMapFlat');
+    useState<keyof LlmAllResponses>("textMapFlat");
   const [randomNumber, setRandomNumber] = useState<number | null>(null);
   const [feedbackSent, setFeedbackSent] = useState<{ [key: string]: boolean }>(
     {},
@@ -100,11 +104,11 @@ export default function HomePage() {
   const [htmlId, setHtmlId] = useState<string | null>(null);
 
   // New state for UI tabs in extraction section
-  const [activeExtractTab, setActiveExtractTab] = useState<ExtractTab>('llm');
+  const [activeExtractTab, setActiveExtractTab] = useState<ExtractTab>("llm");
   // New state for LLM model selection (though only one is enabled for now)
   const [selectedLlmModel, setSelectedLlmModel] =
-    useState<string>('gemini-2.5-pro');
-  const [copySuccess, setCopySuccess] = useState<string>('');
+    useState<string>("gemini-2.5-pro");
+  const [copySuccess, setCopySuccess] = useState<string>("");
 
   const [llmResponses, setLlmResponses] = useState<LlmAllResponses>({
     html: { ...initialLlmStageResponse },
@@ -119,16 +123,22 @@ export default function HomePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Add new state for input method and URL input
-  const [inputMethod, setInputMethod] = useState<'file' | 'url'>('file');
-  const [urlInput, setUrlInput] = useState<string>('');
+  const [inputMethod, setInputMethod] = useState<"file" | "url">("file");
+  const [urlInput, setUrlInput] = useState<string>("");
   const [urlError, setUrlError] = useState<string | null>(null);
 
   // Move sampleUrls and handler inside the component
   const sampleUrls = [
     { label: "Product Hunt", value: "https://www.producthunt.com" },
     { label: "Fortune 500", value: "https://fortune.com/fortune500/" },
-    { label: "Betalist/ai-tools", value: "https://betalist.com/topics/ai-tools" },
-    { label: "Future Tools", value: "https://getgpt.app/marketplace/productivity" },
+    {
+      label: "Betalist/ai-tools",
+      value: "https://betalist.com/topics/ai-tools",
+    },
+    {
+      label: "Future Tools",
+      value: "https://getgpt.app/marketplace/productivity",
+    },
   ];
 
   const handleSampleUrlClick = (url: string) => {
@@ -137,27 +147,27 @@ export default function HomePage() {
 
   // useEffect(() => {
   //   if (processedData && !selectedStage) { // selectedStage is removed
-  //     setSelectedStage('textMapFlat');
+  //     setSelectedStage("textMapFlat");
   //   }
   // }, [processedData, selectedStage]); // selectedStage removed
 
   const saveHtmlToServer = async (id: string, content: string) => {
     try {
-      const response = await fetch('/next-eval/api/save-html', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/next-eval/api/save-html", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ htmlId: id, htmlContent: content }),
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({
-          message: 'Failed to save HTML and could not parse error.',
+          message: "Failed to save HTML and could not parse error.",
         }));
-        console.error('Failed to save HTML to server:', errorData.message);
+        console.error("Failed to save HTML to server:", errorData.message);
       } else {
-        console.log('HTML saved to server successfully.');
+        console.log("HTML saved to server successfully.");
       }
     } catch (error) {
-      console.error('Error calling save-html API:', error);
+      console.error("Error calling save-html API:", error);
     }
   };
 
@@ -175,7 +185,7 @@ export default function HomePage() {
         textMapFlat: { ...initialLlmStageResponse },
       });
       setOverallLlmFetching(false);
-      setSelectedStage('textMapFlat');
+      setSelectedStage("textMapFlat");
       setMdrResponse({ ...initialMdrResponseState }); // Reset MDR response
     } else {
       setSelectedFile(null);
@@ -184,7 +194,7 @@ export default function HomePage() {
 
   const handleProcessFile = useCallback(async () => {
     if (!selectedFile) {
-      setErrorMessage('Please select an HTML file first.');
+      setErrorMessage("Please select an HTML file first.");
       return;
     }
 
@@ -198,7 +208,7 @@ export default function HomePage() {
       textMapFlat: { ...initialLlmStageResponse },
     });
     setOverallLlmFetching(false);
-    setSelectedStage('textMapFlat');
+    setSelectedStage("textMapFlat");
     setMdrResponse({ ...initialMdrResponseState }); // Reset MDR response
 
     try {
@@ -215,12 +225,12 @@ export default function HomePage() {
       setHtmlId(newHtmlId);
       await saveHtmlToServer(newHtmlId, htmlString);
     } catch (error) {
-      console.error('Client-side processing error:', error);
+      console.error("Client-side processing error:", error);
       if (error instanceof Error) {
         setErrorMessage(`Processing error: ${error.message}`);
       } else {
         setErrorMessage(
-          'An unknown error occurred during client-side processing.',
+          "An unknown error occurred during client-side processing.",
         );
       }
       setProcessedData(null);
@@ -232,13 +242,13 @@ export default function HomePage() {
   const handleSendToLlm = async () => {
     if (!processedData) {
       // This should ideally not happen if button is disabled correctly
-      console.error('Processed data not available for LLM request.');
+      console.error("Processed data not available for LLM request.");
       // Optionally set a general error message for LLM section
       return;
     }
     if (!selectedStage) {
       // Ensure a stage is selected
-      console.error('No stage selected for LLM request.');
+      console.error("No stage selected for LLM request.");
       // Optionally set an error message
       return;
     }
@@ -254,15 +264,15 @@ export default function HomePage() {
     let stageDataForLlm: string | Record<string, unknown> | undefined;
     let promptTypeForLlm: string | undefined;
 
-    if (stageKey === 'html') {
+    if (stageKey === "html") {
       stageDataForLlm = processedData.html;
-      promptTypeForLlm = 'slim';
-    } else if (stageKey === 'textMap') {
+      promptTypeForLlm = "slim";
+    } else if (stageKey === "textMap") {
       stageDataForLlm = processedData.textMap;
-      promptTypeForLlm = 'hier';
-    } else if (stageKey === 'textMapFlat') {
+      promptTypeForLlm = "hier";
+    } else if (stageKey === "textMapFlat") {
       stageDataForLlm = processedData.textMapFlat;
-      promptTypeForLlm = 'flat';
+      promptTypeForLlm = "flat";
     } else {
       console.error(`Unknown stage key: ${stageKey} for LLM request.`);
       setOverallLlmFetching(false);
@@ -270,7 +280,7 @@ export default function HomePage() {
         ...prev,
         [stageKey]: {
           ...initialLlmStageResponse,
-          error: 'Unknown stage selected',
+          error: "Unknown stage selected",
           isLoading: false,
         },
       }));
@@ -284,9 +294,9 @@ export default function HomePage() {
         randomNumber,
       };
 
-      const response = await fetch('/next-eval/api/llm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/next-eval/api/llm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
 
@@ -301,7 +311,7 @@ export default function HomePage() {
       }
 
       const result = await response.json();
-      if ('content' in result && 'usage' in result) {
+      if ("content" in result && "usage" in result) {
         const validatedPredXPaths = parseAndValidateXPaths(result.content);
         setLlmResponses((prev) => ({
           ...prev,
@@ -342,12 +352,12 @@ export default function HomePage() {
   const handleRunMdr = async () => {
     if (!processedData?.originalHtml || !processedData.textMapFlat) {
       console.error(
-        'Original HTML or textMapFlat not available for MDR execution.',
+        "Original HTML or textMapFlat not available for MDR execution.",
       );
       setMdrResponse((prev) => ({
         ...prev,
         error:
-          'Required data (original HTML or text map) is not processed yet.',
+          "Required data (original HTML or text map) is not processed yet.",
         isLoading: false,
       }));
       return;
@@ -365,7 +375,7 @@ export default function HomePage() {
       const mdrPredictedXPaths = await timeoutPromise(
         mdrPromise,
         60000, // 1 minute in milliseconds
-        new Error('MDR processing timed out after 1 minute')
+        new Error("MDR processing timed out after 1 minute"),
       );
 
       if (!mdrPredictedXPaths || mdrPredictedXPaths.length === 0) {
@@ -375,7 +385,7 @@ export default function HomePage() {
           mappedPredictionText: [],
           numPredictedRecords: 0,
           isLoading: false,
-          error: 'MDR returned no XPaths.',
+          error: "MDR returned no XPaths.",
         }));
         return;
       }
@@ -401,7 +411,7 @@ export default function HomePage() {
           xpathArray
             .filter((xpath) => xpath in textMapFlatForEval)
             .map((xpath) => textMapFlatForEval[xpath])
-            .join(','),
+            .join(","),
         );
 
       setMdrResponse({
@@ -412,7 +422,7 @@ export default function HomePage() {
         error: null,
       });
     } catch (error) {
-      console.error('Error running MDR:', error);
+      console.error("Error running MDR:", error);
       setMdrResponse({
         ...initialMdrResponseState,
         isLoading: false,
@@ -479,11 +489,11 @@ export default function HomePage() {
           newResponses[stageKey] = {
             ...stageData,
             isEvaluating: true,
-            error: stageData.error?.includes('Evaluation Error:')
+            error: stageData.error?.includes("Evaluation Error:")
               ? stageData.error
-                  .split('\n')
-                  .filter((line) => !line.startsWith('Evaluation Error:'))
-                  .join('\n') || null
+                  .split("\n")
+                  .filter((line) => !line.startsWith("Evaluation Error:"))
+                  .join("\n") || null
               : stageData.error,
           };
           updateScheduled = true;
@@ -501,10 +511,10 @@ export default function HomePage() {
                 numPredictedRecords: null,
                 numHallucination: null,
                 mappedPredictionText: null,
-                error: `${stageData.error ? `${stageData.error}\n` : ''}Evaluation Error: XPaths disappeared during evaluation. Resetting metrics.`,
+                error: `${stageData.error ? `${stageData.error}\n` : ""}Evaluation Error: XPaths disappeared during evaluation. Resetting metrics.`,
               };
               updateScheduled = true;
-              return; // continue to next stageKey in forEach
+              continue; // continue to next stageKey in forEach
             }
 
             const localNumPredictedRecords = stageData.predictXpathList.length;
@@ -514,7 +524,7 @@ export default function HomePage() {
             );
 
             const mappedPredRecordsText = mappedPredRecords.map((xpathArray) =>
-              xpathArray.map((xpath) => textMapFlatForEval[xpath]).join(', '),
+              xpathArray.map((xpath) => textMapFlatForEval[xpath]).join(", "),
             );
 
             let localNumHallucination = 0;
@@ -539,7 +549,7 @@ export default function HomePage() {
             );
             newResponses[stageKey] = {
               ...stageData,
-              error: `${stageData.error ? `${stageData.error}\n` : ''}Evaluation Error: ${evalError instanceof Error ? evalError.message : String(evalError)}`,
+              error: `${stageData.error ? `${stageData.error}\n` : ""}Evaluation Error: ${evalError instanceof Error ? evalError.message : String(evalError)}`,
               numPredictedRecords: null,
               numHallucination: null,
               mappedPredictionText: null,
@@ -580,7 +590,7 @@ export default function HomePage() {
       textMapFlat: { ...initialLlmStageResponse },
     });
     setOverallLlmFetching(false);
-    setSelectedStage('textMapFlat');
+    setSelectedStage("textMapFlat");
     setMdrResponse({ ...initialMdrResponseState }); // Reset MDR response
 
     const newRandomNumber = Math.floor(Math.random() * 20) + 1; // Generate number between 1 and 20
@@ -606,12 +616,12 @@ export default function HomePage() {
       setHtmlId(newHtmlId); // Set ID here
       await saveHtmlToServer(newHtmlId, htmlString); // Save to server
     } catch (error) {
-      console.error('Error loading synthetic data', error);
+      console.error("Error loading synthetic data", error);
       if (error instanceof Error) {
         setErrorMessage(`Error loading synthetic data: ${error.message}`);
       } else {
         setErrorMessage(
-          'An unknown error occurred while loading synthetic data',
+          "An unknown error occurred while loading synthetic data",
         );
       }
       // Clear partial data on main error
@@ -624,16 +634,16 @@ export default function HomePage() {
   const handleCopyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopySuccess('Copied!');
-      setTimeout(() => setCopySuccess(''), 2000);
+      setCopySuccess("Copied!");
+      setTimeout(() => setCopySuccess(""), 2000);
     } catch (err) {
-      console.error('Failed to copy text: ', err);
-      setCopySuccess('Failed to copy');
+      console.error("Failed to copy text: ", err);
+      setCopySuccess("Failed to copy");
     }
   };
 
   const getCurrentFeedbackId = () => {
-    return `${htmlId}-${activeExtractTab === 'llm' ? selectedStage : 'mdr'}`;
+    return `${htmlId}-${activeExtractTab === "llm" ? selectedStage : "mdr"}`;
   };
 
   const handleFeedback = async (isPositive: boolean) => {
@@ -642,13 +652,13 @@ export default function HomePage() {
       return; // Prevent multiple feedback for the same text
     }
 
-    const feedbackMessage = `*Extraction Feedback*\\n${isPositive ? '👍' : '👎'} ID: ${id}`;
+    const feedbackMessage = `*Extraction Feedback*\\n${isPositive ? "👍" : "👎"} ID: ${id}`;
 
     try {
-      const response = await fetch('/next-eval/api/feedback', {
-        method: 'POST',
+      const response = await fetch("/next-eval/api/feedback", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ text: feedbackMessage }),
       });
@@ -657,14 +667,14 @@ export default function HomePage() {
         setFeedbackSent((prev) => ({ ...prev, [id]: true }));
       } else {
         console.error(
-          'Failed to send feedback via API. Status:',
+          "Failed to send feedback via API. Status:",
           response.status,
         );
         const responseBody = await response.text();
-        console.error('Response body:', responseBody);
+        console.error("Response body:", responseBody);
       }
     } catch (error) {
-      console.error('Error sending feedback:', error);
+      console.error("Error sending feedback:", error);
     }
   };
 
@@ -673,11 +683,11 @@ export default function HomePage() {
     setUrlError(null);
     setRandomNumber(null);
     if (!urlInput.trim()) {
-      setUrlError('Please enter a URL.');
+      setUrlError("Please enter a URL.");
       return;
     }
     if (!/^https?:\/\//i.test(urlInput.trim())) {
-      setUrlError('URL must start with http:// or https://');
+      setUrlError("URL must start with http:// or https://");
       return;
     }
     setIsLoading(true);
@@ -689,17 +699,22 @@ export default function HomePage() {
       textMapFlat: { ...initialLlmStageResponse },
     });
     setOverallLlmFetching(false);
-    setSelectedStage('textMapFlat');
+    setSelectedStage("textMapFlat");
     setMdrResponse({ ...initialMdrResponseState });
     try {
-      const response = await fetch('/next-eval/api/fetch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/next-eval/api/fetch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: urlInput.trim() }),
       });
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error.' }));
-        throw new Error(errorData.error || `Failed to fetch URL: ${response.status} ${response.statusText}`);
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: "Unknown error." }));
+        throw new Error(
+          errorData.error ||
+            `Failed to fetch URL: ${response.status} ${response.statusText}`,
+        );
       }
       const data = await response.json();
       const htmlString = data.html;
@@ -714,8 +729,10 @@ export default function HomePage() {
       setHtmlId(newHtmlId);
       await saveHtmlToServer(newHtmlId, htmlString);
     } catch (error) {
-      console.error('Error fetching or processing URL:', error);
-      setUrlError(error instanceof Error ? error.message : 'Unknown error fetching URL.');
+      console.error("Error fetching or processing URL:", error);
+      setUrlError(
+        error instanceof Error ? error.message : "Unknown error fetching URL.",
+      );
       setProcessedData(null);
     } finally {
       setIsLoading(false);
@@ -733,35 +750,44 @@ export default function HomePage() {
           1.Upload and process HTML
         </h2>
         {/* Toggle for input method */}
-        <div className="mb-4 flex space-x-2" role="tablist" aria-label="Input method tabs">
+        <div
+          className="mb-4 flex space-x-2"
+          role="tablist"
+          aria-label="Input method tabs"
+        >
           <button
             type="button"
-            className={`px-4 py-2 rounded-t-md font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors duration-150 ${inputMethod === 'file' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-orange-100'}`}
-            aria-selected={inputMethod === 'file'}
+            className={`px-4 py-2 rounded-t-md font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors duration-150 ${inputMethod === "file" ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-700 hover:bg-orange-100"}`}
+            aria-selected={inputMethod === "file"}
             aria-controls="file-upload-panel"
             id="file-upload-tab"
             tabIndex={0}
-            onClick={() => setInputMethod('file')}
-            onKeyDown={e => e.key === 'Enter' && setInputMethod('file')}
+            onClick={() => setInputMethod("file")}
+            onKeyDown={(e) => e.key === "Enter" && setInputMethod("file")}
           >
             Upload File
           </button>
           <button
             type="button"
-            className={`px-4 py-2 rounded-t-md font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors duration-150 ${inputMethod === 'url' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-orange-100'}`}
-            aria-selected={inputMethod === 'url'}
+            className={`px-4 py-2 rounded-t-md font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors duration-150 ${inputMethod === "url" ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-700 hover:bg-orange-100"}`}
+            aria-selected={inputMethod === "url"}
             aria-controls="url-fetch-panel"
             id="url-fetch-tab"
             tabIndex={0}
-            onClick={() => setInputMethod('url')}
-            onKeyDown={e => e.key === 'Enter' && setInputMethod('url')}
+            onClick={() => setInputMethod("url")}
+            onKeyDown={(e) => e.key === "Enter" && setInputMethod("url")}
           >
             Fetch from URL
           </button>
         </div>
         {/* Input panels */}
-        {inputMethod === 'file' && (
-          <div id="file-upload-panel" role="tabpanel" aria-labelledby="file-upload-tab" className="space-y-3">
+        {inputMethod === "file" && (
+          <div
+            id="file-upload-panel"
+            role="tabpanel"
+            aria-labelledby="file-upload-tab"
+            className="space-y-3"
+          >
             {/* Main container for upload elements */}
             {/* Combined Upload and Load Sample section */}
             <div className="flex items-center justify-between">
@@ -796,11 +822,16 @@ export default function HomePage() {
             />
           </div>
         )}
-        {inputMethod === 'url' && (
-          <div id="url-fetch-panel" role="tabpanel" aria-labelledby="url-fetch-tab" className="space-y-3">
+        {inputMethod === "url" && (
+          <div
+            id="url-fetch-panel"
+            role="tabpanel"
+            aria-labelledby="url-fetch-tab"
+            className="space-y-3"
+          >
             {/* Sample URL buttons */}
             <div className="flex flex-wrap gap-2 mb-2">
-              {sampleUrls.map(sample => (
+              {sampleUrls.map((sample) => (
                 <button
                   key={sample.value}
                   type="button"
@@ -809,20 +840,25 @@ export default function HomePage() {
                   tabIndex={0}
                   disabled={isLoading || overallLlmFetching}
                   onClick={() => handleSampleUrlClick(sample.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSampleUrlClick(sample.value)}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && handleSampleUrlClick(sample.value)
+                  }
                 >
                   {sample.label}
                 </button>
               ))}
             </div>
-            <label htmlFor="url-input" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="url-input"
+              className="block text-sm font-medium text-gray-700"
+            >
               Enter a public web page URL to fetch HTML
             </label>
             <input
               id="url-input"
               type="url"
               value={urlInput}
-              onChange={e => setUrlInput(e.target.value)}
+              onChange={(e) => setUrlInput(e.target.value)}
               className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
               placeholder="https://example.com"
               aria-label="Web page URL"
@@ -841,7 +877,7 @@ export default function HomePage() {
               </button>
               <button
                 type="button"
-                onClick={() => setUrlInput('')}
+                onClick={() => setUrlInput("")}
                 className="px-2 py-1 text-xs text-gray-500 hover:text-orange-600 focus:outline-none"
                 aria-label="Clear URL input"
                 disabled={isLoading || overallLlmFetching}
@@ -858,7 +894,7 @@ export default function HomePage() {
         )}
         {errorMessage && (
           <p className="mt-4 text-sm text-red-600" role="alert">
-            {' '}
+            {" "}
             {/* Adjusted margin top */}
             Error: {errorMessage}
           </p>
@@ -874,8 +910,8 @@ export default function HomePage() {
                   onClick={() =>
                     handleDownload(
                       processedData.originalHtml,
-                      'original_html.html',
-                      'text/html',
+                      "original_html.html",
+                      "text/html",
                     )
                   }
                   className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-full transition-colors duration-150 ease-in-out"
@@ -891,7 +927,8 @@ export default function HomePage() {
                   </pre>
                 </div>
                 <p className="text-xs text-gray-500 text-right">
-                  {processedData.originalHtmlLength.toLocaleString()} characters
+                  {(processedData.originalHtmlLength ?? 0).toLocaleString()}{" "}
+                  characters
                 </p>
               </div>
             </div>
@@ -906,7 +943,7 @@ export default function HomePage() {
                 </h2>
                 {processedData.originalHtmlLength !== undefined && (
                   <p className="text-sm text-gray-600 mb-2">
-                    {processedData.originalHtmlLength.toLocaleString()}{' '}
+                    {processedData.originalHtmlLength.toLocaleString()}{" "}
                     characters
                   </p>
                 )}
@@ -922,17 +959,17 @@ export default function HomePage() {
 
         {processedData && !isLoading && (
           <section className="my-8">
-            {' '}
+            {" "}
             {/* This section already has my-8 for spacing */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Stage 1: Slimmed HTML (Cleaned HTML) */}
               <div
-                className={`p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between cursor-pointer transition-all duration-150 ease-in-out ${selectedStage === 'html' ? 'border-orange-500 ring-2 ring-orange-300' : 'border-gray-200 hover:shadow-md'}`}
-                onClick={() => setSelectedStage('html')}
-                onKeyDown={(e) => e.key === 'Enter' && setSelectedStage('html')}
+                className={`p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between cursor-pointer transition-all duration-150 ease-in-out ${selectedStage === "html" ? "border-orange-500 ring-2 ring-orange-300" : "border-gray-200 hover:shadow-md"}`}
+                onClick={() => setSelectedStage("html")}
+                onKeyDown={(e) => e.key === "Enter" && setSelectedStage("html")}
                 tabIndex={0}
                 role="button"
-                aria-pressed={selectedStage === 'html'}
+                aria-pressed={selectedStage === "html"}
                 aria-label="Select Slimmed HTML stage and view its content"
               >
                 <div className="flex justify-between items-start mb-2">
@@ -943,8 +980,8 @@ export default function HomePage() {
                       e.stopPropagation(); // Prevent stage selection when clicking download
                       handleDownload(
                         processedData.html,
-                        'slimmed_html.html',
-                        'text/html',
+                        "slimmed_html.html",
+                        "text/html",
                       );
                     }}
                     className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-full transition-colors duration-150 ease-in-out"
@@ -967,14 +1004,14 @@ export default function HomePage() {
 
               {/* Stage 2: Hierarchical JSON (Nested text map) */}
               <div
-                className={`p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between cursor-pointer transition-all duration-150 ease-in-out ${selectedStage === 'textMap' ? 'border-orange-500 ring-2 ring-orange-300' : 'border-gray-200 hover:shadow-md'}`}
-                onClick={() => setSelectedStage('textMap')}
+                className={`p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between cursor-pointer transition-all duration-150 ease-in-out ${selectedStage === "textMap" ? "border-orange-500 ring-2 ring-orange-300" : "border-gray-200 hover:shadow-md"}`}
+                onClick={() => setSelectedStage("textMap")}
                 onKeyDown={(e) =>
-                  e.key === 'Enter' && setSelectedStage('textMap')
+                  e.key === "Enter" && setSelectedStage("textMap")
                 }
                 tabIndex={0}
                 role="button"
-                aria-pressed={selectedStage === 'textMap'}
+                aria-pressed={selectedStage === "textMap"}
                 aria-label="Select Hierarchical JSON stage and view its content"
               >
                 <div className="flex justify-between items-start mb-2">
@@ -985,8 +1022,8 @@ export default function HomePage() {
                       e.stopPropagation();
                       handleDownload(
                         JSON.stringify(processedData.textMap, null, 2),
-                        'hierarchical_map.json',
-                        'application/json',
+                        "hierarchical_map.json",
+                        "application/json",
                       );
                     }}
                     className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-full transition-colors duration-150 ease-in-out"
@@ -1009,14 +1046,14 @@ export default function HomePage() {
 
               {/* Stage 3: Flat JSON (text map) */}
               <div
-                className={`p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between cursor-pointer transition-all duration-150 ease-in-out ${selectedStage === 'textMapFlat' ? 'border-orange-500 ring-2 ring-orange-300' : 'border-gray-200 hover:shadow-md'}`}
-                onClick={() => setSelectedStage('textMapFlat')}
+                className={`p-4 border rounded-lg shadow bg-gray-50 text-left flex flex-col justify-between cursor-pointer transition-all duration-150 ease-in-out ${selectedStage === "textMapFlat" ? "border-orange-500 ring-2 ring-orange-300" : "border-gray-200 hover:shadow-md"}`}
+                onClick={() => setSelectedStage("textMapFlat")}
                 onKeyDown={(e) =>
-                  e.key === 'Enter' && setSelectedStage('textMapFlat')
+                  e.key === "Enter" && setSelectedStage("textMapFlat")
                 }
                 tabIndex={0}
                 role="button"
-                aria-pressed={selectedStage === 'textMapFlat'}
+                aria-pressed={selectedStage === "textMapFlat"}
                 aria-label="Select Flat JSON stage and view its content"
               >
                 <div className="flex justify-between items-start mb-2">
@@ -1027,8 +1064,8 @@ export default function HomePage() {
                       e.stopPropagation();
                       handleDownload(
                         JSON.stringify(processedData.textMapFlat, null, 2),
-                        'flat_map.json',
-                        'application/json',
+                        "flat_map.json",
+                        "application/json",
                       );
                     }}
                     className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-full transition-colors duration-150 ease-in-out"
@@ -1044,7 +1081,7 @@ export default function HomePage() {
                     </pre>
                   </div>
                   <p className="text-xs text-gray-500 text-right">
-                    {processedData.textMapFlatLength.toLocaleString()}{' '}
+                    {processedData.textMapFlatLength.toLocaleString()}{" "}
                     characters
                   </p>
                 </div>
@@ -1078,34 +1115,34 @@ export default function HomePage() {
             <nav className="-mb-px flex space-x-8" aria-label="Tabs">
               <button
                 type="button"
-                onClick={() => setActiveExtractTab('llm')}
+                onClick={() => setActiveExtractTab("llm")}
                 className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm
                   ${
-                    activeExtractTab === 'llm'
-                      ? 'border-orange-500 text-orange-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    activeExtractTab === "llm"
+                      ? "border-orange-500 text-orange-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                   } focus:outline-none`}
-                aria-current={activeExtractTab === 'llm' ? 'page' : undefined}
+                aria-current={activeExtractTab === "llm" ? "page" : undefined}
               >
                 LLM
               </button>
               <button
                 type="button"
-                onClick={() => setActiveExtractTab('mdr')}
+                onClick={() => setActiveExtractTab("mdr")}
                 className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm
                   ${
-                    activeExtractTab === 'mdr'
-                      ? 'border-orange-500 text-orange-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    activeExtractTab === "mdr"
+                      ? "border-orange-500 text-orange-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                   } focus:outline-none`}
-                aria-current={activeExtractTab === 'mdr' ? 'page' : undefined}
+                aria-current={activeExtractTab === "mdr" ? "page" : undefined}
               >
                 MDR Algorithm
               </button>
             </nav>
           </div>
           {/* LLM Tab Content */}
-          {activeExtractTab === 'llm' && (
+          {activeExtractTab === "llm" && (
             <div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 items-end">
                 {/* LLM Model Selection Dropdown */}
@@ -1164,7 +1201,7 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={handleSendToLlm}
-                  aria-label={`Send ${selectedStage === 'html' ? 'Slimmed HTML' : selectedStage === 'textMap' ? 'Hierarchical JSON' : 'Flat JSON'} to ${selectedLlmModel}`}
+                  aria-label={`Send ${selectedStage === "html" ? "Slimmed HTML" : selectedStage === "textMap" ? "Hierarchical JSON" : "Flat JSON"} to ${selectedLlmModel}`}
                   className="w-full sm:w-auto px-6 py-3 bg-orange-500 text-white font-semibold rounded-lg shadow-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={
                     !processedData ||
@@ -1175,8 +1212,8 @@ export default function HomePage() {
                   }
                 >
                   {overallLlmFetching && llmResponses[selectedStage]?.isLoading
-                    ? 'Sending to LLM...'
-                    : 'Send to LLM'}
+                    ? "Sending to LLM..."
+                    : "Send to LLM"}
                 </button>
               </div>
               {/* Display LLM Responses */}
@@ -1186,12 +1223,12 @@ export default function HomePage() {
                 !llmResponses[selectedStage]?.content && (
                   <div className="mt-6 text-center">
                     <p className="text-lg font-semibold animate-pulse">
-                      Waiting for {selectedLlmModel} response for{' '}
-                      {selectedStage === 'html'
-                        ? 'Slimmed HTML'
-                        : selectedStage === 'textMap'
-                          ? 'Hierarchical JSON'
-                          : 'Flat JSON'}
+                      Waiting for {selectedLlmModel} response for{" "}
+                      {selectedStage === "html"
+                        ? "Slimmed HTML"
+                        : selectedStage === "textMap"
+                          ? "Hierarchical JSON"
+                          : "Flat JSON"}
                       ...
                     </p>
                   </div>
@@ -1202,9 +1239,9 @@ export default function HomePage() {
                   const stageKey = selectedStage;
                   const stageResponse = llmResponses[stageKey];
                   const stageTitles: Record<keyof LlmAllResponses, string> = {
-                    html: 'Slimmed HTML Response',
-                    textMap: 'Hierarchical JSON Response',
-                    textMapFlat: 'Flat JSON Response',
+                    html: "Slimmed HTML Response",
+                    textMap: "Hierarchical JSON Response",
+                    textMapFlat: "Flat JSON Response",
                   };
                   return (
                     <div
@@ -1241,7 +1278,7 @@ export default function HomePage() {
                                 </h4>
                                 <div className="max-h-24 overflow-auto bg-white p-2 border rounded-md text-xs">
                                   <pre className="whitespace-pre-wrap">
-                                    {typeof stageResponse.usage === 'string'
+                                    {typeof stageResponse.usage === "string"
                                       ? stageResponse.usage
                                       : JSON.stringify(
                                           stageResponse.usage,
@@ -1278,8 +1315,8 @@ export default function HomePage() {
                                         }
                                         className={`p-1 hover:bg-green-100 rounded-full transition-colors duration-150 ease-in-out ${
                                           feedbackSent[getCurrentFeedbackId()]
-                                            ? 'text-green-600'
-                                            : 'text-gray-400 hover:text-green-600'
+                                            ? "text-green-600"
+                                            : "text-gray-400 hover:text-green-600"
                                         }`}
                                         aria-label="Give positive feedback"
                                       >
@@ -1293,8 +1330,8 @@ export default function HomePage() {
                                         }
                                         className={`p-1 hover:bg-red-100 rounded-full transition-colors duration-150 ease-in-out ${
                                           feedbackSent[getCurrentFeedbackId()]
-                                            ? 'text-red-600'
-                                            : 'text-gray-400 hover:text-red-600'
+                                            ? "text-red-600"
+                                            : "text-gray-400 hover:text-red-600"
                                         }`}
                                         aria-label="Give negative feedback"
                                       >
@@ -1304,9 +1341,9 @@ export default function HomePage() {
                                         type="button"
                                         onClick={() =>
                                           handleCopyToClipboard(
-                                            stageResponse.mappedPredictionText.join(
-                                              '\n',
-                                            ),
+                                            stageResponse.mappedPredictionText?.join(
+                                              "\n",
+                                            ) || "",
                                           )
                                         }
                                         className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-full transition-colors duration-150 ease-in-out group relative"
@@ -1351,7 +1388,7 @@ export default function HomePage() {
                                       <p>
                                         <span className="font-semibold">
                                           Predicted Records:
-                                        </span>{' '}
+                                        </span>{" "}
                                         {stageResponse.numPredictedRecords}
                                       </p>
                                       {stageResponse.numHallucination !==
@@ -1359,12 +1396,12 @@ export default function HomePage() {
                                         <p>
                                           <span className="font-semibold">
                                             Potential Hallucinations:
-                                          </span>{' '}
+                                          </span>{" "}
                                           {stageResponse.numHallucination} (
                                           {stageResponse.numPredictedRecords &&
                                           stageResponse.numPredictedRecords > 0
                                             ? `${((stageResponse.numHallucination / stageResponse.numPredictedRecords) * 100).toFixed(2)}%`
-                                            : 'N/A'}
+                                            : "N/A"}
                                           )
                                         </p>
                                       )}
@@ -1385,7 +1422,7 @@ export default function HomePage() {
                                   stageResponse.numPredictedRecords === null &&
                                   stageResponse.error &&
                                   stageResponse.error.includes(
-                                    'Evaluation Error:',
+                                    "Evaluation Error:",
                                   ) && ( // Explicitly check if an Evaluation Error occurred
                                     <p className="text-red-500">
                                       Metrics calculation failed. See error
@@ -1418,9 +1455,9 @@ export default function HomePage() {
             </div>
           )}
           {/* MDR Tab Content */}
-          {activeExtractTab === 'mdr' && (
+          {activeExtractTab === "mdr" && (
             <div className="mt-4">
-              {' '}
+              {" "}
               {/* Added mt-4 for spacing consistent with LLM tab */}
               {/* Run MDR Button */}
               <div className="flex justify-center items-center mb-6">
@@ -1436,8 +1473,8 @@ export default function HomePage() {
                   } // Simplified disabled condition
                 >
                   {mdrResponse.isLoading
-                    ? 'Running MDR...'
-                    : 'Run MDR Algorithm'}
+                    ? "Running MDR..."
+                    : "Run MDR Algorithm"}
                 </button>
               </div>
               {/* MDR Response Card */}
@@ -1499,8 +1536,8 @@ export default function HomePage() {
                                       }
                                       className={`p-1 hover:bg-green-100 rounded-full transition-colors duration-150 ease-in-out ${
                                         feedbackSent[getCurrentFeedbackId()]
-                                          ? 'text-green-600'
-                                          : 'text-gray-400 hover:text-green-600'
+                                          ? "text-green-600"
+                                          : "text-gray-400 hover:text-green-600"
                                       }`}
                                       aria-label="Give positive feedback"
                                     >
@@ -1514,8 +1551,8 @@ export default function HomePage() {
                                       }
                                       className={`p-1 hover:bg-red-100 rounded-full transition-colors duration-150 ease-in-out ${
                                         feedbackSent[getCurrentFeedbackId()]
-                                          ? 'text-red-600'
-                                          : 'text-gray-400 hover:text-red-600'
+                                          ? "text-red-600"
+                                          : "text-gray-400 hover:text-red-600"
                                       }`}
                                       aria-label="Give negative feedback"
                                     >
@@ -1525,9 +1562,9 @@ export default function HomePage() {
                                       type="button"
                                       onClick={() =>
                                         handleCopyToClipboard(
-                                          mdrResponse.mappedPredictionText.join(
-                                            '\n',
-                                          ),
+                                          mdrResponse.mappedPredictionText?.join(
+                                            "\n",
+                                          ) || "",
                                         )
                                       }
                                       className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-full transition-colors duration-150 ease-in-out group relative"
@@ -1565,7 +1602,7 @@ export default function HomePage() {
                                 <p>
                                   <span className="font-semibold">
                                     Predicted Records:
-                                  </span>{' '}
+                                  </span>{" "}
                                   {mdrResponse.numPredictedRecords}
                                 </p>
                               )}

@@ -9,7 +9,5 @@
   ],
   "main": "rust_mdr_utils.js",
   "types": "rust_mdr_utils.d.ts",
-  "sideEffects": [
-    "./snippets/*"
-  ]
+  "sideEffects": ["./snippets/*"]
 }

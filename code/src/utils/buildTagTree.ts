@@ -1,5 +1,5 @@
 import { Node, NodeType, HTMLElement, TextNode } from "node-html-parser";
-import type { TagNode } from "../interfaces";
+import type { TagNode } from "@/interfaces";
 
 export function buildTagTree(domNode: Node, parentElementXPath: string = ""): TagNode {
   if (!domNode) {

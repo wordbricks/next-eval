@@ -6,26 +6,26 @@ export const mapResponseToFullXPath = (
     const dataRecordFull: string[] = [];
     for (const xpath of dataRecord) {
       let tempPath = xpath;
-      if (tempPath.startsWith('/html[1]')) {
-        tempPath = tempPath.substring('/html[1]'.length);
-      } else if (tempPath.startsWith('/html')) {
+      if (tempPath.startsWith("/html[1]")) {
+        tempPath = tempPath.substring("/html[1]".length);
+      } else if (tempPath.startsWith("/html")) {
         // This covers "/html" and "/html/..."
-        tempPath = tempPath.substring('/html'.length);
+        tempPath = tempPath.substring("/html".length);
       }
 
-      if (tempPath !== '') {
-        const segments = tempPath.split('/');
+      if (tempPath !== "") {
+        const segments = tempPath.split("/");
         const newSegments = segments.map((segment) => {
-          if (segment === '') {
+          if (segment === "") {
             // Preserve empty segments
-            return '';
+            return "";
           }
           if (!/\[\d+\]$/.test(segment)) {
             return `${segment}[1]`;
           }
           return segment;
         });
-        tempPath = newSegments.join('/');
+        tempPath = newSegments.join("/");
       }
       for (const key in textMapFlatJson) {
         if (key.startsWith(tempPath)) {

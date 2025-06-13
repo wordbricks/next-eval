@@ -7,10 +7,10 @@ import {
 	SYSTEM_HIER_PROMPT,
 	SYSTEM_FLAT_PROMPT
 } from "../prompts";
-import { SYN_DATA_PATH, xpathArraySchema } from "../constant";
-import type { LLMUsage } from "../interfaces";
-import { USER_PROMPT } from "../prompts";
-import { compile, getLLMResponse, parseAndValidateXPaths } from "../utils";
+import { SYN_DATA_PATH, xpathArraySchema } from "@/constant";
+import type { LLMUsage } from "@/interfaces";
+import { USER_PROMPT } from "@/prompts";
+import { compile, getLLMResponse, parseAndValidateXPaths } from "@/utils";
 
 const MAX_RETRY_ATTEMPTS = 3;
 const NUM_GROUPS = 5;

@@ -1,4 +1,4 @@
-import { xpathArraySchema } from "../constant";
+import { xpathArraySchema } from "@/constant";
 import { z } from "zod";
 
 export const parseAndValidateXPaths = (content: string): z.infer<typeof xpathArraySchema> => {

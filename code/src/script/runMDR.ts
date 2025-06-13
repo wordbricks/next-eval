@@ -2,8 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { parse } from "node-html-parser";
 
-import { SYN_DATA_PATH, MDR_K, MDR_T } from "../constant";
-import type { TagNode } from "../interfaces";
+import { SYN_DATA_PATH, MDR_K, MDR_T } from "@/constant";
+import type { TagNode } from "@/interfaces";
 import {
   removeCommentScriptStyleFromHTML,
   buildTagTree,

@@ -3,7 +3,7 @@ import {
   type Node,
   NodeType,
   type TextNode,
-} from 'node-html-parser';
+} from "node-html-parser";
 
 export interface TagNode {
   tag: string;
@@ -11,15 +11,15 @@ export interface TagNode {
   rawText: string;
   xpath: string;
 }
-export function buildTagTree(domNode: Node, parentElementXPath = ''): TagNode {
+export function buildTagTree(domNode: Node, parentElementXPath = ""): TagNode {
   if (!domNode) {
-    return { tag: 'text', children: [], rawText: '', xpath: '' };
+    return { tag: "text", children: [], rawText: "", xpath: "" };
   }
 
   // Handle text nodes
   if (domNode.nodeType === NodeType.TEXT_NODE) {
-    const textContent = ((domNode as TextNode)?.text || '').trim();
-    let textNodeXPath = '';
+    const textContent = ((domNode as TextNode)?.text || "").trim();
+    let textNodeXPath = "";
 
     // Construct XPath for text node if it has content and a parent XPath is provided
     if (textContent && parentElementXPath) {
@@ -27,7 +27,7 @@ export function buildTagTree(domNode: Node, parentElementXPath = ''): TagNode {
       textNodeXPath = parentElementXPath;
     }
     return {
-      tag: 'text',
+      tag: "text",
       children: [],
       rawText: textContent,
       xpath: textNodeXPath,
@@ -37,9 +37,9 @@ export function buildTagTree(domNode: Node, parentElementXPath = ''): TagNode {
   // Handle element nodes
   if (domNode.nodeType === NodeType.ELEMENT_NODE) {
     const element = domNode as HTMLElement;
-    if (!element || typeof element.tagName !== 'string') {
+    if (!element || typeof element.tagName !== "string") {
       // Fallback for invalid element structure
-      return { tag: 'div', children: [], rawText: '', xpath: '' };
+      return { tag: "div", children: [], rawText: "", xpath: "" };
     }
 
     const tagName = element.tagName.toLowerCase();
@@ -63,7 +63,7 @@ export function buildTagTree(domNode: Node, parentElementXPath = ''): TagNode {
     }
 
     let currentElementXPath: string;
-    if (parentElementXPath === '') {
+    if (parentElementXPath === "") {
       // This is the root element of the buildTagTree call
       currentElementXPath = `/${localXPathSegment}`;
     } else {
@@ -78,15 +78,15 @@ export function buildTagTree(domNode: Node, parentElementXPath = ''): TagNode {
       if (!child) continue;
 
       if (child.nodeType === NodeType.TEXT_NODE) {
-        const text = (child as TextNode)?.text || '';
-        if (text.trim() === '') continue; // Skip if it's an effectively empty text node
+        const text = (child as TextNode)?.text || "";
+        if (text.trim() === "") continue; // Skip if it's an effectively empty text node
       }
       children.push(buildTagTree(child, currentElementXPath));
     }
 
-    return { tag: tagName, children, rawText: '', xpath: currentElementXPath };
+    return { tag: tagName, children, rawText: "", xpath: currentElementXPath };
   }
 
   // For any other node types (e.g., comments, if not filtered out before this stage)
-  return { tag: 'text', children: [], rawText: '', xpath: '' }; // Default fallback
+  return { tag: "text", children: [], rawText: "", xpath: "" }; // Default fallback
 }

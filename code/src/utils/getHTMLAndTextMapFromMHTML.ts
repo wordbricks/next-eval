@@ -1,5 +1,5 @@
-import type { HtmlResult } from "../interfaces";
-import { launchBrowser } from "./launchBrowser";
+import type { HtmlResult } from "@/interfaces";
+import { launchBrowser } from "@/utils/launchBrowser";
 
 /**
  * Processes HTML content by cleaning it and extracting text content with XPaths
