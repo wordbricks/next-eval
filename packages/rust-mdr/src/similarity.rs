@@ -1,5 +1,13 @@
 use crate::tree_utils::flatten_subtree;
 use crate::types::TagNodeRef;
+use dashmap::DashMap;
+use once_cell::sync::Lazy;
+use std::rc::Rc;
+
+/// Global memo: (ptr_a, ptr_b) → distance
+/// We store the lower pointer first so (a,b) == (b,a).
+pub(crate) static NODE_DIST_CACHE: Lazy<DashMap<(usize, usize), f32>> =
+    Lazy::new(|| DashMap::with_capacity(1_024));
 
 /// O(min(m,n))-memory LCS implementation using two rolling rows.
 fn longest_common_subsequence(s1: &[u8], s2: &[u8]) -> usize {
@@ -62,9 +70,20 @@ pub fn edit_distance(s1: &str, s2: &str) -> f32 {
 
 /// Returns normalized edit distance between two nodes
 pub fn normalized_edit_distance(a: &TagNodeRef, b: &TagNodeRef) -> f32 {
+    // --- fast path: cached? ---------------------------------------------
+    let pa = Rc::as_ptr(a) as usize;
+    let pb = Rc::as_ptr(b) as usize;
+    let key = if pa <= pb { (pa, pb) } else { (pb, pa) };
+    if let Some(v) = NODE_DIST_CACHE.get(&key) {
+        return *v;
+    }
+
+    // --- slow path: compute, store --------------------------------------
     let sa = flatten_subtree(a);
     let sb = flatten_subtree(b);
-    edit_distance(&sa, &sb)
+    let d = edit_distance(&sa, &sb);
+    NODE_DIST_CACHE.insert(key, d);
+    d
 }
 
 /// Checks if two sibling nodes are similar based on threshold

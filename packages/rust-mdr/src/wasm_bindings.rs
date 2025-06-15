@@ -84,3 +84,10 @@ pub fn get_normalized_edit_distance_wasm(s1: &str, s2: &str) -> f32 {
 pub fn get_normalized_edit_distance_wasm_legacy(s1: &str, s2: &str) -> f32 {
     edit_distance(s1, s2)
 }
+
+/// Clear the distance cache between pages
+#[wasm_bindgen(js_name = clearDistanceCache)]
+pub fn clear_distance_cache() {
+    use crate::similarity::NODE_DIST_CACHE;
+    NODE_DIST_CACHE.clear();
+}
