@@ -1,12 +1,12 @@
 use crate::types::TagNodeRef;
 
 pub fn get_children(node: &TagNodeRef) -> Vec<TagNodeRef> {
-    node.borrow().children.clone()
+    node.children.clone()
 }
 
 pub fn flatten_subtree(root: &TagNodeRef) -> String {
     // Cached?
-    if let Some(cached) = &*root.borrow().flattened_cache.borrow() {
+    if let Some(cached) = &*root.flattened_cache.lock() {
         return cached.clone();
     }
 
@@ -15,31 +15,30 @@ pub fn flatten_subtree(root: &TagNodeRef) -> String {
 
     // Safety: we only push UTF-8 slices from existing Strings & ASCII literals.
     let s = unsafe { String::from_utf8_unchecked(buf) };
-    *root.borrow().flattened_cache.borrow_mut() = Some(s.clone());
+    *root.flattened_cache.lock() = Some(s.clone());
     s
 }
 
 fn inner_flatten(out: &mut Vec<u8>, node: &TagNodeRef) {
-    let n = node.borrow();
 
     // Opening tag  "<tag>"
     out.extend_from_slice(b"<");
-    out.extend_from_slice(n.tag_name.as_bytes());
+    out.extend_from_slice(node.tag_name.as_bytes());
     out.extend_from_slice(b">");
 
     // Raw text
-    if let Some(text) = &n.raw_text {
+    if let Some(text) = &node.raw_text {
         out.extend_from_slice(text.as_bytes());
     }
 
     // Children
-    for child in &n.children {
+    for child in &node.children {
         inner_flatten(out, child);
     }
 
     // Closing tag "</tag>"
     out.extend_from_slice(b"</");
-    out.extend_from_slice(n.tag_name.as_bytes());
+    out.extend_from_slice(node.tag_name.as_bytes());
     out.extend_from_slice(b">");
 }
 
@@ -50,37 +49,36 @@ pub fn flatten_subtree_with_xpath(root: &TagNodeRef) -> String {
 }
 
 fn inner_flatten_with_xpath(out: &mut String, node: &TagNodeRef) {
-    let n = node.borrow();
     
     // Opening tag with xpath
     out.push('<');
-    out.push_str(&n.tag_name);
+    out.push_str(&node.tag_name);
     out.push_str(" xpath=\"");
-    out.push_str(&n.xpath);
+    out.push_str(&node.xpath);
     out.push_str("\">");
     
     // Raw text content
-    if let Some(text) = &n.raw_text {
+    if let Some(text) = &node.raw_text {
         out.push_str(text);
     }
     
     // Recursively flatten children
-    for child in &n.children {
+    for child in &node.children {
         inner_flatten_with_xpath(out, child);
     }
     
     // Closing tag
     out.push_str("</");
-    out.push_str(&n.tag_name);
+    out.push_str(&node.tag_name);
     out.push('>');
 }
 
 pub fn get_node_by_xpath(root: &TagNodeRef, xpath: &str) -> Option<TagNodeRef> {
-    if root.borrow().xpath == xpath {
+    if root.xpath == xpath {
         return Some(root.clone());
     }
     
-    for child in &root.borrow().children {
+    for child in &root.children {
         if let Some(found) = get_node_by_xpath(child, xpath) {
             return Some(found);
         }
@@ -91,14 +89,14 @@ pub fn get_node_by_xpath(root: &TagNodeRef, xpath: &str) -> Option<TagNodeRef> {
 
 pub fn count_nodes(root: &TagNodeRef) -> usize {
     let mut count = 1;
-    for child in &root.borrow().children {
+    for child in &root.children {
         count += count_nodes(child);
     }
     count
 }
 
 pub fn get_depth(root: &TagNodeRef) -> usize {
-    let children = &root.borrow().children;
+    let children = &root.children;
     if children.is_empty() {
         return 1;
     }

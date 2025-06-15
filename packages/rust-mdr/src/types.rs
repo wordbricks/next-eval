@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::sync::Arc;
+use parking_lot::Mutex;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TagNode {
     pub tag_name: String,
     pub children: Vec<TagNodeRef>,
@@ -10,11 +10,15 @@ pub struct TagNode {
     pub xpath: String,
 
     #[serde(skip)]
-    #[serde(default)]
-    pub flattened_cache: RefCell<Option<String>>,
+    #[serde(default = "default_mutex")]
+    pub flattened_cache: Mutex<Option<String>>,
 }
 
-pub type TagNodeRef = Rc<RefCell<TagNode>>;
+fn default_mutex() -> Mutex<Option<String>> {
+    Mutex::new(None)
+}
+
+pub type TagNodeRef = Arc<TagNode>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RegionsMapItem {
@@ -39,6 +43,18 @@ pub struct MdrFullOutput {
     pub orphans: Vec<TagNodeRef>,
 }
 
+impl Clone for TagNode {
+    fn clone(&self) -> Self {
+        TagNode {
+            tag_name: self.tag_name.clone(),
+            children: self.children.clone(),
+            raw_text: self.raw_text.clone(),
+            xpath: self.xpath.clone(),
+            flattened_cache: Mutex::new(None), // Don't clone the cache
+        }
+    }
+}
+
 impl TagNode {
     pub fn new(tag_name: String, xpath: String) -> Self {
         TagNode {
@@ -46,7 +62,7 @@ impl TagNode {
             children: Vec::new(),
             raw_text: None,
             xpath,
-            flattened_cache: RefCell::new(None),
+            flattened_cache: Mutex::new(None),
         }
     }
 

@@ -2,7 +2,10 @@ use crate::tree_utils::flatten_subtree;
 use crate::types::TagNodeRef;
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
-use std::rc::Rc;
+use std::sync::Arc;
+
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 
 /// Global memo: (ptr_a, ptr_b) → distance
 /// We store the lower pointer first so (a,b) == (b,a).
@@ -71,8 +74,8 @@ pub fn edit_distance(s1: &str, s2: &str) -> f32 {
 /// Returns normalized edit distance between two nodes
 pub fn normalized_edit_distance(a: &TagNodeRef, b: &TagNodeRef) -> f32 {
     // --- fast path: cached? ---------------------------------------------
-    let pa = Rc::as_ptr(a) as usize;
-    let pb = Rc::as_ptr(b) as usize;
+    let pa = Arc::as_ptr(a) as usize;
+    let pb = Arc::as_ptr(b) as usize;
     let key = if pa <= pb { (pa, pb) } else { (pb, pa) };
     if let Some(v) = NODE_DIST_CACHE.get(&key) {
         return *v;
@@ -97,14 +100,25 @@ pub fn are_all_siblings_similar(siblings: &[TagNodeRef], t: f32) -> bool {
         return true; // No comparison needed for 0 or 1 sibling
     }
     
-    for i in 0..siblings.len() - 1 {
-        for j in i + 1..siblings.len() {
-            if normalized_edit_distance(&siblings[i], &siblings[j]) > t {
-                return false;
+    #[cfg(feature = "parallel")]
+    {
+        siblings.par_iter().enumerate().all(|(i, a)| {
+            siblings[i + 1..]
+                .par_iter()
+                .all(|b| normalized_edit_distance(a, b) <= t)
+        })
+    }
+    #[cfg(not(feature = "parallel"))]
+    {
+        for i in 0..siblings.len() - 1 {
+            for j in i + 1..siblings.len() {
+                if normalized_edit_distance(&siblings[i], &siblings[j]) > t {
+                    return false;
+                }
             }
         }
+        true
     }
-    true
 }
 
 #[cfg(test)]

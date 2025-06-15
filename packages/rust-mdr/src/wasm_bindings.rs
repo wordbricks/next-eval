@@ -13,7 +13,13 @@ pub fn init() {
     
     // Initialize rayon thread pool if parallel feature is enabled
     #[cfg(feature = "parallel")]
-    wasm_bindgen_rayon::init_thread_pool(4).expect("Rayon pool init failed");
+    {
+        use wasm_bindgen::JsCast;
+        let cores = web_sys::window()
+            .and_then(|w| w.navigator().hardware_concurrency().try_into().ok())
+            .unwrap_or(4);
+        wasm_bindgen_rayon::init_thread_pool(cores).expect("Rayon pool init failed");
+    }
 }
 
 /// Run the MDR algorithm on a tag tree

@@ -3,6 +3,9 @@ use crate::tree_utils::get_children;
 use crate::types::{DataRegion, RegionsMapItem, TagNodeRef};
 use std::collections::HashMap;
 
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
+
 /// Identifies data regions in a list of children nodes
 pub fn ident_drs(
     start_child_idx: usize,
@@ -15,9 +18,15 @@ pub fn ident_drs(
     let mut current_max_dr: Option<DataRegion> = None;
 
     for gn_length in 1..=k {
-        for start_idx in start_child_idx..=start_child_idx + gn_length - 1 {
+        // Scan potential starting offsets in parallel – one window per iteration
+        #[cfg(feature = "parallel")]
+        let iter = (start_child_idx..=start_child_idx + gn_length - 1).into_par_iter();
+        #[cfg(not(feature = "parallel"))]
+        let iter = (start_child_idx..=start_child_idx + gn_length - 1).into_iter();
+
+        let region_results: Vec<Option<DataRegion>> = iter.map(|start_idx| {
             if start_idx >= n {
-                break;
+                return None;
             }
 
             let mut current_dr: Option<DataRegion> = None;
@@ -44,12 +53,15 @@ pub fn ident_drs(
                 check_idx += gn_length;
             }
 
-            if let Some(dr) = current_dr {
-                if current_max_dr.is_none() || dr.2 > current_max_dr.as_ref().unwrap().2 {
-                    if current_max_dr.is_none() 
-                        || dr.0 * dr.2 > current_max_dr.as_ref().unwrap().0 * current_max_dr.as_ref().unwrap().2 {
-                        current_max_dr = Some(dr);
-                    }
+            current_dr
+        }).collect();
+
+        // Find the best region from this gn_length
+        for dr in region_results.into_iter().flatten() {
+            if current_max_dr.is_none() || dr.2 > current_max_dr.as_ref().unwrap().2 {
+                if current_max_dr.is_none() 
+                    || dr.0 * dr.2 > current_max_dr.as_ref().unwrap().0 * current_max_dr.as_ref().unwrap().2 {
+                    current_max_dr = Some(dr);
                 }
             }
         }
@@ -83,7 +95,7 @@ pub fn find_drs_recursive(
         let regions = ident_drs(0, &children, k, t);
         if !regions.is_empty() {
             out.push(RegionsMapItem {
-                parent_xpath: node.borrow().xpath.clone(),
+                parent_xpath: node.xpath.clone(),
                 regions,
             });
         }

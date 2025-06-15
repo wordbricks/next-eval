@@ -6,7 +6,7 @@ use std::collections::HashSet;
 /// Find records for a single node (gnLength = 1)
 pub fn find_records1(g: &TagNodeRef, t: f32) -> Vec<TagNodeRef> {
     let children = get_children(g);
-    let is_table_row = g.borrow().tag_name == "tr";
+    let is_table_row = g.tag_name == "tr";
     let children_are_similar = are_all_siblings_similar(&children, t);
 
     if !children.is_empty() && children_are_similar && !is_table_row {
@@ -168,7 +168,7 @@ pub fn identify_all_data_records_with_tree(
         for (region_index, region) in sorted_regions.iter().enumerate() {
             let (gn_length, start_idx, node_count) = *region;
             let num_gns = node_count / gn_length;
-            let region_key = format!("{}-{}", parent_node.borrow().tag_name, start_idx);
+            let region_key = format!("{}-{}", parent_node.tag_name, start_idx);
 
             if processed_region_keys.contains(&region_key) {
                 continue;
@@ -214,7 +214,7 @@ pub fn identify_all_data_records_with_tree(
                                 }
                                 all_records.extend(merged_records_non_contiguous);
                                 processed_region_keys.insert(format!("{}-{}", 
-                                    parent_node.borrow().tag_name, next_start_idx));
+                                    parent_node.tag_name, next_start_idx));
                             }
                         }
                     }
