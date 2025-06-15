@@ -3,6 +3,7 @@ use crate::types::TagNodeRef;
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use std::sync::Arc;
+use levenshtein::levenshtein;
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -12,63 +13,12 @@ use rayon::prelude::*;
 pub(crate) static NODE_DIST_CACHE: Lazy<DashMap<(usize, usize), f32>> =
     Lazy::new(|| DashMap::with_capacity(1_024));
 
-/// O(min(m,n))-memory LCS implementation using two rolling rows.
-fn longest_common_subsequence(s1: &[u8], s2: &[u8]) -> usize {
-    // Early-outs
-    if s1.is_empty() || s2.is_empty() {
-        return 0;
-    }
-
-    // Always iterate over the longer string row-by-row to minimise the buffer.
-    let (longer, shorter) = if s1.len() >= s2.len() {
-        (s1, s2)
-    } else {
-        (s2, s1)
-    };
-
-    let n = shorter.len();
-    let mut prev_row = vec![0usize; n + 1];
-    let mut curr_row = vec![0usize; n + 1];
-
-    for &c_long in longer {
-        for (j, &c_short) in shorter.iter().enumerate() {
-            curr_row[j + 1] = if c_long == c_short {
-                prev_row[j] + 1
-            } else {
-                prev_row[j + 1].max(curr_row[j])
-            };
-        }
-        // Re-use the buffers instead of reallocating.
-        std::mem::swap(&mut prev_row, &mut curr_row);
-    }
-
-    prev_row[n]
-}
-
-/// Calculates normalized edit distance between two strings using LCS
+/// Calculates normalized edit distance between two strings using Levenshtein
 /// Returns a value between 0.0 and 1.0, where 0.0 means identical and 1.0 means completely different
 pub fn edit_distance(s1: &str, s2: &str) -> f32 {
-    let len1 = s1.len();
-    let len2 = s2.len();
-
-    // Handle zero-length strings to avoid divide-by-zero
-    if len1 == 0 && len2 == 0 {
-        return 0.0;
-    }
-    if len1 == 0 || len2 == 0 {
-        return 1.0;
-    }
-
-    // Early return for significantly different length strings
-    if (len1 as i32 - len2 as i32).abs() > (len1.max(len2) / 2) as i32 {
-        return 1.0;
-    }
-
-    let lcs_length = longest_common_subsequence(s1.as_bytes(), s2.as_bytes());
-    let total_operations = len1 + len2 - 2 * lcs_length;
-
-    // Normalize by max length to ensure result is in [0, 1]
-    total_operations as f32 / (len1.max(len2) as f32)
+    let d = levenshtein(s1, s2) as f32;
+    let n = s1.len().max(s2.len()) as f32;
+    if n == 0.0 { 0.0 } else { d / n }
 }
 
 /// Returns normalized edit distance between two nodes

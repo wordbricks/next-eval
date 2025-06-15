@@ -8,12 +8,41 @@ pub fn find_records1(g: &TagNodeRef, t: f32) -> Vec<TagNodeRef> {
     let children = get_children(g);
     let is_table_row = g.tag_name == "tr";
     let children_are_similar = are_all_siblings_similar(&children, t);
-
+    
     if !children.is_empty() && children_are_similar && !is_table_row {
         children
     } else {
         vec![g.clone()]
     }
+}
+
+/// Helper to check if merging would produce non-contiguous records
+fn would_produce_non_contiguous(g: &[TagNodeRef], t: f32) -> bool {
+    if g.len() <= 1 {
+        return false;
+    }
+
+    let mut children_are_similar_within_components = true;
+    let mut same_number_of_children = true;
+    let first_node_children_count = get_children(&g[0]).len();
+    
+    if first_node_children_count == 0 {
+        return false;
+    }
+
+    for component_node in g {
+        let children = get_children(component_node);
+        if children.len() != first_node_children_count {
+            same_number_of_children = false;
+            break;
+        }
+        if !are_all_siblings_similar(&children, t) {
+            children_are_similar_within_components = false;
+            break;
+        }
+    }
+
+    children_are_similar_within_components && same_number_of_children
 }
 
 /// Find records for multiple nodes (gnLength > 1)
@@ -59,34 +88,6 @@ pub fn find_records_n(g: &[TagNodeRef], t: f32) -> Vec<DataRecord> {
     }
 }
 
-/// Helper to check if merging would produce non-contiguous records
-fn would_produce_non_contiguous(g: &[TagNodeRef], t: f32) -> bool {
-    if g.len() <= 1 {
-        return false;
-    }
-
-    let mut children_are_similar_within_components = true;
-    let mut same_number_of_children = true;
-    let first_node_children_count = get_children(&g[0]).len();
-    
-    if first_node_children_count == 0 {
-        return false;
-    }
-
-    for component_node in g {
-        let children = get_children(component_node);
-        if children.len() != first_node_children_count {
-            same_number_of_children = false;
-            break;
-        }
-        if !are_all_siblings_similar(&children, t) {
-            children_are_similar_within_components = false;
-            break;
-        }
-    }
-
-    children_are_similar_within_components && same_number_of_children
-}
 
 /// Identify all data records from regions map
 pub fn identify_all_data_records(regions: &[RegionsMapItem], _t: f32) -> Vec<DataRecord> {
@@ -105,7 +106,7 @@ pub fn identify_all_data_records(regions: &[RegionsMapItem], _t: f32) -> Vec<Dat
         // This requires access to the original tree - we'll need to pass it in
         // For now, we'll skip the actual implementation details that require tree access
         
-        for (region_index, region) in sorted_regions.iter().enumerate() {
+        for (_region_index, region) in sorted_regions.iter().enumerate() {
             let (gn_length, start_idx, node_count) = *region;
             let _num_gns = node_count / gn_length;
             let region_key = format!("{}-{}", parent_xpath, start_idx);
@@ -114,24 +115,6 @@ pub fn identify_all_data_records(regions: &[RegionsMapItem], _t: f32) -> Vec<Dat
                 continue;
             }
 
-            let mut merged = false;
-
-            // Adjacent region merging logic
-            if gn_length > 1 && region_index + 1 < sorted_regions.len() {
-                let next_region = &sorted_regions[region_index + 1];
-                let (next_gn_length, next_start_idx, _) = *next_region;
-
-                if start_idx + node_count == next_start_idx && gn_length == next_gn_length {
-                    // Would need to check similarity and merge here
-                    // Skipping implementation details that require tree access
-                    merged = false; // Placeholder
-                }
-            }
-
-            if merged {
-                processed_region_keys.insert(region_key);
-                continue;
-            }
 
             // Standard identification would go here
             // This requires access to the actual nodes
@@ -176,7 +159,7 @@ pub fn identify_all_data_records_with_tree(
 
             let mut merged = false;
 
-            // Adjacent region merging
+            // Adjacent region merging logic
             if gn_length > 1 && region_index + 1 < sorted_regions.len() {
                 let next_region = &sorted_regions[region_index + 1];
                 let (next_gn_length, next_start_idx, _) = *next_region;

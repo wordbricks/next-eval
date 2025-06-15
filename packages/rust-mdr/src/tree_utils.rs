@@ -20,26 +20,31 @@ pub fn flatten_subtree(root: &TagNodeRef) -> String {
 }
 
 fn inner_flatten(out: &mut Vec<u8>, node: &TagNodeRef) {
-
+    // TypeScript: ignore text nodes for structural comparison
+    if node.tag_name == "text" {
+        if let Some(text) = &node.raw_text {
+            if !text.trim().is_empty() {
+                return; // Ignore text content for structural comparison
+            }
+        }
+    }
+    
     // Opening tag  "<tag>"
     out.extend_from_slice(b"<");
     out.extend_from_slice(node.tag_name.as_bytes());
     out.extend_from_slice(b">");
-
-    // Raw text
-    if let Some(text) = &node.raw_text {
-        out.extend_from_slice(text.as_bytes());
-    }
 
     // Children
     for child in &node.children {
         inner_flatten(out, child);
     }
 
-    // Closing tag "</tag>"
-    out.extend_from_slice(b"</");
-    out.extend_from_slice(node.tag_name.as_bytes());
-    out.extend_from_slice(b">");
+    // Closing tag "</tag>" (skip for text nodes)
+    if node.tag_name != "text" {
+        out.extend_from_slice(b"</");
+        out.extend_from_slice(node.tag_name.as_bytes());
+        out.extend_from_slice(b">");
+    }
 }
 
 pub fn flatten_subtree_with_xpath(root: &TagNodeRef) -> String {

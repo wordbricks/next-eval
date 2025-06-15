@@ -58,11 +58,17 @@ pub fn ident_drs(
 
         // Find the best region from this gn_length
         for dr in region_results.into_iter().flatten() {
-            if current_max_dr.is_none() || dr.2 > current_max_dr.as_ref().unwrap().2 {
-                if current_max_dr.is_none() 
-                    || dr.0 * dr.2 > current_max_dr.as_ref().unwrap().0 * current_max_dr.as_ref().unwrap().2 {
+            if let Some(ref max_dr) = current_max_dr {
+                // TypeScript condition 1: currentDR[2] > currentMaxDR[2] with start index check
+                if dr.2 > max_dr.2 && (max_dr.1 == 0 || dr.1 <= max_dr.1) {
                     current_max_dr = Some(dr);
                 }
+                // TypeScript condition 2: equal node count but smaller gnLength
+                else if dr.2 == max_dr.2 && dr.1 == max_dr.1 && dr.0 < max_dr.0 {
+                    current_max_dr = Some(dr);
+                }
+            } else {
+                current_max_dr = Some(dr);
             }
         }
     }
@@ -88,22 +94,65 @@ pub fn find_drs_recursive(
     t: f32,
     depth: usize,
     out: &mut Vec<RegionsMapItem>,
+    node_regions_map: &mut HashMap<String, Vec<DataRegion>>,
 ) {
     let children = get_children(node);
     
-    if children.len() >= k {
-        let regions = ident_drs(0, &children, k, t);
-        if !regions.is_empty() {
-            out.push(RegionsMapItem {
-                parent_xpath: node.xpath.clone(),
-                regions,
-            });
+    // Initialize node regions
+    node_regions_map.insert(node.xpath.clone(), Vec::new());
+    
+    // Check if node has grandchildren (TypeScript: hasGrandchildren)
+    let mut has_grandchildren = false;
+    for child in &children {
+        if !get_children(child).is_empty() {
+            has_grandchildren = true;
+            break;
         }
     }
     
-    // Recursively process children
-    for child in children {
-        find_drs_recursive(&child, k, t, depth + 1, out);
+    // Only run MDR if node has grandchildren and at least 2 children
+    let mut node_drs = Vec::new();
+    if has_grandchildren && children.len() >= 2 {
+        node_drs = ident_drs(0, &children, k, t);
+        if !node_drs.is_empty() {
+            node_regions_map.insert(node.xpath.clone(), node_drs.clone());
+        }
+    }
+    
+    // Process children and collect uncovered regions
+    let mut temp_drs = Vec::new();
+    for (child_idx, child) in children.iter().enumerate() {
+        find_drs_recursive(&child, k, t, depth + 1, out, node_regions_map);
+        
+        // Get uncovered child DRs (similar to UnCoveredDRs function)
+        let child_drs = node_regions_map.get(&child.xpath).cloned().unwrap_or_default();
+        let mut is_covered = false;
+        
+        for dr in &node_drs {
+            let start_idx = dr.1;
+            let node_count = dr.2;
+            let end_idx = start_idx + node_count - 1;
+            if child_idx >= start_idx && child_idx <= end_idx {
+                is_covered = true;
+                break;
+            }
+        }
+        
+        if !is_covered {
+            temp_drs.extend(child_drs);
+        }
+    }
+    
+    // Combine node DRs with uncovered child DRs
+    let mut final_drs = node_drs;
+    final_drs.extend(temp_drs);
+    
+    if !final_drs.is_empty() {
+        node_regions_map.insert(node.xpath.clone(), final_drs.clone());
+        out.push(RegionsMapItem {
+            parent_xpath: node.xpath.clone(),
+            regions: final_drs,
+        });
     }
 }
 
@@ -114,7 +163,8 @@ pub fn run_mdr_algorithm(
     t: f32,
 ) -> Vec<RegionsMapItem> {
     let mut all_regions = Vec::new();
-    find_drs_recursive(root_node, k, t, 0, &mut all_regions);
+    let mut node_regions_map = HashMap::new();
+    find_drs_recursive(root_node, k, t, 0, &mut all_regions, &mut node_regions_map);
     all_regions
 }
 
