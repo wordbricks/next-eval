@@ -8,7 +8,7 @@ pub fn find_records1(g: &TagNodeRef, t: f32) -> Vec<TagNodeRef> {
     let children = get_children(g);
     let is_table_row = g.tag_name == "tr";
     let children_are_similar = are_all_siblings_similar(&children, t);
-    
+
     if !children.is_empty() && children_are_similar && !is_table_row {
         children
     } else {
@@ -25,7 +25,7 @@ fn would_produce_non_contiguous(g: &[TagNodeRef], t: f32) -> bool {
     let mut children_are_similar_within_components = true;
     let mut same_number_of_children = true;
     let first_node_children_count = get_children(&g[0]).len();
-    
+
     if first_node_children_count == 0 {
         return false;
     }
@@ -68,7 +68,10 @@ pub fn find_records_n(g: &[TagNodeRef], t: f32) -> Vec<DataRecord> {
         }
     }
 
-    if children_are_similar_within_components && same_number_of_children && first_node_children_count > 0 {
+    if children_are_similar_within_components
+        && same_number_of_children
+        && first_node_children_count > 0
+    {
         let mut records: Vec<DataRecord> = Vec::new();
         for i in 0..first_node_children_count {
             let mut record_group: Vec<TagNodeRef> = Vec::new();
@@ -88,7 +91,6 @@ pub fn find_records_n(g: &[TagNodeRef], t: f32) -> Vec<DataRecord> {
     }
 }
 
-
 /// Identify all data records from regions map
 pub fn identify_all_data_records(regions: &[RegionsMapItem], _t: f32) -> Vec<DataRecord> {
     let all_records: Vec<DataRecord> = Vec::new();
@@ -105,7 +107,7 @@ pub fn identify_all_data_records(regions: &[RegionsMapItem], _t: f32) -> Vec<Dat
         // Need to get the parent node and its children
         // This requires access to the original tree - we'll need to pass it in
         // For now, we'll skip the actual implementation details that require tree access
-        
+
         for (_region_index, region) in sorted_regions.iter().enumerate() {
             let (gn_length, start_idx, node_count) = *region;
             let _num_gns = node_count / gn_length;
@@ -114,7 +116,6 @@ pub fn identify_all_data_records(regions: &[RegionsMapItem], _t: f32) -> Vec<Dat
             if processed_region_keys.contains(&region_key) {
                 continue;
             }
-
 
             // Standard identification would go here
             // This requires access to the actual nodes
@@ -138,10 +139,13 @@ pub fn identify_all_data_records_with_tree(
         let parent_xpath = &region_item.parent_xpath;
         let parent_node = match get_node_by_xpath(root, parent_xpath) {
             Some(node) => node,
-            None => continue,
+            None => {
+                continue;
+            }
         };
 
         let children = get_children(&parent_node);
+
         let sorted_regions = {
             let mut regs = region_item.regions.clone();
             regs.sort_by_key(|r| r.1);
@@ -152,7 +156,6 @@ pub fn identify_all_data_records_with_tree(
             let (gn_length, start_idx, node_count) = *region;
             let num_gns = node_count / gn_length;
             let region_key = format!("{}-{}", parent_node.tag_name, start_idx);
-
             if processed_region_keys.contains(&region_key) {
                 continue;
             }
@@ -165,20 +168,30 @@ pub fn identify_all_data_records_with_tree(
                 let (next_gn_length, next_start_idx, _) = *next_region;
 
                 if start_idx + node_count == next_start_idx && gn_length == next_gn_length {
-                    let current_gns = &children[start_idx..start_idx + gn_length];
-                    let next_gns = &children[next_start_idx..next_start_idx + next_gn_length];
+                    // Safe slicing to match JavaScript's slice() behavior
+                    let current_gns = if start_idx < children.len() {
+                        let end = (start_idx + gn_length).min(children.len());
+                        &children[start_idx..end]
+                    } else {
+                        &[]
+                    };
+                    let next_gns = if next_start_idx < children.len() {
+                        let end = (next_start_idx + next_gn_length).min(children.len());
+                        &children[next_start_idx..end]
+                    } else {
+                        &[]
+                    };
 
                     if !current_gns.is_empty() && !next_gns.is_empty() {
-                        if get_normalized_edit_distance_sequences(current_gns, next_gns) <= t {
-                            if would_produce_non_contiguous(current_gns, t) 
-                                && would_produce_non_contiguous(next_gns, t) {
+                        if get_normalized_edit_distance_sequences(current_gns, next_gns) > t {
+                            if would_produce_non_contiguous(current_gns, t)
+                                && would_produce_non_contiguous(next_gns, t)
+                            {
                                 merged = true;
                                 let mut merged_records_non_contiguous: Vec<DataRecord> = Vec::new();
-                                let components: Vec<TagNodeRef> = current_gns.iter()
-                                    .chain(next_gns.iter())
-                                    .cloned()
-                                    .collect();
-                                
+                                let components: Vec<TagNodeRef> =
+                                    current_gns.iter().chain(next_gns.iter()).cloned().collect();
+
                                 let num_components = components.len();
                                 if num_components > 0 {
                                     let child_count = get_children(&components[0]).len();
@@ -191,13 +204,14 @@ pub fn identify_all_data_records_with_tree(
                                             }
                                         }
                                         if !record_group.is_empty() {
-                                            merged_records_non_contiguous.push(DataRecord::Multi(record_group));
+                                            merged_records_non_contiguous
+                                                .push(DataRecord::Multi(record_group));
                                         }
                                     }
                                 }
                                 all_records.extend(merged_records_non_contiguous);
-                                processed_region_keys.insert(format!("{}-{}", 
-                                    parent_node.tag_name, next_start_idx));
+                                processed_region_keys
+                                    .insert(format!("{}-{}", parent_node.tag_name, next_start_idx));
                             }
                         }
                     }
@@ -212,21 +226,28 @@ pub fn identify_all_data_records_with_tree(
             // Standard identification
             for i in 0..num_gns {
                 let gn_start_index = start_idx + i * gn_length;
-                let generalized_node_components = &children[gn_start_index..gn_start_index + gn_length];
-                
+                let gn_end_index = gn_start_index + gn_length;
+
+                // Safe slicing to match JavaScript's slice() behavior
+                let generalized_node_components = if gn_start_index < children.len() {
+                    let end = gn_end_index.min(children.len());
+                    &children[gn_start_index..end]
+                } else {
+                    &[]
+                };
+
                 if generalized_node_components.is_empty() {
                     continue;
                 }
 
                 let identified_records: Vec<DataRecord> = if gn_length == 1 {
-                    find_records1(&generalized_node_components[0], t)
-                        .into_iter()
-                        .map(DataRecord::Single)
-                        .collect()
+                    let records = find_records1(&generalized_node_components[0], t);
+                    records.into_iter().map(DataRecord::Single).collect()
                 } else {
-                    find_records_n(generalized_node_components, t)
+                    let records = find_records_n(generalized_node_components, t);
+                    records
                 };
-                
+
                 all_records.extend(identified_records);
             }
             processed_region_keys.insert(region_key);
@@ -242,6 +263,8 @@ pub fn find_orphan_records(
     t: f32,
     root: &TagNodeRef,
 ) -> Vec<TagNodeRef> {
+    // Use HashSet to track unique nodes by xpath (mimics TypeScript Set behavior)
+    let mut found_orphans_set = HashSet::new();
     let mut found_orphans = Vec::new();
 
     for region_item in regions {
@@ -265,52 +288,64 @@ pub fn find_orphan_records(
             }
         }
 
-        let orphan_indices: Vec<usize> = (0..n)
-            .filter(|i| !covered_indices.contains(i))
-            .collect();
+        let orphan_indices: Vec<usize> = (0..n).filter(|i| !covered_indices.contains(i)).collect();
 
         if orphan_indices.is_empty() {
             continue;
         }
 
         let (repr_gn_length, repr_start_idx, _) = region_item.regions[0];
-        let representative_gn = &children[repr_start_idx..repr_start_idx + repr_gn_length];
-        
+        // Safe slicing to match JavaScript's slice() behavior
+        let representative_gn = if repr_start_idx < children.len() {
+            let end = (repr_start_idx + repr_gn_length).min(children.len());
+            &children[repr_start_idx..end]
+        } else {
+            &[]
+        };
+
         if representative_gn.is_empty() {
             continue;
         }
 
         let representative_record_node = &representative_gn[0];
         let representative_record_string = flatten_subtree(representative_record_node);
-        
+
         if representative_record_string.is_empty() {
             continue;
         }
 
         for orphan_idx in orphan_indices {
             let orphan_node = &children[orphan_idx];
-            
-            // Compare children of orphan
+
+            // Compare children of orphan (exactly like TypeScript)
             for orphan_child in get_children(orphan_node) {
                 let orphan_child_string = flatten_subtree(&orphan_child);
                 if !orphan_child_string.is_empty() {
                     if get_normalized_edit_distance_sequences(
                         &[orphan_child.clone()],
-                        &[representative_record_node.clone()]
-                    ) <= t {
-                        found_orphans.push(orphan_child);
+                        &[representative_record_node.clone()],
+                    ) <= t
+                    {
+                        // Only add if not already present (mimics Set behavior)
+                        if found_orphans_set.insert(orphan_child.xpath.clone()) {
+                            found_orphans.push(orphan_child);
+                        }
                     }
                 }
             }
-            
-            // Compare the orphan node itself
+
+            // Compare the orphan node itself (exactly like TypeScript)
             let orphan_node_string = flatten_subtree(orphan_node);
             if !orphan_node_string.is_empty() {
                 if get_normalized_edit_distance_sequences(
                     &[orphan_node.clone()],
-                    &[representative_record_node.clone()]
-                ) <= t {
-                    found_orphans.push(orphan_node.clone());
+                    &[representative_record_node.clone()],
+                ) <= t
+                {
+                    // Only add if not already present (mimics Set behavior)
+                    if found_orphans_set.insert(orphan_node.xpath.clone()) {
+                        found_orphans.push(orphan_node.clone());
+                    }
                 }
             }
         }

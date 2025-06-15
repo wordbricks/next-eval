@@ -1,9 +1,9 @@
 use crate::tree_utils::flatten_subtree;
 use crate::types::TagNodeRef;
 use dashmap::DashMap;
+use levenshtein::levenshtein;
 use once_cell::sync::Lazy;
 use std::sync::Arc;
-use levenshtein::levenshtein;
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -18,7 +18,11 @@ pub(crate) static NODE_DIST_CACHE: Lazy<DashMap<(usize, usize), f32>> =
 pub fn edit_distance(s1: &str, s2: &str) -> f32 {
     let d = levenshtein(s1, s2) as f32;
     let n = s1.len().max(s2.len()) as f32;
-    if n == 0.0 { 0.0 } else { d / n }
+    if n == 0.0 {
+        0.0
+    } else {
+        d / n
+    }
 }
 
 /// Returns normalized edit distance between two nodes
@@ -49,7 +53,7 @@ pub fn are_all_siblings_similar(siblings: &[TagNodeRef], t: f32) -> bool {
     if siblings.len() < 2 {
         return true; // No comparison needed for 0 or 1 sibling
     }
-    
+
     #[cfg(feature = "parallel")]
     {
         siblings.par_iter().enumerate().all(|(i, a)| {
@@ -85,7 +89,8 @@ mod tests {
 
 /// Flattens a sequence of nodes and returns the concatenated string
 pub fn flatten_node_sequence(nodes: &[TagNodeRef]) -> String {
-    nodes.iter()
+    nodes
+        .iter()
         .map(|node| flatten_subtree(node))
         .collect::<Vec<_>>()
         .join("")

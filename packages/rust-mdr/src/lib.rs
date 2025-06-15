@@ -1,8 +1,8 @@
-mod types;
-mod tree_utils;
-mod similarity;
 mod mdr_algorithm;
 mod record_extraction;
+mod similarity;
+mod tree_utils;
+mod types;
 mod wasm_bindings;
 
 // Re-export public functions from wasm_bindings

@@ -113,6 +113,12 @@
   },
   "files": {
     "maxSize": 10000000,
-    "ignore": ["**/.next", "**/dist", "**/node_modules"]
+    "ignore": [
+      "**/.next",
+      "**/dist",
+      "**/node_modules",
+      "**/rust_mdr_pkg/*.js",
+      "**/pkg/*.js"
+    ]
   }
 }

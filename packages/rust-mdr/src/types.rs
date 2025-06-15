@@ -1,11 +1,13 @@
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use parking_lot::Mutex;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TagNode {
+    #[serde(rename = "tag")]
     pub tag_name: String,
     pub children: Vec<TagNodeRef>,
+    #[serde(rename = "rawText")]
     pub raw_text: Option<String>,
     pub xpath: String,
 

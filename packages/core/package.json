@@ -2,6 +2,11 @@
   "name": "@next-eval/core",
   "version": "0.0.1",
   "type": "module",
+  "exports": {
+    "./script/runMDR": "./src/script/runMDR.ts",
+    "./constant": "./src/constant.ts",
+    "./utils/stringUtils": "./src/utils/stringUtils.ts"
+  },
   "scripts": {
     "preprocess": "bun run src/script/preprocessForLLM.ts",
     "runLLM": "bun run src/script/runLLM.ts",

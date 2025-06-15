@@ -1,7 +1,7 @@
 use crate::similarity::get_normalized_edit_distance_sequences;
 use crate::tree_utils::get_children;
 use crate::types::{DataRegion, RegionsMapItem, TagNodeRef};
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -18,15 +18,9 @@ pub fn ident_drs(
     let mut current_max_dr: Option<DataRegion> = None;
 
     for gn_length in 1..=k {
-        // Scan potential starting offsets in parallel – one window per iteration
-        #[cfg(feature = "parallel")]
-        let iter = (start_child_idx..=start_child_idx + gn_length - 1).into_par_iter();
-        #[cfg(not(feature = "parallel"))]
-        let iter = (start_child_idx..=start_child_idx + gn_length - 1).into_iter();
-
-        let region_results: Vec<Option<DataRegion>> = iter.map(|start_idx| {
+        for start_idx in start_child_idx..=(start_child_idx + gn_length - 1) {
             if start_idx >= n {
-                return None;
+                break;
             }
 
             let mut current_dr: Option<DataRegion> = None;
@@ -37,7 +31,11 @@ pub fn ident_drs(
                 let gn1 = &children[check_idx..check_idx + gn_length];
                 let gn2 = &children[check_idx + gn_length..check_idx + 2 * gn_length];
 
-                if get_normalized_edit_distance_sequences(gn1, gn2) <= t {
+                let distance = get_normalized_edit_distance_sequences(gn1, gn2);
+
+                // Add small epsilon to handle floating point precision issues
+                // matching TypeScript behavior where 0.30000001 > 0.3
+                if distance <= t - 0.0000001 {
                     if !is_continuing_region {
                         current_dr = Some((gn_length, check_idx, 2 * gn_length));
                         is_continuing_region = true;
@@ -53,29 +51,33 @@ pub fn ident_drs(
                 check_idx += gn_length;
             }
 
-            current_dr
-        }).collect();
+            if let Some(dr) = current_dr {
+                // Match TypeScript logic EXACTLY with proper parentheses
+                let should_update = if let Some(ref max_dr) = current_max_dr {
+                    // First complex condition (matches TypeScript lines 128-134)
+                    let cond1_part1 = dr.2 > max_dr.2; // currentDR[2] > currentMaxDR[2]
+                    let cond1_part2 = max_dr.1 == 0 || dr.1 <= max_dr.1; // currentMaxDR[1] === 0 || currentDR[1] <= currentMaxDR[1]
+                    let first_condition = cond1_part1 && cond1_part2;
 
-        // Find the best region from this gn_length
-        for dr in region_results.into_iter().flatten() {
-            if let Some(ref max_dr) = current_max_dr {
-                // TypeScript condition 1: currentDR[2] > currentMaxDR[2] with start index check
-                if dr.2 > max_dr.2 && (max_dr.1 == 0 || dr.1 <= max_dr.1) {
+                    // Second condition (matches TypeScript lines 135-143)
+                    let second_condition = dr.2 == max_dr.2 && dr.1 == max_dr.1 && dr.0 < max_dr.0;
+
+                    first_condition || second_condition
+                } else {
+                    // !currentMaxDR case
+                    true
+                };
+
+                if should_update {
                     current_max_dr = Some(dr);
                 }
-                // TypeScript condition 2: equal node count but smaller gnLength
-                else if dr.2 == max_dr.2 && dr.1 == max_dr.1 && dr.0 < max_dr.0 {
-                    current_max_dr = Some(dr);
-                }
-            } else {
-                current_max_dr = Some(dr);
             }
         }
     }
 
     if let Some(max_dr) = current_max_dr {
         identified_regions.push(max_dr);
-        
+
         // Find additional regions outside the current max region
         let next_start_idx = max_dr.1 + max_dr.2;
         if next_start_idx < n {
@@ -93,14 +95,13 @@ pub fn find_drs_recursive(
     k: usize,
     t: f32,
     depth: usize,
-    out: &mut Vec<RegionsMapItem>,
-    node_regions_map: &mut HashMap<String, Vec<DataRegion>>,
+    node_regions_map: &mut IndexMap<String, Vec<DataRegion>>,
 ) {
     let children = get_children(node);
-    
-    // Initialize node regions
+
+    // Initialize node regions to empty (matching TypeScript)
     node_regions_map.insert(node.xpath.clone(), Vec::new());
-    
+
     // Check if node has grandchildren (TypeScript: hasGrandchildren)
     let mut has_grandchildren = false;
     for child in &children {
@@ -109,25 +110,30 @@ pub fn find_drs_recursive(
             break;
         }
     }
-    
+
     // Only run MDR if node has grandchildren and at least 2 children
     let mut node_drs = Vec::new();
     if has_grandchildren && children.len() >= 2 {
         node_drs = ident_drs(0, &children, k, t);
-        if !node_drs.is_empty() {
-            node_regions_map.insert(node.xpath.clone(), node_drs.clone());
-        }
+
+        // Update map with found regions
+        node_regions_map.insert(node.xpath.clone(), node_drs.clone());
     }
-    
-    // Process children and collect uncovered regions
+
+    // Process children recursively and collect uncovered regions
     let mut temp_drs = Vec::new();
     for (child_idx, child) in children.iter().enumerate() {
-        find_drs_recursive(&child, k, t, depth + 1, out, node_regions_map);
-        
-        // Get uncovered child DRs (similar to UnCoveredDRs function)
-        let child_drs = node_regions_map.get(&child.xpath).cloned().unwrap_or_default();
+        // Recursive call
+        find_drs_recursive(&child, k, t, depth + 1, node_regions_map);
+
+        // Get uncovered child DRs (UnCoveredDRs function logic)
+        let child_drs = node_regions_map
+            .get(&child.xpath)
+            .cloned()
+            .unwrap_or_default();
         let mut is_covered = false;
-        
+
+        // Check if this child index is covered by any parent region
         for dr in &node_drs {
             let start_idx = dr.1;
             let node_count = dr.2;
@@ -137,40 +143,45 @@ pub fn find_drs_recursive(
                 break;
             }
         }
-        
+
+        // If not covered, add child's regions to temp
         if !is_covered {
             temp_drs.extend(child_drs);
         }
     }
-    
-    // Combine node DRs with uncovered child DRs
+
+    // Combine node DRs with uncovered child DRs (matching TypeScript line 215)
     let mut final_drs = node_drs;
     final_drs.extend(temp_drs);
-    
-    if !final_drs.is_empty() {
-        node_regions_map.insert(node.xpath.clone(), final_drs.clone());
-        out.push(RegionsMapItem {
-            parent_xpath: node.xpath.clone(),
-            regions: final_drs,
-        });
-    }
+
+    // Always update the map with final regions (matching TypeScript line 216)
+    node_regions_map.insert(node.xpath.clone(), final_drs);
 }
 
 /// Main MDR algorithm entry point
-pub fn run_mdr_algorithm(
-    root_node: &TagNodeRef,
-    k: usize,
-    t: f32,
-) -> Vec<RegionsMapItem> {
+pub fn run_mdr_algorithm(root_node: &TagNodeRef, k: usize, t: f32) -> Vec<RegionsMapItem> {
+    let mut node_regions_map = IndexMap::new();
+
+    // Run the recursive algorithm to populate the map
+    find_drs_recursive(root_node, k, t, 0, &mut node_regions_map);
+
+    // Build output vector from the map (matching TypeScript runMDRAlgorithm)
     let mut all_regions = Vec::new();
-    let mut node_regions_map = HashMap::new();
-    find_drs_recursive(root_node, k, t, 0, &mut all_regions, &mut node_regions_map);
+    for (xpath, regions) in node_regions_map {
+        if !regions.is_empty() {
+            all_regions.push(RegionsMapItem {
+                parent_xpath: xpath,
+                regions,
+            });
+        }
+    }
+
     all_regions
 }
 
 /// Converts the regions vector to a HashMap for easier access
-pub fn regions_to_map(regions: &[RegionsMapItem]) -> HashMap<String, Vec<DataRegion>> {
-    let mut map = HashMap::new();
+pub fn regions_to_map(regions: &[RegionsMapItem]) -> IndexMap<String, Vec<DataRegion>> {
+    let mut map = IndexMap::new();
     for item in regions {
         map.insert(item.parent_xpath.clone(), item.regions.clone());
     }
