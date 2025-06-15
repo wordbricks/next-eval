@@ -6,6 +6,7 @@
   "types": "./pkg/rust_mdr_utils.d.ts",
   "scripts": {
     "build": "wasm-pack build --target web --out-dir pkg",
+    "build:deploy": "bun run build && rm -rf ../../apps/web/public/rust_mdr_pkg && cp -r pkg ../../apps/web/public/rust_mdr_pkg",
     "lint": "biome check --diagnostic-level=error",
     "format": "biome format --fix"
   },

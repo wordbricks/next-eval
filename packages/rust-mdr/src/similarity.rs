@@ -1,0 +1,113 @@
+use crate::tree_utils::flatten_subtree;
+use crate::types::TagNodeRef;
+
+/// Finds the longest common subsequence between two byte sequences
+fn longest_common_subsequence(s1: &[u8], s2: &[u8]) -> usize {
+    let m = s1.len();
+    let n = s2.len();
+    let mut dp = vec![vec![0; n + 1]; m + 1];
+
+    // Build LCS matrix
+    for i in 1..=m {
+        for j in 1..=n {
+            if s1[i - 1] == s2[j - 1] {
+                dp[i][j] = dp[i - 1][j - 1] + 1;
+            } else {
+                dp[i][j] = dp[i - 1][j].max(dp[i][j - 1]);
+            }
+        }
+    }
+
+    dp[m][n]
+}
+
+/// Calculates normalized edit distance between two strings using LCS
+/// Returns a value between 0.0 and 1.0, where 0.0 means identical and 1.0 means completely different
+pub fn edit_distance(s1: &str, s2: &str) -> f32 {
+    let len1 = s1.len();
+    let len2 = s2.len();
+
+    // Handle zero-length strings to avoid divide-by-zero
+    if len1 == 0 && len2 == 0 {
+        return 0.0;
+    }
+    if len1 == 0 || len2 == 0 {
+        return 1.0;
+    }
+
+    // Early return for significantly different length strings
+    if (len1 as i32 - len2 as i32).abs() > (len1.max(len2) / 2) as i32 {
+        return 1.0;
+    }
+
+    let lcs_length = longest_common_subsequence(s1.as_bytes(), s2.as_bytes());
+    let total_operations = len1 + len2 - 2 * lcs_length;
+
+    // Normalize by max length to ensure result is in [0, 1]
+    total_operations as f32 / (len1.max(len2) as f32)
+}
+
+/// Returns normalized edit distance between two nodes
+pub fn normalized_edit_distance(a: &TagNodeRef, b: &TagNodeRef) -> f32 {
+    let sa = flatten_subtree(a);
+    let sb = flatten_subtree(b);
+    edit_distance(&sa, &sb)
+}
+
+/// Checks if two sibling nodes are similar based on threshold
+pub fn are_siblings_similar(a: &TagNodeRef, b: &TagNodeRef, t: f32) -> bool {
+    normalized_edit_distance(a, b) <= t
+}
+
+/// Checks if all siblings in a list are similar to each other
+pub fn are_all_siblings_similar(siblings: &[TagNodeRef], t: f32) -> bool {
+    if siblings.len() < 2 {
+        return true; // No comparison needed for 0 or 1 sibling
+    }
+    
+    for i in 0..siblings.len() - 1 {
+        for j in i + 1..siblings.len() {
+            if normalized_edit_distance(&siblings[i], &siblings[j]) > t {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn edit_distance_zero_length() {
+        assert_eq!(edit_distance("", ""), 0.0);
+        assert_eq!(edit_distance("", "abc"), 1.0);
+        assert_eq!(edit_distance("abc", ""), 1.0);
+    }
+}
+
+/// Flattens a sequence of nodes and returns the concatenated string
+pub fn flatten_node_sequence(nodes: &[TagNodeRef]) -> String {
+    nodes.iter()
+        .map(|node| flatten_subtree(node))
+        .collect::<Vec<_>>()
+        .join("")
+}
+
+/// Returns normalized edit distance between two node sequences
+pub fn get_normalized_edit_distance_sequences(
+    node_seq1: &[TagNodeRef],
+    node_seq2: &[TagNodeRef],
+) -> f32 {
+    let s1 = flatten_node_sequence(node_seq1);
+    let s2 = flatten_node_sequence(node_seq2);
+    let len1 = s1.len();
+    let len2 = s2.len();
+
+    if len1 > 2 * len2 || len2 > 2 * len1 {
+        return 1.0; // Consider highly dissimilar
+    }
+
+    edit_distance(&s1, &s2)
+}

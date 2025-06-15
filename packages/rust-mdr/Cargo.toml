@@ -7,9 +7,19 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-wasm-bindgen = "0.2"
-# Optional: Add a crate for Levenshtein distance if you prefer not to implement it manually
-# edit-distance = "2.0" 
-# For more complex data structures between JS and Rust, serde can be useful
-# serde = { version = "1.0", features = ["derive"] }
-# serde-wasm-bindgen = "0.6" 
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
+serde = { version = "1.0", features = ["derive", "rc"] }
+serde-wasm-bindgen = "0.6"
+serde_json = "1.0"
+console_error_panic_hook = { version = "0.1", optional = true }
+
+[features]
+default = []
+parallel = ["wasm-bindgen-rayon"]
+
+[dependencies.wasm-bindgen-rayon]
+version = "1.2"
+optional = true
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3" 

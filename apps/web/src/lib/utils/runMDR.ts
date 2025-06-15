@@ -11,8 +11,12 @@ type DataRegion = [number, number, number];
 type DataRecord = TagNode | TagNode[];
 const nodeDataRegions = new Map<TagNode, DataRegion[]>();
 
-// Import WASM loader utilities
+// Import WASM loader utilities - both old and new
 import { getWasmModule, initializeWasm } from "@/lib/utils/wasmLoader";
+import { getRustMDRModule, initializeRustMDR } from "@/lib/utils/wasmLoaderMDR";
+
+// Feature flag to switch between TypeScript and Rust implementations
+const USE_RUST_MDR = true;
 
 function getChildren(node: TagNode): TagNode[] {
   return node.children || [];
@@ -488,17 +492,86 @@ async function findOrphanRecords(
 }
 
 export async function runMDR(rawHtml: string): Promise<string[][]> {
-  // Ensure Wasm is initialized before any processing that might use it.
-  // While individual functions await initializeWasm(), calling it here once
-  // can pre-warm it or handle initial load errors more centrally if desired.
-  await initializeWasm();
-
   const cleanedHtml = removeCommentScriptStyleFromHTML(rawHtml);
   const rootDom = parse(cleanedHtml, {
     lowerCaseTagName: true,
     comment: false,
   });
   const rootNode = buildTagTree(rootDom.childNodes[0]);
+
+  // Use Rust implementation if enabled
+  if (USE_RUST_MDR) {
+    try {
+      console.log("Using Rust MDR implementation...");
+      await initializeRustMDR();
+      const rustModule = getRustMDRModule();
+
+      // Convert TagNode to match Rust expectations (tag_name instead of tag)
+      const convertTagNode = (node: TagNode): any => ({
+        tag_name: node.tag,
+        children: (node.children || []).map(convertTagNode),
+        raw_text: node.rawText || null,
+        xpath: node.xpath,
+      });
+
+      const rustRootNode = convertTagNode(rootNode);
+
+      // Step 1 & 2: Find Data Regions using Rust
+      const regions = rustModule.runMdrAlgorithm(rustRootNode, MDR_K, MDR_T);
+
+      // Step 3: Identify Records from Regions (with adjacent merging)
+      const records = rustModule.identifyAllDataRecords(
+        regions,
+        MDR_T,
+        rustRootNode,
+      );
+
+      // Step 4: Find Orphan Records
+      const orphans = rustModule.findOrphanRecords(
+        regions,
+        MDR_T,
+        rustRootNode,
+      );
+
+      // Combine records
+      const finalRecords: any[] = [...records];
+      const recordSet = new Set(
+        records.filter((r: any) => !Array.isArray(r)).map((r: any) => r.xpath),
+      );
+
+      orphans.forEach((orphan: any) => {
+        if (!recordSet.has(orphan.xpath)) {
+          finalRecords.push(orphan);
+        }
+      });
+
+      // Convert to XPath arrays
+      const finalRecordXpaths: string[][] = finalRecords
+        .map((record) => {
+          if (Array.isArray(record)) {
+            return record
+              .filter(
+                (node) => node && typeof node === "object" && "xpath" in node,
+              )
+              .map((node) => node.xpath);
+          }
+          if (record && typeof record === "object" && "xpath" in record) {
+            return [record.xpath];
+          }
+          return [];
+        })
+        .filter((xpathArray) => xpathArray.length > 0);
+
+      return finalRecordXpaths;
+    } catch (error) {
+      console.error("Rust MDR failed, falling back to TypeScript:", error);
+      // Fall through to TypeScript implementation
+    }
+  }
+
+  // TypeScript implementation (fallback or when flag is disabled)
+  console.log("Using TypeScript MDR implementation...");
+  await initializeWasm();
 
   // Step 1 & 2: Find Data Regions
   const allDataRegions = await runMDRAlgorithm(rootNode, MDR_K, MDR_T);
