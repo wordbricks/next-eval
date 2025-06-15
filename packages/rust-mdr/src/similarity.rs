@@ -1,24 +1,37 @@
 use crate::tree_utils::flatten_subtree;
 use crate::types::TagNodeRef;
 
-/// Finds the longest common subsequence between two byte sequences
+/// O(min(m,n))-memory LCS implementation using two rolling rows.
 fn longest_common_subsequence(s1: &[u8], s2: &[u8]) -> usize {
-    let m = s1.len();
-    let n = s2.len();
-    let mut dp = vec![vec![0; n + 1]; m + 1];
-
-    // Build LCS matrix
-    for i in 1..=m {
-        for j in 1..=n {
-            if s1[i - 1] == s2[j - 1] {
-                dp[i][j] = dp[i - 1][j - 1] + 1;
-            } else {
-                dp[i][j] = dp[i - 1][j].max(dp[i][j - 1]);
-            }
-        }
+    // Early-outs
+    if s1.is_empty() || s2.is_empty() {
+        return 0;
     }
 
-    dp[m][n]
+    // Always iterate over the longer string row-by-row to minimise the buffer.
+    let (longer, shorter) = if s1.len() >= s2.len() {
+        (s1, s2)
+    } else {
+        (s2, s1)
+    };
+
+    let n = shorter.len();
+    let mut prev_row = vec![0usize; n + 1];
+    let mut curr_row = vec![0usize; n + 1];
+
+    for &c_long in longer {
+        for (j, &c_short) in shorter.iter().enumerate() {
+            curr_row[j + 1] = if c_long == c_short {
+                prev_row[j] + 1
+            } else {
+                prev_row[j + 1].max(curr_row[j])
+            };
+        }
+        // Re-use the buffers instead of reallocating.
+        std::mem::swap(&mut prev_row, &mut curr_row);
+    }
+
+    prev_row[n]
 }
 
 /// Calculates normalized edit distance between two strings using LCS
