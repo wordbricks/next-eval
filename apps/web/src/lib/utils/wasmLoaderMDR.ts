@@ -9,6 +9,12 @@ export interface RegionsMapItem {
 
 export type DataRecord = TagNode | TagNode[];
 
+export interface MdrFullOutput {
+  regions: RegionsMapItem[];
+  records: DataRecord[];
+  orphans: TagNode[];
+}
+
 export interface RustMDRModule {
   default: () => Promise<void>;
   init: () => void;
@@ -25,6 +31,7 @@ export interface RustMDRModule {
   ) => TagNode[];
   getNormalizedEditDistance: (s1: string, s2: string) => number;
   get_normalized_edit_distance_wasm: (s1: string, s2: string) => number;
+  runMdrFull: (root: TagNode, k?: number, t?: number) => MdrFullOutput;
 }
 
 let wasmModule: RustMDRModule | null = null;
@@ -97,14 +104,16 @@ export const runRustMDR = async (
 
   const rustRootNode = convertTagNode(rootNode);
 
-  // Step 1: Find data regions
-  const regions = module.runMdrAlgorithm(rustRootNode, K, T);
-
-  // Step 2: Identify data records
-  const records = module.identifyAllDataRecords(regions, T, rustRootNode);
-
-  // Step 3: Find orphan records
-  const orphans = module.findOrphanRecords(regions, T, rustRootNode);
+  // One-shot WASM call
+  const { regions, records, orphans } = module.runMdrFull(
+    rustRootNode,
+    K,
+    T,
+  ) as unknown as {
+    regions: RegionsMapItem[];
+    records: DataRecord[];
+    orphans: TagNode[];
+  };
 
   // Step 4: Combine records (avoiding duplicates)
   const finalRecords = [...records];

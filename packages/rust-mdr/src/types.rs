@@ -31,6 +31,14 @@ pub enum DataRecord {
     Multi(Vec<TagNodeRef>),
 }
 
+/// Helper struct for the "single-call" pathway
+#[derive(Serialize)]
+pub struct MdrFullOutput {
+    pub regions: Vec<RegionsMapItem>,
+    pub records: Vec<DataRecord>,
+    pub orphans: Vec<TagNodeRef>,
+}
+
 impl TagNode {
     pub fn new(tag_name: String, xpath: String) -> Self {
         TagNode {

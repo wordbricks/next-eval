@@ -5,41 +5,42 @@ pub fn get_children(node: &TagNodeRef) -> Vec<TagNodeRef> {
 }
 
 pub fn flatten_subtree(root: &TagNodeRef) -> String {
-    // Check cache first
+    // Cached?
     if let Some(cached) = &*root.borrow().flattened_cache.borrow() {
         return cached.clone();
     }
-    
-    let mut buf = String::with_capacity(128);
+
+    let mut buf: Vec<u8> = Vec::with_capacity(128);
     inner_flatten(&mut buf, root);
-    
-    // Cache the result
-    *root.borrow().flattened_cache.borrow_mut() = Some(buf.clone());
-    buf
+
+    // Safety: we only push UTF-8 slices from existing Strings & ASCII literals.
+    let s = unsafe { String::from_utf8_unchecked(buf) };
+    *root.borrow().flattened_cache.borrow_mut() = Some(s.clone());
+    s
 }
 
-fn inner_flatten(out: &mut String, node: &TagNodeRef) {
+fn inner_flatten(out: &mut Vec<u8>, node: &TagNodeRef) {
     let n = node.borrow();
-    
-    // Opening tag
-    out.push('<');
-    out.push_str(&n.tag_name);
-    out.push('>');
-    
-    // Raw text content
+
+    // Opening tag  "<tag>"
+    out.extend_from_slice(b"<");
+    out.extend_from_slice(n.tag_name.as_bytes());
+    out.extend_from_slice(b">");
+
+    // Raw text
     if let Some(text) = &n.raw_text {
-        out.push_str(text);
+        out.extend_from_slice(text.as_bytes());
     }
-    
-    // Recursively flatten children
+
+    // Children
     for child in &n.children {
         inner_flatten(out, child);
     }
-    
-    // Closing tag
-    out.push_str("</");
-    out.push_str(&n.tag_name);
-    out.push('>');
+
+    // Closing tag "</tag>"
+    out.extend_from_slice(b"</");
+    out.extend_from_slice(n.tag_name.as_bytes());
+    out.extend_from_slice(b">");
 }
 
 pub fn flatten_subtree_with_xpath(root: &TagNodeRef) -> String {
