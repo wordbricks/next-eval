@@ -773,7 +773,7 @@ export default function HomePage() {
         >
           <button
             type="button"
-            className={`rounded-t-md px-4 py-2 font-semibold transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-orange-500 ${inputMethod === "file" ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-700 hover:bg-orange-100"}`}
+            className={`rounded-t-md px-4 py-2 font-semibold transition-colors duration-150 focus:outline-hidden focus:ring-2 focus:ring-orange-500 ${inputMethod === "file" ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-700 hover:bg-orange-100"}`}
             aria-selected={inputMethod === "file"}
             aria-controls="file-upload-panel"
             id="file-upload-tab"
@@ -785,7 +785,7 @@ export default function HomePage() {
           </button>
           <button
             type="button"
-            className={`rounded-t-md px-4 py-2 font-semibold transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-orange-500 ${inputMethod === "url" ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-700 hover:bg-orange-100"}`}
+            className={`rounded-t-md px-4 py-2 font-semibold transition-colors duration-150 focus:outline-hidden focus:ring-2 focus:ring-orange-500 ${inputMethod === "url" ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-700 hover:bg-orange-100"}`}
             aria-selected={inputMethod === "url"}
             aria-controls="url-fetch-panel"
             id="url-fetch-tab"
@@ -813,7 +813,7 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={handleLoadSyntheticData}
-                className="rounded-md bg-orange-500 px-4 py-1.5 font-semibold text-white text-xs shadow-sm transition-colors duration-150 ease-in-out hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-md bg-orange-500 px-4 py-1.5 font-semibold text-white text-xs shadow-xs transition-colors duration-150 ease-in-out hover:bg-orange-600 focus:outline-hidden focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={isLoading || overallLlmFetching}
                 aria-label="Load sample HTML data"
               >
@@ -823,7 +823,7 @@ export default function HomePage() {
             <input
               type="file"
               aria-label="Upload HTML or MHTML file"
-              className="block w-full rounded-md border border-gray-300 p-2 text-slate-500 text-sm shadow-sm file:mr-4 file:rounded-full file:border-0 file:bg-orange-50 file:px-4 file:py-2 file:font-semibold file:text-orange-600 file:text-sm hover:file:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+              className="block w-full rounded-md border border-gray-300 p-2 text-slate-500 text-sm shadow-xs file:mr-4 file:rounded-full file:border-0 file:bg-orange-50 file:px-4 file:py-2 file:font-semibold file:text-orange-600 file:text-sm hover:file:bg-orange-100 focus:outline-hidden focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
               accept=".html"
               onChange={handleFileChange}
               disabled={isLoading || overallLlmFetching}
@@ -844,7 +844,7 @@ export default function HomePage() {
                 <button
                   key={sample.value}
                   type="button"
-                  className="rounded-md bg-orange-100 px-3 py-1 font-semibold text-orange-700 text-xs shadow-sm hover:bg-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="rounded-md bg-orange-100 px-3 py-1 font-semibold text-orange-700 text-xs shadow-xs hover:bg-orange-200 focus:outline-hidden focus:ring-2 focus:ring-orange-500"
                   aria-label={`Fetch sample: ${sample.label}`}
                   tabIndex={0}
                   disabled={isLoading || overallLlmFetching}
@@ -868,7 +868,7 @@ export default function HomePage() {
               type="url"
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
-              className="block w-full rounded-md border border-gray-300 p-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="block w-full rounded-md border border-gray-300 p-2 text-sm shadow-xs focus:border-orange-500 focus:outline-hidden focus:ring-2 focus:ring-orange-500"
               placeholder="https://example.com"
               aria-label="Web page URL"
               disabled={isLoading || overallLlmFetching}
@@ -878,7 +878,7 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={handleFetchUrl}
-                className="rounded-md bg-orange-500 px-4 py-1.5 font-semibold text-white text-xs shadow-sm transition-colors duration-150 ease-in-out hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-md bg-orange-500 px-4 py-1.5 font-semibold text-white text-xs shadow-xs transition-colors duration-150 ease-in-out hover:bg-orange-600 focus:outline-hidden focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={isLoading || overallLlmFetching}
                 aria-label="Fetch HTML from URL"
               >
@@ -887,7 +887,7 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={() => setUrlInput("")}
-                className="px-2 py-1 text-gray-500 text-xs hover:text-orange-600 focus:outline-none"
+                className="px-2 py-1 text-gray-500 text-xs hover:text-orange-600 focus:outline-hidden"
                 aria-label="Clear URL input"
                 disabled={isLoading || overallLlmFetching}
               >
@@ -911,7 +911,7 @@ export default function HomePage() {
         {/* Conditional rendering for side-by-side or individual display - MOVED HERE */}
         {processedData?.originalHtml && !isLoading ? (
           <div className="mt-8">
-            <div className="flex w-full flex-col justify-between rounded-lg border bg-gray-50 p-4 text-left shadow">
+            <div className="flex w-full flex-col justify-between rounded-lg border bg-gray-50 p-4 text-left shadow-sm">
               <div className="mb-2 flex items-start justify-between">
                 <h3 className="font-medium text-lg">Original HTML</h3>
                 <button
@@ -930,7 +930,7 @@ export default function HomePage() {
                 </button>
               </div>
               <div>
-                <div className="mb-3 h-32 overflow-auto rounded border bg-white p-2">
+                <div className="mb-3 h-32 overflow-auto rounded-sm border bg-white p-2">
                   <pre className="whitespace-pre-wrap text-xs">
                     {processedData.originalHtml}
                   </pre>
@@ -973,7 +973,7 @@ export default function HomePage() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {/* Stage 1: Slimmed HTML (Cleaned HTML) */}
               <div
-                className={`flex cursor-pointer flex-col justify-between rounded-lg border bg-gray-50 p-4 text-left shadow transition-all duration-150 ease-in-out ${selectedStage === "html" ? "border-orange-500 ring-2 ring-orange-300" : "border-gray-200 hover:shadow-md"}`}
+                className={`flex cursor-pointer flex-col justify-between rounded-lg border bg-gray-50 p-4 text-left shadow-sm transition-all duration-150 ease-in-out ${selectedStage === "html" ? "border-orange-500 ring-2 ring-orange-300" : "border-gray-200 hover:shadow-md"}`}
                 onClick={() => setSelectedStage("html")}
                 onKeyDown={(e) => e.key === "Enter" && setSelectedStage("html")}
                 tabIndex={0}
@@ -1000,7 +1000,7 @@ export default function HomePage() {
                   </button>
                 </div>
                 <div>
-                  <div className="mb-3 h-32 overflow-auto rounded border bg-white p-2">
+                  <div className="mb-3 h-32 overflow-auto rounded-sm border bg-white p-2">
                     <pre className="whitespace-pre-wrap text-xs">
                       {processedData.html}
                     </pre>
@@ -1013,7 +1013,7 @@ export default function HomePage() {
 
               {/* Stage 2: Hierarchical JSON (Nested text map) */}
               <div
-                className={`flex cursor-pointer flex-col justify-between rounded-lg border bg-gray-50 p-4 text-left shadow transition-all duration-150 ease-in-out ${selectedStage === "textMap" ? "border-orange-500 ring-2 ring-orange-300" : "border-gray-200 hover:shadow-md"}`}
+                className={`flex cursor-pointer flex-col justify-between rounded-lg border bg-gray-50 p-4 text-left shadow-sm transition-all duration-150 ease-in-out ${selectedStage === "textMap" ? "border-orange-500 ring-2 ring-orange-300" : "border-gray-200 hover:shadow-md"}`}
                 onClick={() => setSelectedStage("textMap")}
                 onKeyDown={(e) =>
                   e.key === "Enter" && setSelectedStage("textMap")
@@ -1042,7 +1042,7 @@ export default function HomePage() {
                   </button>
                 </div>
                 <div>
-                  <div className="mb-3 h-32 overflow-auto rounded border bg-white p-2">
+                  <div className="mb-3 h-32 overflow-auto rounded-sm border bg-white p-2">
                     <pre className="whitespace-pre-wrap text-xs">
                       {JSON.stringify(processedData.textMap, null, 2)}
                     </pre>
@@ -1055,7 +1055,7 @@ export default function HomePage() {
 
               {/* Stage 3: Flat JSON (text map) */}
               <div
-                className={`flex cursor-pointer flex-col justify-between rounded-lg border bg-gray-50 p-4 text-left shadow transition-all duration-150 ease-in-out ${selectedStage === "textMapFlat" ? "border-orange-500 ring-2 ring-orange-300" : "border-gray-200 hover:shadow-md"}`}
+                className={`flex cursor-pointer flex-col justify-between rounded-lg border bg-gray-50 p-4 text-left shadow-sm transition-all duration-150 ease-in-out ${selectedStage === "textMapFlat" ? "border-orange-500 ring-2 ring-orange-300" : "border-gray-200 hover:shadow-md"}`}
                 onClick={() => setSelectedStage("textMapFlat")}
                 onKeyDown={(e) =>
                   e.key === "Enter" && setSelectedStage("textMapFlat")
@@ -1084,7 +1084,7 @@ export default function HomePage() {
                   </button>
                 </div>
                 <div>
-                  <div className="mb-3 h-32 overflow-auto rounded border bg-white p-2">
+                  <div className="mb-3 h-32 overflow-auto rounded-sm border bg-white p-2">
                     <pre className="whitespace-pre-wrap text-xs">
                       {JSON.stringify(processedData.textMapFlat, null, 2)}
                     </pre>
@@ -1101,7 +1101,7 @@ export default function HomePage() {
 
         {/* Loading Indicator - more prominent */}
         {isLoading && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="rounded-lg bg-white p-6 shadow-xl">
               <p className="animate-pulse font-semibold text-lg">
                 Processing file, please wait...
@@ -1129,7 +1129,7 @@ export default function HomePage() {
                   activeExtractTab === "llm"
                     ? "border-orange-500 text-orange-600"
                     : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                } focus:outline-none`}
+                } focus:outline-hidden`}
                 aria-current={activeExtractTab === "llm" ? "page" : undefined}
               >
                 LLM
@@ -1141,7 +1141,7 @@ export default function HomePage() {
                   activeExtractTab === "mdr"
                     ? "border-orange-500 text-orange-600"
                     : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                } focus:outline-none`}
+                } focus:outline-hidden`}
                 aria-current={activeExtractTab === "mdr" ? "page" : undefined}
               >
                 MDR Algorithm
@@ -1165,7 +1165,7 @@ export default function HomePage() {
                     name="llmModelSelect"
                     value={selectedLlmModel}
                     onChange={(e) => setSelectedLlmModel(e.target.value)}
-                    className="block w-full rounded-md border-gray-300 py-2 pr-10 pl-3 text-base shadow-sm focus:border-orange-500 focus:outline-none focus:ring-orange-500 disabled:cursor-not-allowed disabled:bg-gray-100 sm:text-sm"
+                    className="block w-full rounded-md border-gray-300 py-2 pr-10 pl-3 text-base shadow-xs focus:border-orange-500 focus:outline-hidden focus:ring-orange-500 disabled:cursor-not-allowed disabled:bg-gray-100 sm:text-sm"
                   >
                     <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
                     <option value="claude-3-opus-disabled" disabled>
@@ -1195,7 +1195,7 @@ export default function HomePage() {
                       overallLlmFetching ||
                       llmResponses[selectedStage]?.isLoading
                     }
-                    className="block w-full rounded-md border-gray-300 py-2 pr-10 pl-3 text-base shadow-sm focus:border-orange-500 focus:outline-none focus:ring-orange-500 disabled:cursor-not-allowed disabled:bg-gray-100 sm:text-sm"
+                    className="block w-full rounded-md border-gray-300 py-2 pr-10 pl-3 text-base shadow-xs focus:border-orange-500 focus:outline-hidden focus:ring-orange-500 disabled:cursor-not-allowed disabled:bg-gray-100 sm:text-sm"
                   >
                     <option value="html">Slimmed HTML</option>
                     <option value="textMap">Hierarchical JSON</option>
@@ -1209,7 +1209,7 @@ export default function HomePage() {
                   type="button"
                   onClick={handleSendToLlm}
                   aria-label={`Send ${selectedStage === "html" ? "Slimmed HTML" : selectedStage === "textMap" ? "Hierarchical JSON" : "Flat JSON"} to ${selectedLlmModel}`}
-                  className="w-full rounded-lg bg-orange-500 px-6 py-3 font-semibold text-white shadow-md transition-colors duration-150 ease-in-out hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                  className="w-full rounded-lg bg-orange-500 px-6 py-3 font-semibold text-white shadow-md transition-colors duration-150 ease-in-out hover:bg-orange-600 focus:outline-hidden focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                   disabled={
                     !processedData ||
                     overallLlmFetching ||
@@ -1253,7 +1253,7 @@ export default function HomePage() {
                   return (
                     <div
                       key={stageKey}
-                      className="mt-4 flex flex-col rounded-lg border bg-gray-50 p-4 shadow-sm" // Added mt-4
+                      className="mt-4 flex flex-col rounded-lg border bg-gray-50 p-4 shadow-xs" // Added mt-4
                     >
                       <h3 className="mb-3 border-b pb-2 font-semibold text-gray-800 text-lg">
                         LLM Response
@@ -1358,7 +1358,7 @@ export default function HomePage() {
                                       >
                                         <CopyIcon />
                                         {copySuccess && (
-                                          <span className="-top-8 -translate-x-1/2 absolute left-1/2 transform rounded bg-gray-800 px-2 py-1 text-white text-xs">
+                                          <span className="-top-8 -translate-x-1/2 absolute left-1/2 transform rounded-sm bg-gray-800 px-2 py-1 text-white text-xs">
                                             {copySuccess}
                                           </span>
                                         )}
@@ -1472,7 +1472,7 @@ export default function HomePage() {
                   type="button"
                   onClick={handleRunMdr}
                   aria-label="Run MDR Algorithm on Original HTML"
-                  className="w-full rounded-lg bg-orange-500 px-6 py-3 font-semibold text-white shadow-md transition-colors duration-150 ease-in-out hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                  className="w-full rounded-lg bg-orange-500 px-6 py-3 font-semibold text-white shadow-md transition-colors duration-150 ease-in-out hover:bg-orange-600 focus:outline-hidden focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                   disabled={
                     !processedData?.originalHtml ||
                     mdrResponse.isLoading ||
@@ -1487,7 +1487,7 @@ export default function HomePage() {
               {/* MDR Response Card */}
               {processedData &&
                 !isLoading && ( // This outer check might be redundant if section is already conditional
-                  <div className="flex flex-col rounded-lg border bg-gray-50 p-4 shadow-sm">
+                  <div className="flex flex-col rounded-lg border bg-gray-50 p-4 shadow-xs">
                     <h3 className="mb-3 border-b pb-2 font-semibold text-gray-800 text-lg">
                       MDR Algorithm Response
                     </h3>
@@ -1588,7 +1588,7 @@ export default function HomePage() {
                                     >
                                       <CopyIcon />
                                       {copySuccess && (
-                                        <span className="-top-8 -translate-x-1/2 absolute left-1/2 transform rounded bg-gray-800 px-2 py-1 text-white text-xs">
+                                        <span className="-top-8 -translate-x-1/2 absolute left-1/2 transform rounded-sm bg-gray-800 px-2 py-1 text-white text-xs">
                                           {copySuccess}
                                         </span>
                                       )}
