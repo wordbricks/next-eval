@@ -75,15 +75,15 @@ const LlmInteraction: React.FC = () => {
   };
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-3xl mx-auto bg-white shadow-xl rounded-lg">
-      <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">
+    <div className="mx-auto max-w-3xl space-y-6 rounded-lg bg-white p-4 shadow-xl md:p-6 lg:p-8">
+      <h1 className="mb-6 text-center font-bold text-3xl text-gray-800">
         LLM Interaction with Gemini
       </h1>
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-3 sm:space-y-0">
+      <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-x-4 sm:space-y-0">
         <label
           htmlFor="prompt-select"
-          className="text-lg font-medium text-gray-700 whitespace-nowrap"
+          className="whitespace-nowrap font-medium text-gray-700 text-lg"
         >
           Select Prompt Type:
         </label>
@@ -91,7 +91,7 @@ const LlmInteraction: React.FC = () => {
           id="prompt-select"
           value={selectedPrompt}
           onChange={handlePromptChange}
-          className="p-3 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 flex-grow text-gray-700 bg-white"
+          className="flex-grow rounded-md border border-gray-300 bg-white p-3 text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
           aria-label="Select LLM prompt type"
         >
           <option value="slim">Slim</option>
@@ -104,7 +104,7 @@ const LlmInteraction: React.FC = () => {
         type="button"
         onClick={handleAskLlm}
         disabled={isLoading}
-        className="w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-md shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-150 ease-in-out transform hover:scale-105 active:scale-95"
+        className="w-full transform rounded-md bg-indigo-600 px-6 py-3 font-semibold text-white shadow-md transition-all duration-150 ease-in-out hover:scale-105 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75 active:scale-95 disabled:cursor-not-allowed disabled:bg-gray-400"
         aria-label="Submit query to LLM"
         tabIndex={0} // Make it focusable
         onKeyDown={(e) => e.key === "Enter" && !isLoading && handleAskLlm()} // Trigger on Enter key
@@ -112,7 +112,7 @@ const LlmInteraction: React.FC = () => {
         {isLoading ? (
           <span className="flex items-center justify-center">
             <svg
-              className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+              className="-ml-1 mr-3 h-5 w-5 animate-spin text-white"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -141,40 +141,40 @@ const LlmInteraction: React.FC = () => {
       </button>
 
       {error && (
-        <div className="mt-4 p-4 border border-red-300 rounded-md bg-red-50 text-red-700">
-          <h2 className="text-xl font-semibold mb-2">Error:</h2>
+        <div className="mt-4 rounded-md border border-red-300 bg-red-50 p-4 text-red-700">
+          <h2 className="mb-2 font-semibold text-xl">Error:</h2>
           <pre className="whitespace-pre-wrap text-sm">{error}</pre>
         </div>
       )}
 
       {systemPromptContent && !error && (
-        <div className="mt-4 p-4 border border-gray-200 rounded-md bg-gray-50 shadow">
-          <h2 className="text-xl font-semibold mb-2 text-gray-700">
+        <div className="mt-4 rounded-md border border-gray-200 bg-gray-50 p-4 shadow">
+          <h2 className="mb-2 font-semibold text-gray-700 text-xl">
             System Prompt Used:
           </h2>
-          <pre className="whitespace-pre-wrap text-sm text-gray-600 bg-white p-3 rounded-md overflow-x-auto">
+          <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-white p-3 text-gray-600 text-sm">
             {systemPromptContent}
           </pre>
         </div>
       )}
 
       {userInputContent && !error && (
-        <div className="mt-4 p-4 border border-gray-200 rounded-md bg-gray-50 shadow">
-          <h2 className="text-xl font-semibold mb-2 text-gray-700">
+        <div className="mt-4 rounded-md border border-gray-200 bg-gray-50 p-4 shadow">
+          <h2 className="mb-2 font-semibold text-gray-700 text-xl">
             User Input Used:
           </h2>
-          <pre className="whitespace-pre-wrap text-sm text-gray-600 bg-white p-3 rounded-md overflow-x-auto">
+          <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-white p-3 text-gray-600 text-sm">
             {userInputContent}
           </pre>
         </div>
       )}
 
       {llmResponse && !isLoading && !error && (
-        <div className="mt-6 p-4 border border-green-300 rounded-md bg-green-50 shadow-lg">
-          <h2 className="text-xl font-semibold mb-2 text-green-800">
+        <div className="mt-6 rounded-md border border-green-300 bg-green-50 p-4 shadow-lg">
+          <h2 className="mb-2 font-semibold text-green-800 text-xl">
             Gemini Response:
           </h2>
-          <pre className="whitespace-pre-wrap text-sm text-green-700 bg-white p-3 rounded-md overflow-x-auto">
+          <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-white p-3 text-green-700 text-sm">
             {llmResponse}
           </pre>
         </div>
