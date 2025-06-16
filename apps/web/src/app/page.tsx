@@ -5,14 +5,13 @@ import {
   type ValidatedXpathArray,
   parseAndValidateXPaths,
 } from "@/app/utils/xpathValidation";
+import { MdrTab } from "@/components/MdrTab";
 import { PageHeader } from "@/components/PageHeader";
 import CopyIcon from "@/components/icons/CopyIcon";
 import DownloadIcon from "@/components/icons/DownloadIcon";
 import ThumbsDownIcon from "@/components/icons/ThumbsDownIcon";
 import ThumbsUpIcon from "@/components/icons/ThumbsUpIcon";
 import { readFileAsText } from "@/lib/utils/readFileAsText";
-import { runMDR } from "@/lib/utils/runMDR";
-import { Progress } from "@next-eval/ui/components/progress";
 import { mapResponseToFullXpath } from "@wordbricks/next-eval/evaluation/utils/mapResponseToFullXpath";
 import { processHtmlContent } from "@wordbricks/next-eval/html/utils/processHtmlContent";
 import type { ExtendedHtmlResult } from "@wordbricks/next-eval/shared/interfaces/HtmlResult";
@@ -30,15 +29,6 @@ interface LlmStageResponse {
   mappedPredictionText: string[] | null;
   isLoading: boolean;
   isEvaluating: boolean;
-}
-
-interface MdrResponseState {
-  predictXpathList: ValidatedXpathArray | null;
-  mappedPredictionText: string[] | null;
-  numPredictedRecords: number | null;
-  isLoading: boolean;
-  error: string | null;
-  progress: number;
 }
 
 interface LlmAllResponses {
@@ -59,38 +49,6 @@ const initialLlmStageResponse: LlmStageResponse = {
   mappedPredictionText: null,
   isLoading: false,
   isEvaluating: false,
-};
-
-const initialMdrResponseState: MdrResponseState = {
-  predictXpathList: null,
-  mappedPredictionText: null,
-  numPredictedRecords: null,
-  isLoading: false,
-  error: null,
-  progress: 0,
-};
-
-// Helper function for timeout
-const timeoutPromise = <T,>(
-  promise: Promise<T>,
-  ms: number,
-  timeoutError = new Error("Operation timed out"),
-) => {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(timeoutError);
-    }, ms);
-
-    promise
-      .then((value) => {
-        clearTimeout(timer);
-        resolve(value);
-      })
-      .catch((error) => {
-        clearTimeout(timer);
-        reject(error);
-      });
-  });
 };
 
 export default function HomePage() {
@@ -121,9 +79,6 @@ export default function HomePage() {
     textMapFlat: { ...initialLlmStageResponse },
   });
   const [overallLlmFetching, setOverallLlmFetching] = useState<boolean>(false); // For the "Send All to Gemini" button
-  const [mdrResponse, setMdrResponse] = useState<MdrResponseState>({
-    ...initialMdrResponseState,
-  }); // Added MDR state
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -191,7 +146,6 @@ export default function HomePage() {
       });
       setOverallLlmFetching(false);
       setSelectedStage("textMapFlat");
-      setMdrResponse({ ...initialMdrResponseState }); // Reset MDR response
     } else {
       setSelectedFile(null);
     }
@@ -214,7 +168,6 @@ export default function HomePage() {
     });
     setOverallLlmFetching(false);
     setSelectedStage("textMapFlat");
-    setMdrResponse({ ...initialMdrResponseState }); // Reset MDR response
 
     try {
       const htmlString = await readFileAsText(selectedFile);
@@ -351,97 +304,6 @@ export default function HomePage() {
       }));
     } finally {
       setOverallLlmFetching(false);
-    }
-  };
-
-  const handleRunMdr = async () => {
-    if (!processedData?.originalHtml || !processedData.textMapFlat) {
-      console.error(
-        "Original HTML or textMapFlat not available for MDR execution.",
-      );
-      setMdrResponse((prev) => ({
-        ...prev,
-        error:
-          "Required data (original HTML or text map) is not processed yet.",
-        isLoading: false,
-      }));
-      return;
-    }
-
-    setMdrResponse({
-      ...initialMdrResponseState,
-      isLoading: true,
-    });
-
-    try {
-      // Progress callback to update the progress bar
-      const progressCallback = (progress: number) => {
-        setMdrResponse((prev) => ({
-          ...prev,
-          progress,
-        }));
-      };
-
-      // Assuming runMDR is not excessively long-running for now.
-      // For very large HTML or complex MDR, consider a Web Worker.
-      const mdrPromise = runMDR(processedData.html, true, progressCallback);
-      const mdrPredictedXPaths = await timeoutPromise(
-        mdrPromise,
-        60000, // 1 minute in milliseconds
-        new Error("MDR processing timed out after 1 minute"),
-      );
-
-      if (!mdrPredictedXPaths || mdrPredictedXPaths.length === 0) {
-        setMdrResponse((prev) => ({
-          ...prev,
-          predictXpathList: [],
-          mappedPredictionText: [],
-          numPredictedRecords: 0,
-          isLoading: false,
-          error: "MDR returned no XPaths.",
-        }));
-        return;
-      }
-
-      // Validate XPaths (optional, but good for consistency if parseAndValidateXPaths is used elsewhere for LLM)
-      // For now, we directly use the output of runMDR assuming it's string[][]
-      const validatedMdrXPaths: ValidatedXpathArray =
-        mdrPredictedXPaths as ValidatedXpathArray;
-      const textMapFlatForEval = processedData.textMapFlat as Record<
-        string,
-        string
-      >;
-      const mdrFullXPaths = mapResponseToFullXpath(
-        textMapFlatForEval,
-        validatedMdrXPaths,
-      );
-
-      const mappedText = mdrFullXPaths
-        .filter((xpathArray: string[]) =>
-          xpathArray.some((xpath: string) => xpath in textMapFlatForEval),
-        )
-        .map((xpathArray: string[]) =>
-          xpathArray
-            .filter((xpath: string) => xpath in textMapFlatForEval)
-            .map((xpath: string) => textMapFlatForEval[xpath])
-            .join(","),
-        );
-
-      setMdrResponse({
-        predictXpathList: validatedMdrXPaths,
-        mappedPredictionText: mappedText,
-        numPredictedRecords: validatedMdrXPaths.length,
-        isLoading: false,
-        error: null,
-        progress: 100,
-      });
-    } catch (error) {
-      console.error("Error running MDR:", error);
-      setMdrResponse({
-        ...initialMdrResponseState,
-        isLoading: false,
-        error: error instanceof Error ? error.message : String(error),
-      });
     }
   };
 
@@ -608,7 +470,6 @@ export default function HomePage() {
     });
     setOverallLlmFetching(false);
     setSelectedStage("textMapFlat");
-    setMdrResponse({ ...initialMdrResponseState }); // Reset MDR response
 
     const newRandomNumber = Math.floor(Math.random() * 20) + 1; // Generate number between 1 and 20
     setRandomNumber(newRandomNumber); // Set the randomNumber state
@@ -717,7 +578,6 @@ export default function HomePage() {
     });
     setOverallLlmFetching(false);
     setSelectedStage("textMapFlat");
-    setMdrResponse({ ...initialMdrResponseState });
     try {
       const response = await fetch("/next-eval/api/fetch", {
         method: "POST",
@@ -1222,7 +1082,6 @@ export default function HomePage() {
                     !processedData ||
                     overallLlmFetching ||
                     !selectedStage ||
-                    mdrResponse.isLoading ||
                     llmResponses[selectedStage]?.isLoading
                   }
                 >
@@ -1253,11 +1112,6 @@ export default function HomePage() {
                 (() => {
                   const stageKey = selectedStage;
                   const stageResponse = llmResponses[stageKey];
-                  const stageTitles: Record<keyof LlmAllResponses, string> = {
-                    html: "Slimmed HTML Response",
-                    textMap: "Hierarchical JSON Response",
-                    textMapFlat: "Flat JSON Response",
-                  };
                   return (
                     <div
                       key={stageKey}
@@ -1471,182 +1325,14 @@ export default function HomePage() {
           )}
           {/* MDR Tab Content */}
           {activeExtractTab === "mdr" && (
-            <div className="mt-4">
-              {" "}
-              {/* Added mt-4 for spacing consistent with LLM tab */}
-              {/* Run MDR Button */}
-              <div className="mb-6 flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={handleRunMdr}
-                  aria-label="Run MDR Algorithm on Original HTML"
-                  className="w-full rounded-lg bg-orange-500 px-6 py-3 font-semibold text-white shadow-md transition-colors duration-150 ease-in-out hover:bg-orange-600 focus:outline-hidden focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                  disabled={
-                    !processedData?.originalHtml ||
-                    mdrResponse.isLoading ||
-                    overallLlmFetching
-                  } // Simplified disabled condition
-                >
-                  {mdrResponse.isLoading
-                    ? "Running MDR..."
-                    : "Run MDR Algorithm"}
-                </button>
-              </div>
-              {/* MDR Response Card */}
-              {processedData &&
-                !isLoading && ( // This outer check might be redundant if section is already conditional
-                  <div className="flex flex-col rounded-lg border bg-gray-50 p-4 shadow-xs">
-                    <h3 className="mb-3 border-b pb-2 font-semibold text-gray-800 text-lg">
-                      MDR Algorithm Response
-                    </h3>
-                    {mdrResponse.isLoading && (
-                      <div className="space-y-3">
-                        <p className="animate-pulse font-medium text-blue-600 text-md">
-                          Processing with MDR, please wait...
-                        </p>
-                        <Progress
-                          value={mdrResponse.progress}
-                          className="w-full"
-                        />
-                        <p className="text-center text-gray-600 text-sm">
-                          {mdrResponse.progress}% complete
-                        </p>
-                      </div>
-                    )}
-                    {mdrResponse.error && (
-                      <div
-                        className="rounded-md border border-red-200 bg-red-50 p-3 text-red-700 text-sm"
-                        role="alert"
-                      >
-                        <p className="font-semibold">MDR Error:</p>
-                        <pre className="whitespace-pre-wrap break-all">
-                          {mdrResponse.error}
-                        </pre>
-                      </div>
-                    )}
-                    {!mdrResponse.isLoading &&
-                      (mdrResponse.predictXpathList || mdrResponse.error) && // Ensure something to show or an error
-                      !mdrResponse.error && ( // If no error, show data
-                        <>
-                          {mdrResponse.predictXpathList && (
-                            <div className="mb-3">
-                              <h4 className="mb-1 font-semibold text-gray-600 text-sm">
-                                Predicted XPaths:
-                              </h4>
-                              <div className="h-48 overflow-auto rounded-md border bg-gray-100 p-2 text-xs">
-                                <pre className="whitespace-pre-wrap">
-                                  {JSON.stringify(
-                                    mdrResponse.predictXpathList,
-                                    null,
-                                    2,
-                                  )}
-                                </pre>
-                              </div>
-                            </div>
-                          )}
-                          {mdrResponse.mappedPredictionText &&
-                            mdrResponse.mappedPredictionText.length > 0 && (
-                              <div className="mb-3">
-                                <div className="mb-1 flex items-center justify-between">
-                                  <h4 className="font-semibold text-gray-600 text-sm">
-                                    Predicted Text:
-                                  </h4>
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleFeedback(true)}
-                                      disabled={
-                                        feedbackSent[getCurrentFeedbackId()]
-                                      }
-                                      className={`rounded-full p-1 transition-colors duration-150 ease-in-out hover:bg-green-100 ${
-                                        feedbackSent[getCurrentFeedbackId()]
-                                          ? "text-green-600"
-                                          : "text-gray-400 hover:text-green-600"
-                                      }`}
-                                      aria-label="Give positive feedback"
-                                    >
-                                      <ThumbsUpIcon />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleFeedback(false)}
-                                      disabled={
-                                        feedbackSent[getCurrentFeedbackId()]
-                                      }
-                                      className={`rounded-full p-1 transition-colors duration-150 ease-in-out hover:bg-red-100 ${
-                                        feedbackSent[getCurrentFeedbackId()]
-                                          ? "text-red-600"
-                                          : "text-gray-400 hover:text-red-600"
-                                      }`}
-                                      aria-label="Give negative feedback"
-                                    >
-                                      <ThumbsDownIcon />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleCopyToClipboard(
-                                          mdrResponse.mappedPredictionText?.join(
-                                            "\n",
-                                          ) || "",
-                                        )
-                                      }
-                                      className="group relative rounded-full p-1 text-orange-500 transition-colors duration-150 ease-in-out hover:bg-orange-100 hover:text-orange-700"
-                                      aria-label="Copy predicted text to clipboard"
-                                    >
-                                      <CopyIcon />
-                                      {copySuccess && (
-                                        <span className="-top-8 -translate-x-1/2 absolute left-1/2 transform rounded-sm bg-gray-800 px-2 py-1 text-white text-xs">
-                                          {copySuccess}
-                                        </span>
-                                      )}
-                                    </button>
-                                  </div>
-                                </div>
-                                <div className="h-40 overflow-auto rounded-md border bg-white p-2 text-xs">
-                                  {mdrResponse.mappedPredictionText.map(
-                                    (textBlock, index) => (
-                                      <pre
-                                        key={index}
-                                        className="my-1 whitespace-pre-wrap border-gray-200 border-b py-1 last:border-b-0"
-                                      >
-                                        {textBlock}
-                                      </pre>
-                                    ),
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          <div>
-                            <h4 className="mb-1 font-semibold text-gray-600 text-sm">
-                              Evaluation Metrics:
-                            </h4>
-                            <div className="space-y-1 rounded-md border border-blue-100 bg-blue-50 p-2 text-xs">
-                              {mdrResponse.numPredictedRecords !== null && (
-                                <p>
-                                  <span className="font-semibold">
-                                    Predicted Records:
-                                  </span>{" "}
-                                  {mdrResponse.numPredictedRecords}
-                                </p>
-                              )}
-                              {mdrResponse.numPredictedRecords === 0 && (
-                                <p className="text-gray-500">
-                                  MDR did not predict any records.
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    {!mdrResponse.isLoading &&
-                      !mdrResponse.predictXpathList &&
-                      !mdrResponse.error && ( // Initial state before running MDR
-                        <p className="text-gray-500">Run MDR to see results.</p>
-                      )}
-                  </div>
-                )}
-            </div>
+            <MdrTab
+              processedData={processedData}
+              isProcessing={isLoading}
+              overallLlmFetching={overallLlmFetching}
+              htmlId={htmlId}
+              onFeedback={handleFeedback}
+              feedbackSent={feedbackSent}
+            />
           )}
         </section>
       )}
