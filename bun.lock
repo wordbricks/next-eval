@@ -78,6 +78,22 @@
         "typescript": "5.8.2",
       },
     },
+    "packages/html-core": {
+      "name": "@next-eval/html-core",
+      "version": "0.0.1",
+      "dependencies": {
+        "munkres-js": "1.2.2",
+        "mustache": "4.2.0",
+        "node-html-parser": "^7.0.1",
+        "zod": "^3.22.4",
+      },
+      "devDependencies": {
+        "@next-eval/tsconfig": "workspace:*",
+        "@types/mustache": "^4.2.6",
+        "@types/node": "22.14.0",
+        "typescript": "5.8.3",
+      },
+    },
     "packages/rust-mdr": {
       "name": "@next-eval/rust-mdr",
       "version": "0.0.1",
@@ -209,6 +225,8 @@
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.25", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ=="],
 
     "@next-eval/core": ["@next-eval/core@workspace:packages/core"],
+
+    "@next-eval/html-core": ["@next-eval/html-core@workspace:packages/html-core"],
 
     "@next-eval/rust-mdr": ["@next-eval/rust-mdr@workspace:packages/rust-mdr"],
 

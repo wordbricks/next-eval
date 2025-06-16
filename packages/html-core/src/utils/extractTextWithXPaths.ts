@@ -1,4 +1,4 @@
-import { generateXPath } from "@/lib/utils/generateXPath";
+import { generateXPath } from "@next-eval/html-core/utils/generateXPath";
 import type { NestedTextMap } from "@next-eval/shared/interfaces/HtmlResult";
 
 // Helper function to extract text and build flat/hierarchical maps
