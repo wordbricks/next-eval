@@ -1,0 +1,71 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": [
+        "GOOGLE_GENERATIVE_AI_API_KEY",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+      ],
+      "cache": true
+    },
+    "dev": {
+      "persistent": true,
+      "cache": false,
+      "env": [
+        "GOOGLE_GENERATIVE_AI_API_KEY",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+      ]
+    },
+    "lint": {
+      "dependsOn": ["^lint"],
+      "cache": true
+    },
+    "format": {
+      "cache": false
+    },
+    "check-types": {
+      "dependsOn": ["^build"],
+      "cache": true
+    },
+    "clean": {
+      "cache": false
+    },
+    "preprocess": {
+      "cache": true,
+      "inputs": ["src/**/*.ts", "src/**/*.md"],
+      "outputs": ["output/**"]
+    },
+    "runLLM": {
+      "cache": false,
+      "env": [
+        "GOOGLE_GENERATIVE_AI_API_KEY",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY"
+      ]
+    },
+    "mdr": {
+      "cache": true,
+      "inputs": ["src/**/*.ts"],
+      "outputs": ["output/**"]
+    },
+    "evaluate": {
+      "cache": true,
+      "inputs": ["src/**/*.ts", "output/**"],
+      "outputs": ["results/**"]
+    },
+    "test": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "test:bench": {
+      "cache": false,
+      "dependsOn": ["^build"]
+    }
+  }
+}

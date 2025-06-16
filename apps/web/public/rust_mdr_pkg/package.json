@@ -1,0 +1,13 @@
+{
+  "name": "rust_mdr_utils",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "rust_mdr_utils_bg.wasm",
+    "rust_mdr_utils.js",
+    "rust_mdr_utils.d.ts"
+  ],
+  "main": "rust_mdr_utils.js",
+  "types": "rust_mdr_utils.d.ts",
+  "sideEffects": ["./snippets/*"]
+}
