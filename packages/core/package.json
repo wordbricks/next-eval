@@ -2,38 +2,62 @@
   "name": "@next-eval/core",
   "version": "0.0.1",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    "./script/runMDR": "./src/script/runMDR.ts",
-    "./constant": "./src/constant.ts",
-    "./utils/stringUtils": "./src/utils/stringUtils.ts"
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./constant": {
+      "import": "./dist/constant.js",
+      "types": "./dist/constant.d.ts"
+    },
+    "./utils/stringUtils": {
+      "import": "./dist/utils/stringUtils.js",
+      "types": "./dist/utils/stringUtils.d.ts"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "publishConfig": {
+    "access": "restricted",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wordbricks/next-eval.git",
+    "directory": "packages/core"
   },
   "scripts": {
     "preprocess": "bun run src/script/preprocessForLLM.ts",
     "runLLM": "bun run src/script/runLLM.ts",
     "mdr": "bun run src/script/runMDR.ts",
     "evaluate": "bun run src/script/evaluate.ts",
+    "build": "bun run clean && bun build src/index.ts --outdir dist --target node --format esm --external @next-eval/shared --external zod --external puppeteer-core --external @ai-sdk/anthropic --external @ai-sdk/google --external @ai-sdk/openai --external ai --external dotenv --external munkres-js --external find-up && tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "bun run build",
     "lint": "biome check --diagnostic-level=error",
     "format": "biome format --fix",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@next-eval/shared": "workspace:*",
-    "node-html-parser": "^7.0.1",
+    "@ai-sdk/anthropic": "1.2.11",
     "@ai-sdk/google": "1.2.8",
     "@ai-sdk/openai": "1.3.22",
-    "@ai-sdk/anthropic": "1.2.11",
     "@anthropic-ai/sdk": "^0.18.0",
-    "ai": "4.3.2",
-    "openai": "^4.28.0",
+    "@next-eval/shared": "workspace:*",
     "@types/puppeteer": "7.0.4",
+    "ai": "4.3.2",
     "csv-parse": "^5.5.3",
     "dotenv": "16.4.7",
-    "ofetch": "1.4.1",
-    "slugify": "^1.6.6",
-    "mustache": "4.2.0",
     "munkres-js": "1.2.2",
+    "mustache": "4.2.0",
+    "node-html-parser": "^7.0.1",
+    "ofetch": "1.4.1",
+    "openai": "^4.28.0",
     "puppeteer": "^24.6.0",
     "puppeteer-core": "^24.6.0",
+    "slugify": "^1.6.6",
     "zod": "^3.22.4"
   },
   "devDependencies": {

@@ -31,8 +31,19 @@ export const slimHtml = (doc: Document): string => {
     .trim(); // Remove leading/trailing whitespace
 
   // 3. Create a new document from the string-cleaned content
-  const parser = new DOMParser();
-  const tempDoc = parser.parseFromString(stringCleanedContent, "text/html");
+  let tempDoc: Document;
+
+  // Check if DOMParser is available (browser environment)
+  if (typeof DOMParser !== "undefined") {
+    const parser = new DOMParser();
+    tempDoc = parser.parseFromString(stringCleanedContent, "text/html");
+  } else {
+    // In Node.js, we'll need to use the passed document's methods
+    // This assumes the document has a way to parse HTML (like JSDOM)
+    const domImplementation = doc.implementation;
+    tempDoc = domImplementation.createHTMLDocument("");
+    tempDoc.documentElement.innerHTML = stringCleanedContent;
+  }
 
   // 4. Remove all attributes from all elements in the new document
   if (tempDoc.documentElement) {
