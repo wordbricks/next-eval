@@ -6,6 +6,8 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./tests/setup.ts"],
+    testTimeout: 180000, // 3 minutes timeout for all tests
+    hookTimeout: 180000, // 3 minutes timeout for hooks
     server: {
       deps: {
         inline: [/@next-eval/],

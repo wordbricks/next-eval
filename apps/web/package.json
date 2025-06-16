@@ -12,7 +12,8 @@
     "check-types": "tsc --noEmit",
     "clean": "nlx rimraf --glob .next node_modules",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "test:bench": "vitest bench"
   },
   "dependencies": {
     "@next-eval/shared": "workspace:*",
