@@ -12,7 +12,11 @@ type DataRecord = TagNode | TagNode[];
 const nodeDataRegions = new Map<TagNode, DataRegion[]>();
 
 // Import WASM loader utilities
-import { getWasmModule, initializeWasm } from "@/lib/utils/wasmLoader";
+import {
+  getWasmModule,
+  initializeWasm,
+  runRustMDR,
+} from "@/lib/utils/wasmLoader";
 
 function getChildren(node: TagNode): TagNode[] {
   return node.children || [];
@@ -107,7 +111,9 @@ async function IdentDRs(
           checkIdx + 2 * gnLength,
         );
 
-        if ((await getNormalizedEditDistance(gn1, gn2)) <= T) {
+        const distance = await getNormalizedEditDistance(gn1, gn2);
+
+        if (distance <= T) {
           if (!isContinuingRegion) {
             currentDR = [gnLength, checkIdx, 2 * gnLength];
             isContinuingRegion = true;
@@ -145,6 +151,7 @@ async function IdentDRs(
   if (currentMaxDR) {
     identifiedRegions.push(currentMaxDR);
     const nextStartIndex = currentMaxDR[1] + currentMaxDR[2];
+
     if (nextStartIndex < n) {
       identifiedRegions.push(
         ...(await IdentDRs(nextStartIndex, children, K, T)),
@@ -195,6 +202,7 @@ async function findDRsRecursive(
     const children = getChildren(node);
     if (getNodeListSize(children) >= 2) {
       nodeDRs = await IdentDRs(0, children, K, T);
+
       nodeDataRegions.set(node, nodeDRs);
     }
   }
@@ -209,6 +217,7 @@ async function findDRsRecursive(
   }
 
   const finalDRs = (nodeDataRegions.get(node) || []).concat(tempDRs);
+
   nodeDataRegions.set(node, finalDRs);
 }
 
@@ -487,18 +496,194 @@ async function findOrphanRecords(
   return foundOrphans;
 }
 
-export async function runMDR(rawHtml: string): Promise<string[][]> {
-  // Ensure Wasm is initialized before any processing that might use it.
-  // While individual functions await initializeWasm(), calling it here once
-  // can pre-warm it or handle initial load errors more centrally if desired.
-  await initializeWasm();
+export interface MDRResult {
+  xpaths: string[][];
+  records: DataRecord[];
+  texts: string[];
+}
 
+// Helper function to extract texts from records
+function extractTextsFromRecords(records: DataRecord[]): string[] {
+  const texts: string[] = [];
+
+  function extractTextFromNode(node: TagNode): void {
+    // Check if the node itself has text
+    if (node.rawText?.trim()) {
+      texts.push(node.rawText);
+    }
+
+    // Recursively check children
+    if (node.children) {
+      for (const child of node.children) {
+        extractTextFromNode(child);
+      }
+    }
+  }
+
+  for (const record of records) {
+    if (Array.isArray(record)) {
+      // Handle TagNode[] case
+      for (const node of record) {
+        if (node && typeof node === "object") {
+          extractTextFromNode(node);
+        }
+      }
+    } else if (record && typeof record === "object") {
+      // Handle single TagNode case
+      extractTextFromNode(record);
+    }
+  }
+
+  return texts;
+}
+
+// New function that returns detailed results
+export async function runMDRWithDetails(
+  rawHtml: string,
+  useRust = true,
+): Promise<MDRResult> {
   const cleanedHtml = removeCommentScriptStyleFromHTML(rawHtml);
   const rootDom = parse(cleanedHtml, {
     lowerCaseTagName: true,
     comment: false,
   });
-  const rootNode = buildTagTree(rootDom.childNodes[0]);
+
+  // Find the HTML element (could be the root or a child)
+  const htmlElement =
+    rootDom.querySelector("html") ||
+    rootDom.childNodes.find((node: any) => node.tagName === "html");
+  if (!htmlElement) {
+    console.error("No HTML element found");
+    return { xpaths: [], records: [], texts: [] };
+  }
+
+  const rootNode = buildTagTree(htmlElement);
+
+  let finalRecords: DataRecord[] = [];
+
+  // Use Rust implementation if requested
+  if (useRust) {
+    try {
+      const result = await runRustMDR(rootNode, MDR_K, MDR_T);
+      finalRecords = result.finalRecords;
+    } catch (error) {
+      console.error("Rust MDR failed, falling back to TypeScript:", error);
+      // Fall through to TypeScript implementation
+      useRust = false;
+    }
+  }
+
+  if (!useRust) {
+    // TypeScript implementation
+    await initializeWasm();
+
+    // Step 1 & 2: Find Data Regions
+    const allDataRegions = await runMDRAlgorithm(rootNode, MDR_K, MDR_T);
+
+    // Step 3: Identify Records from Regions (with adjacent merging)
+    const initialRecords = await identifyAllDataRecords(allDataRegions, MDR_T);
+
+    // Step 4: Find Orphan Records
+    const orphanRecordsSet = await findOrphanRecords(allDataRegions, MDR_T);
+    const orphanRecords = Array.from(orphanRecordsSet);
+
+    // Combine and Finalize Records
+    finalRecords = [...initialRecords];
+    const initialTagNodes = new Set(
+      initialRecords.filter((r) => !Array.isArray(r)),
+    );
+
+    for (const orphan of orphanRecords) {
+      if (
+        orphan &&
+        typeof orphan === "object" &&
+        "xpath" in orphan &&
+        !Array.isArray(orphan)
+      ) {
+        if (!initialTagNodes.has(orphan)) {
+          finalRecords.push(orphan);
+        }
+      }
+    }
+  }
+
+  // Convert to XPath arrays
+  const xpaths: string[][] = finalRecords
+    .map((record) => {
+      if (Array.isArray(record)) {
+        return record
+          .filter((node) => node && typeof node === "object" && "xpath" in node)
+          .map((node) => node.xpath);
+      }
+      if (record && typeof record === "object" && "xpath" in record) {
+        return [record.xpath];
+      }
+      return [];
+    })
+    .filter((xpathArray) => xpathArray.length > 0);
+
+  // Extract texts
+  const texts = extractTextsFromRecords(finalRecords);
+
+  return {
+    xpaths,
+    records: finalRecords,
+    texts,
+  };
+}
+
+export async function runMDR(
+  rawHtml: string,
+  useRust = true,
+): Promise<string[][]> {
+  const cleanedHtml = removeCommentScriptStyleFromHTML(rawHtml);
+  const rootDom = parse(cleanedHtml, {
+    lowerCaseTagName: true,
+    comment: false,
+  });
+
+  // Find the HTML element (could be the root or a child)
+  const htmlElement =
+    rootDom.querySelector("html") ||
+    rootDom.childNodes.find((node: any) => node.tagName === "html");
+  if (!htmlElement) {
+    console.error("No HTML element found");
+    return [];
+  }
+
+  const rootNode = buildTagTree(htmlElement);
+
+  // Use Rust implementation if requested
+  if (useRust) {
+    try {
+      const { finalRecords } = await runRustMDR(rootNode, MDR_K, MDR_T);
+
+      // Convert to XPath arrays
+      const finalRecordXpaths: string[][] = finalRecords
+        .map((record) => {
+          if (Array.isArray(record)) {
+            return record
+              .filter(
+                (node) => node && typeof node === "object" && "xpath" in node,
+              )
+              .map((node) => node.xpath);
+          }
+          if (record && typeof record === "object" && "xpath" in record) {
+            return [record.xpath];
+          }
+          return [];
+        })
+        .filter((xpathArray) => xpathArray.length > 0);
+
+      return finalRecordXpaths;
+    } catch (error) {
+      console.error("Rust MDR failed, falling back to TypeScript:", error);
+      // Fall through to TypeScript implementation
+    }
+  }
+
+  // TypeScript implementation (fallback or when flag is disabled)
+  await initializeWasm();
 
   // Step 1 & 2: Find Data Regions
   const allDataRegions = await runMDRAlgorithm(rootNode, MDR_K, MDR_T);
