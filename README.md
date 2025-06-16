@@ -6,7 +6,6 @@
   </picture>
 </p>
 
-
 # NEXT-EVAL: From Web URLs to Structured Tables – Extraction and Evaluation
 
 Welcome to **NEXT-EVAL**, a comprehensive toolkit for the rigorous evaluation and comparison of methods for extracting **tabular data records** from web pages. This framework supports both traditional algorithms and modern Large Language Model (LLM)-based approaches. We provide the necessary components to generate datasets, preprocess web data, evaluate model performance, and conduct standardized benchmarking.
@@ -17,27 +16,41 @@ Welcome to **NEXT-EVAL**, a comprehensive toolkit for the rigorous evaluation an
 > \[https://arxiv.org/abs/2505.17125] 
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-brightgreen.svg?style=flat)](CONTRIBUTING.md)
-[![Paper](https://img.shields.io/badge/Read%20the%20Paper-blue)](https://arxiv.org/abs/6452467) 
-
+[![Paper](https://img.shields.io/badge/Read%20the%20Paper-blue)](https://arxiv.org/abs/2505.17125) 
 
 This library provides tools for generating web-to-table datasets, applying extraction techniques (both traditional and LLM-based), and evaluating them with a standardized framework. It is intended to advance benchmarking and reproducibility in web data extraction research.
 
 ---
 
+## 🏁 Getting Started
+
+```bash
+# Core library
+npm install @next-eval/next-eval
+
+# Optional: Rust WASM module for performance
+npm install @next-eval/rust-mdr
+
+# Optional: UI components
+npm install @next-eval/ui
+```
+
+---
+
 ## 🔧 Components
 
-### 1. HTML processing Tool
+### 1. HTML Processing Tool
 
-Convert real-world webpage HTML into a compact format for LLM using the following tools:
+Convert real-world webpage HTML into compact formats optimized for LLM processing:
 
-* **HTML to Slim HTML**: Clean and simplify raw HTML for model input.
-* **HTML to Hierachical Json**: Structure webpage HTML into a nested JSON format which conserves the original structure.
-* **HTML to Flat Json**: Structure HTML into a flat JSON format where the key is xpath and the value is the text.
+* **HTML to Slim HTML**: Clean and simplify raw HTML for model input
+* **HTML to Hierarchical JSON**: Structure webpage HTML into nested JSON preserving original structure
+* **HTML to Flat JSON**: Structure HTML into flat JSON format where key is xpath and value is text
 
 ```typescript
 import { processHtmlContent } from "@wordbricks/next-eval/html/utils/processHtmlContent";
 
-const htmlString = "<!DOCTYPE html>
+const htmlString = `<!DOCTYPE html>
 <html lang="en">
 <body>
   <div class="container">
@@ -61,34 +74,39 @@ const htmlString = "<!DOCTYPE html>
     </div>
   </div>
 </body>
-</html>
-";
+</html>`;
+
 const { html: slimmedHtml, textMapFlat, textMap } = await processHtmlContent(htmlString);
 
 console.log("[Slim HTML]", slimmedHtml);
-console.log("[Hierachcial JSON]", textMap);
+console.log("[Hierarchical JSON]", textMap);
 console.log("[Flat JSON]", textMapFlat);
 ```
 
 ### 2. Table Generation Tool
 
-Generate tabular data from web content using:
-
-* **LLM-based Extraction**: Run large language models to extract tabular data from raw or simplified HTML inputs.
+Generate tabular data from web content using LLM-based extraction with customizable prompts:
 
 ```typescript
 import { getLLMResponse } from "@wordbricks/next-eval/llm/utils/getLLMResponse";
 
-const promptType = "slim" //"flat", "hier";
-const data = slimmHtml // textMapFlat, textMap;
-const temperature = 1.0;
+const promptType = "slim"; // Options: "flat", "hier", "slim"
+const data = slimmedHtml; // Use textMapFlat or textMap for other formats
+const temperature = 1.0; // Control randomness (0.0 to 2.0)
+
 const { text, usage } = await getLLMResponse(data, promptType, temperature);
+
+console.log("Extracted table data:", text);
+console.log("API usage:", usage);
 ```
 
 ### 3. Evaluation Framework
 
+Comprehensive evaluation with precision, recall, F1-score, and detailed overlap analysis:
+
 ```typescript
-import { calculateEvaluationMetrics } from "@next-eva/next-eval/evaluation/utils/calculateEvaluationMetrics
+import { calculateEvaluationMetrics } from "@next-eval/next-eval/evaluation/utils/calculateEvaluationMetrics";
+
 const predictedRecords = [
   [
     "/body/section[1]/div[4]/span[1]",
@@ -125,24 +143,16 @@ const groundTruthRecords = [
   ],
 ];
 
-const { precision, recall, f1, totalOverlap, matches } = calculateEvaluationMetrics(predictedRecords, groundTruthRecords);
-```
+const { precision, recall, f1, totalOverlap, matches } = calculateEvaluationMetrics(
+  predictedRecords, 
+  groundTruthRecords
+);
 
----
-
-## 🏁 Getting Started
-
-This project uses a Turborepo monorepo structure with the following organization:
-- `apps/web` - Next.js web playground for interactive demos
-- `packages/next-eval` - Core library with extraction and evaluation
-- `packages/rust-mdr` - Rust WASM module for MDR algorithms
-
-### Installation
-
-```bash
-git clone https://github.com/your-org/next-eval.git
-cd next-eval
-bun install
+console.log(`Precision: ${precision.toFixed(3)}`);
+console.log(`Recall: ${recall.toFixed(3)}`);
+console.log(`F1-Score: ${f1.toFixed(3)}`);
+console.log(`Total Overlap: ${totalOverlap}`);
+console.log(`Matches: ${matches}`);
 ```
 
 ---
@@ -155,7 +165,8 @@ If you use NEXT-EVAL in your research, please cite:
 @inproceedings{next-eval2025,
   title={NEXT-EVAL: Next Evaluation of Traditional and LLM Web Data Record Extraction},
   author={arXiv},
-  year={2025}
+  year={2025},
+  url={https://arxiv.org/abs/2505.17125}
 }
 ```
 
@@ -169,4 +180,8 @@ We welcome contributions to improve tool coverage, add datasets, or refine evalu
 
 ## 📬 Contact
 
-For questions or collaborations, open an issue or email us at \[[research@wordbricks.ai](mailto:research@wordbricks.ai)].
+Have questions or ideas? We'd love to hear from you. Contact us at [research@wordbricks.ai](mailto:research@wordbricks.ai)
+
+Inspired by our research? We are looking for innovative thinkers to join our team. Please email your resume to [hr@wordbricks.ai](mailto:hr@wordbricks.ai) and be sure to mention our paper.
+
+To see what else we're building, explore our latest technologies at [nextrows.com](https://nextrows.com)

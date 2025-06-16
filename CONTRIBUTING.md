@@ -12,7 +12,7 @@ Thank you for considering contributing to our project! We welcome contributions 
     * [Pull Requests](#pull-requests)
 * [Style Guides](#style-guides)
     * [Git Commit Messages](#git-commit-messages)
-    * [Python Styleguide](#python-styleguide)
+    * [TypeScript/JavaScript Styleguide](#typescriptjavascript-styleguide)
 * [Setting up Your Development Environment](#setting-up-your-development-environment)
 * [Questions?](#questions)
 
@@ -39,7 +39,9 @@ When submitting a bug report, please include the following:
 * **Steps to reproduce the bug:** Provide a minimal, reproducible example if possible.
 * **Your environment:**
     * Operating System and version
-    * Python version
+    * Node.js version
+    * Bun version (if applicable)
+    * TypeScript version
     * NEXT-EVAL version (if applicable, or commit hash)
     * Any other relevant dependencies or environment details.
 * **Screenshots or logs** if they help illustrate the problem.
@@ -90,22 +92,44 @@ We use GitHub Pull Requests to manage code contributions.
 * Limit the first line to 72 characters or less.
 * Reference issues and pull requests liberally after the first line.
 * Consider using [Conventional Commits](https://www.conventionalcommits.org/) for more structured messages, e.g.:
-    * `feat: Add new HTML to FlatJSON conversion option`
-    * `fix: Correct XPath generation in hierarchical JSON`
-    * `docs: Update installation guide`
-    * `test: Add unit tests for scoring engine`
+    * `feat: add new HTML to FlatJSON conversion option`
+    * `fix: correct XPath generation in hierarchical JSON`
+    * `docs: update installation guide`
+    * `test: add unit tests for scoring engine`
 
-### Python Styleguide
+### TypeScript/JavaScript Styleguide
 
-* Follow [PEP 8 -- Style Guide for Python Code](https://www.python.org/dev/peps/pep-0008/).
-* Use a linter like Flake8 or Pylint to check your code.
-* Format your code using a tool like Black or autopep8.
-* Write clear and concise docstrings for all modules, classes, functions, and methods, following [PEP 257 -- Docstring Conventions](https://www.python.org/dev/peps/pep-0257/).
-
+* Follow the project's ESLint and Prettier configurations.
+* Use **TypeScript** for all new code with proper type annotations.
+* Write clear and descriptive **JSDoc comments** for all exported functions, classes, and interfaces.
+* Follow these naming conventions:
+    * Use **camelCase** for variables and functions
+    * Use **PascalCase** for classes, interfaces, and types
+    * Use **UPPER_SNAKE_CASE** for constants
+* Use **early returns** whenever possible to make code more readable.
+* Prefer **const** over **let** when variables won't be reassigned.
+* Use **async/await** instead of Promise chains for better readability.
+* Write **unit tests** for all new functionality using the project's testing framework.
+* Ensure all code passes the linting checks: `bun run lint`
+* Format code using the project's formatter: `bun run format`
+* Check types before committing: `bun run check-types`
 
 ## Setting up Your Development Environment
 
-Please refer to the [Installation Guide](README.md#-getting-started)  in the main README and any specific instructions in `docs/developer_setup.md` for details on setting up your development environment, including installing dependencies and any necessary tools.
+Please refer to the [Installation Guide](README.md#-getting-started) in the main README and any specific instructions in `docs/developer_setup.md` for details on setting up your development environment.
+
+### Prerequisites
+
+* **Node.js** >= 22
+* **Bun** >= 1.2.0 (preferred package manager)
+* **TypeScript** knowledge
+
+### Quick Setup
+
+1. Install dependencies: `bun install`
+2. Run development server: `bun run dev`
+3. Run tests: `bun run test`
+4. Build the project: `bun run build`
 
 ## Questions?
 
