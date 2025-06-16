@@ -2,7 +2,7 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="Next-eval-dark.png">
     <source media="(prefers-color-scheme: light)" srcset="Next-eval-light.png">
-    <img alt="NEXT-EVAL Logo" src="next-eval-light.png" width="300">
+    <img alt="NEXT-EVAL Logo" src="next-eval-light.png" width="350">
   </picture>
 </p>
 
