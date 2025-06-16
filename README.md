@@ -35,7 +35,7 @@ Convert real-world webpage HTML into a compact format for LLM using the followin
 * **HTML to Flat Json**: Structure HTML into a flat JSON format where the key is xpath and the value is the text.
 
 ```typescript
-import { processHtmlContent } from "@next-eval/html-core/utils/processHtmlContent";
+import { processHtmlContent } from "@next-eval/next-eval/html/utils/processHtmlContent";
 
 const htmlString = "<!DOCTYPE html>
 <html lang="en">
@@ -76,8 +76,8 @@ Generate tabular data from web content using:
 
 * **LLM-based Extraction**: Run large language models to extract tabular data from raw or simplified HTML inputs.
 
-```
-import { getLLMResponse } from "@next-eval/llm-core/utils/getLLMResponse";
+```typescript
+import { getLLMResponse } from "@next-eval/next-eval/llm/utils/getLLMResponse";
 
 const promptType = "slim" //"flat", "hier";
 const data = slimmHtml // textMapFlat, textMap;
@@ -87,7 +87,46 @@ const { text, usage } = await getLLMResponse(data, promptType, temperature);
 
 ### 3. Evaluation Framework
 
-TODO
+```typescript
+import { calculateEvaluationMetrics } from "@next-eva/next-eval/evaluation/utils/calculateEvaluationMetrics
+const predictedRecords = [
+  [
+    "/body/section[1]/div[4]/span[1]",
+    "/body/section[1]/div[4]/span[2]",
+    "/body/section[1]/div[4]/a[1]",
+  ],
+  [
+    "/body/section[1]/div[2]/span[1]",
+    "/body/section[1]/div[2]/span[2]",
+    "/body/section[1]/div[2]/a[1]",
+  ],
+  [
+    "/body/section[1]/div[3]/span[1]",
+    "/body/section[1]/div[3]/span[2]",
+    "/body/section[1]/div[3]/a[1]",
+  ],
+];
+
+const groundTruthRecords = [
+  [
+    "/body/section[1]/div[3]/span[1]",
+    "/body/section[1]/div[3]/a[1]",
+    "/body/section[1]/div[3]/button[1]",
+  ],
+  [
+    "/body/section[1]/div[2]/span[1]",
+    "/body/section[1]/div[2]/a[1]",
+    "/body/section[1]/div[2]/span[3]",
+  ],
+  [
+    "/body/section[1]/div[5]/span[1]",
+    "/body/section[1]/div[5]/span[2]",
+    "/body/section[1]/div[5]/a[1]",
+  ],
+];
+
+const { precision, recall, f1, totalOverlap, matches } = calculateEvaluationMetrics(predictedRecords, groundTruthRecords);
+```
 
 ---
 
@@ -95,9 +134,7 @@ TODO
 
 This project uses a Turborepo monorepo structure with the following organization:
 - `apps/web` - Next.js web playground for interactive demos
-- `packages/core` - Core library with extraction and evaluation scripts
-- `packages/shared` - Shared utilities and interfaces
-- `packages/llm-core` - Shared utilities and interfaces
+- `packages/next-eval` - Core library with extraction and evaluation
 - `packages/rust-mdr` - Rust WASM module for MDR algorithms
 
 ### Installation
@@ -106,38 +143,6 @@ This project uses a Turborepo monorepo structure with the following organization
 git clone https://github.com/your-org/next-eval.git
 cd next-eval
 bun install
-```
-
-### Development
-
-```bash
-# Run the web playground
-bun run dev
-
-# Build all packages
-bun run build
-
-# Run linting
-bun run lint
-
-# Type checking
-bun run check-types
-```
-
-### Core Library Scripts
-
-```bash
-# Preprocess HTML for LLM
-bun run preprocess
-
-# Run LLM extraction
-bun run runLLM
-
-# Run MDR algorithm
-bun run mdr
-
-# Evaluate results
-bun run evaluate
 ```
 
 ---
