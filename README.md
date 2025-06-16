@@ -76,27 +76,50 @@ This enables reproducible comparisons across techniques and tasks, such as:
 
 ## 🏁 Getting Started
 
+This project uses a Turborepo monorepo structure with the following organization:
+- `apps/web` - Next.js web playground for interactive demos
+- `packages/core` - Core library with extraction and evaluation scripts
+- `packages/shared` - Shared utilities and interfaces
+- `packages/rust-mdr` - Rust WASM module for MDR algorithms
+
+### Installation
+
 ```bash
 git clone https://github.com/your-org/next-eval.git
 cd next-eval
-pip install -r requirements.txt
+bun install
 ```
 
-### Run the Full Pipeline
+### Development
 
 ```bash
-# Download and convert webpage to MHTML
-python tools/download_mhtml.py --url https://example.com --output example.mhtml
+# Run the web playground
+bun run dev
 
-# Convert MHTML to slim HTML and JSON
-python tools/convert_html.py --input example.mhtml --format slim
-python tools/convert_html.py --input example.slim.html --format json
+# Build all packages
+bun run build
 
-# Generate table using LLM
-python generate_table_llm.py --input example.slim.html
+# Run linting
+bun run lint
 
-# Evaluate
-python eval/evaluate.py --pred output.json --gt ground_truth.json
+# Type checking
+bun run check-types
+```
+
+### Core Library Scripts
+
+```bash
+# Preprocess HTML for LLM
+bun run preprocess
+
+# Run LLM extraction
+bun run runLLM
+
+# Run MDR algorithm
+bun run mdr
+
+# Evaluate results
+bun run evaluate
 ```
 
 ---

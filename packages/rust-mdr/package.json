@@ -1,0 +1,14 @@
+{
+  "name": "@next-eval/rust-mdr",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./pkg/rust_mdr_utils.js",
+  "types": "./pkg/rust_mdr_utils.d.ts",
+  "scripts": {
+    "build": "wasm-pack build --target web --out-dir pkg",
+    "lint": "biome check --diagnostic-level=error",
+    "format": "biome format --fix"
+  },
+  "files": ["pkg"],
+  "packageManager": "bun@1.2.15"
+}
