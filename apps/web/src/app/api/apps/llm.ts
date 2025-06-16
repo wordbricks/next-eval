@@ -1,8 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { getLLMResponse } from "@next-eval/llm-core/utils/getLLMResponse";
-import type { LLMResponse } from "@next-eval/shared/interfaces/LLMResponse";
-import type { PromptType } from "@next-eval/shared/interfaces/types";
+import { getLLMResponse } from "@next-eval/next-eval/llm/utils/getLLMResponse";
+import type { LLMResponse } from "@next-eval/next-eval/shared/interfaces/LLMResponse";
+import type { PromptType } from "@next-eval/next-eval/shared/interfaces/types";
 import { Hono } from "hono";
 
 const llmApp = new Hono();
