@@ -1,42 +1,3 @@
-# Rust MDR Implementation
-
-A high-performance Rust + WASM implementation of the MDR (Mining Data Records) algorithm, providing significant speed improvements over the TypeScript version.
-
-## Performance
-
-Benchmarked improvements over TypeScript implementation:
-- **10KB files**: 3.2× faster
-- **100KB files**: 8.8× faster  
-- **1MB files**: 16.6× faster
-
-## Architecture
-
-### Core Modules
-
-- **types.rs**: Core data structures with serde support
-  - `TagNode`: Tree node representation with caching
-  - `DataRegion`: Tuple representing region boundaries
-  - `DataRecord`: Single or multiple tag nodes
-
-- **tree_utils.rs**: Tree traversal and manipulation
-  - Efficient string flattening with caching
-  - XPath-based node lookup
-
-- **similarity.rs**: LCS-based edit distance matching TypeScript
-  - Formula: `(len1 + len2 - 2*lcs) / ((len1 + len2) / 2)`
-  - Optimized for DOM tree comparison
-
-- **mdr_algorithm.rs**: Core MDR algorithm
-  - `ident_drs`: Identifies data regions
-  - `find_drs_recursive`: Recursive region finding
-
-- **record_extraction.rs**: Record extraction logic
-  - `find_records1`: Single node record finding
-  - `find_records_n`: Multi-node record finding
-  - Orphan record detection
-
-- **wasm_bindings.rs**: JavaScript interop layer
-
 ### Key Optimizations
 
 1. **String Caching**: `RefCell<Option<String>>` prevents repeated flattening
@@ -131,13 +92,3 @@ cargo clippy -- -D warnings
 # Format code
 cargo fmt
 ```
-
-## Migration Notes
-
-The Rust implementation maintains full compatibility with the TypeScript version:
-- Same algorithm logic
-- Identical edit distance calculation
-- Compatible data structures via serde
-- Drop-in replacement for existing code
-
-The only required change is updating the import statements to use the WASM module instead of the TypeScript implementation.
