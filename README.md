@@ -12,8 +12,7 @@ Welcome to **NEXT-EVAL**, a comprehensive toolkit for the rigorous evaluation an
 
 **NEXT-EVAL** is an open-source library accompanying the NeurIPS 2025 paper:
 
-> 📄 **NEXT-EVAL: Next Evaluation of Traditional and LLM Web Data Record Extraction**
-> \[ https://arxiv.org/abs/2505.17125 ]
+> 📄 **NEXT-EVAL: Next Evaluation of Traditional and LLM Web Data Record Extraction** [\[https://arxiv.org/abs/2505.17125\]](https://arxiv.org/abs/2505.17125)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-brightgreen.svg?style=flat)](CONTRIBUTING.md)
 [![Paper](https://img.shields.io/badge/Read%20the%20Paper-blue)](https://arxiv.org/abs/2505.17125) 
