@@ -10,17 +10,11 @@
     "format": "biome format --fix",
     "check-types": "tsc --noEmit"
   },
-  "dependencies": {
-    "node-html-parser": "^7.0.1",
-    "munkres-js": "1.2.2",
-    "zod": "^3.22.4",
-    "mustache": "4.2.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@next-eval/tsconfig": "workspace:*",
     "@types/node": "22.14.0",
-    "typescript": "5.8.3",
-    "@types/mustache": "^4.2.6"
+    "typescript": "5.8.3"
   },
   "packageManager": "bun@1.2.15"
 }
