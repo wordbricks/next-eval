@@ -1,4 +1,4 @@
-import type { TagNode } from "@next-eval/next-eval/shared/interfaces/TagNode";
+import type { TagNode } from "@wordbricks/next-eval/shared/interfaces/TagNode";
 import {
   type HTMLElement,
   type Node,

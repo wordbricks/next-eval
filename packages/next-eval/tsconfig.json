@@ -4,7 +4,7 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "@next-eval/next-eval/*": ["./src/*"]
+      "@wordbricks/next-eval/*": ["./src/*"]
     }
   },
   "include": ["src/**/*"],

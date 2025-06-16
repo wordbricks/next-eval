@@ -35,7 +35,7 @@ Convert real-world webpage HTML into a compact format for LLM using the followin
 * **HTML to Flat Json**: Structure HTML into a flat JSON format where the key is xpath and the value is the text.
 
 ```typescript
-import { processHtmlContent } from "@next-eval/next-eval/html/utils/processHtmlContent";
+import { processHtmlContent } from "@wordbricks/next-eval/html/utils/processHtmlContent";
 
 const htmlString = "<!DOCTYPE html>
 <html lang="en">
@@ -77,7 +77,7 @@ Generate tabular data from web content using:
 * **LLM-based Extraction**: Run large language models to extract tabular data from raw or simplified HTML inputs.
 
 ```typescript
-import { getLLMResponse } from "@next-eval/next-eval/llm/utils/getLLMResponse";
+import { getLLMResponse } from "@wordbricks/next-eval/llm/utils/getLLMResponse";
 
 const promptType = "slim" //"flat", "hier";
 const data = slimmHtml // textMapFlat, textMap;

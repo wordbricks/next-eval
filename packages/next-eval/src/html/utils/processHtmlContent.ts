@@ -1,4 +1,4 @@
-import type { NestedTextMap } from "@next-eval/next-eval/shared/interfaces/HtmlResult";
+import type { NestedTextMap } from "@wordbricks/next-eval/shared/interfaces/HtmlResult";
 import { extractTextWithXPaths } from "./extractTextWithXPaths";
 import { slimHtml } from "./slimHtml";
 

@@ -1,7 +1,7 @@
 import { google } from "@ai-sdk/google";
-import { loadPromptContent } from "@next-eval/next-eval/llm/prompts/promptLoader";
-import type { LLMUsage } from "@next-eval/next-eval/shared/interfaces/LLMResponse";
-import type { PromptType } from "@next-eval/next-eval/shared/interfaces/types";
+import { loadPromptContent } from "@wordbricks/next-eval/llm/prompts/promptLoader";
+import type { LLMUsage } from "@wordbricks/next-eval/shared/interfaces/LLMResponse";
+import type { PromptType } from "@wordbricks/next-eval/shared/interfaces/types";
 import { generateText } from "ai";
 import { GEMINI_PRO_2_5_PREVIEW_03 } from "../constants";
 

@@ -1,6 +1,6 @@
 // WASM loader for the complete Rust MDR implementation
 
-import type { TagNode } from "@next-eval/next-eval/shared/interfaces/TagNode";
+import type { TagNode } from "@wordbricks/next-eval/shared/interfaces/TagNode";
 
 export interface RegionsMapItem {
   parent_xpath: string;

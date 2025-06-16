@@ -1,8 +1,8 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { runMDRWithDetails } from "@/lib/utils/runMDR";
-import { slimHtml } from "@next-eval/next-eval/html/utils/slimHtml";
-import type { TagNode } from "@next-eval/next-eval/shared/interfaces/TagNode";
+import { slimHtml } from "@wordbricks/next-eval/html/utils/slimHtml";
+import type { TagNode } from "@wordbricks/next-eval/shared/interfaces/TagNode";
 import { JSDOM } from "jsdom";
 import { beforeAll, describe, expect, it } from "vitest";
 

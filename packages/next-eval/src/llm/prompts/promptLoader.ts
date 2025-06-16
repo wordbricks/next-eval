@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { PromptType } from "@next-eval/next-eval/shared/interfaces/types";
+import type { PromptType } from "@wordbricks/next-eval/shared/interfaces/types";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

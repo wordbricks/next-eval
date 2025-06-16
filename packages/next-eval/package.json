@@ -1,5 +1,5 @@
 {
-  "name": "@next-eval/next-eval",
+  "name": "@wordbricks/next-eval",
   "version": "0.0.1",
   "type": "module",
   "exports": {
