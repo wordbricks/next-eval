@@ -57,6 +57,15 @@
       "cache": true,
       "inputs": ["src/**/*.ts", "output/**"],
       "outputs": ["results/**"]
+    },
+    "test": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "test:bench": {
+      "cache": false,
+      "dependsOn": ["^build"]
     }
   }
 }
