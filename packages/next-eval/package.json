@@ -1,0 +1,28 @@
+{
+  "name": "@next-eval/next-eval",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "lint": "biome check --diagnostic-level=error",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "node-html-parser": "^7.0.1",
+    "munkres-js": "1.2.2",
+    "zod": "^3.22.4",
+    "ai": "4.3.2",
+    "@ai-sdk/google": "1.2.8",
+    "@google/generative-ai": "^0.11.3",
+    "mustache": "4.2.0"
+  },
+  "devDependencies": {
+    "@next-eval/tsconfig": "workspace:*",
+    "@types/node": "22.14.0",
+    "typescript": "5.8.3",
+    "@types/mustache": "^4.2.6"
+  },
+  "packageManager": "bun@1.2.15"
+}

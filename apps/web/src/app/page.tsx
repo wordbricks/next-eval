@@ -11,9 +11,9 @@ import ThumbsDownIcon from "@/components/icons/ThumbsDownIcon";
 import ThumbsUpIcon from "@/components/icons/ThumbsUpIcon";
 import { readFileAsText } from "@/lib/utils/readFileAsText";
 import { runMDR } from "@/lib/utils/runMDR";
-import { mapResponseToFullXPath } from "@next-eval/evaluation-core/utils/mapResponseToFullXPath";
-import { processHtmlContent } from "@next-eval/html-core/utils/processHtmlContent";
-import type { ExtendedHtmlResult } from "@next-eval/shared/interfaces/HtmlResult";
+import { mapResponseToFullXpath } from "@next-eval/next-eval/evaluation/utils/mapResponseToFullXpath";
+import { processHtmlContent } from "@next-eval/next-eval/html/utils/processHtmlContent";
+import type { ExtendedHtmlResult } from "@next-eval/next-eval/shared/interfaces/HtmlResult";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -399,7 +399,7 @@ export default function HomePage() {
         string,
         string
       >;
-      const mdrFullXPaths = mapResponseToFullXPath(
+      const mdrFullXPaths = mapResponseToFullXpath(
         textMapFlatForEval,
         validatedMdrXPaths,
       );
@@ -519,7 +519,7 @@ export default function HomePage() {
             }
 
             const localNumPredictedRecords = stageData.predictXpathList.length;
-            const mappedPredRecords = mapResponseToFullXPath(
+            const mappedPredRecords = mapResponseToFullXpath(
               textMapFlatForEval,
               stageData.predictXpathList,
             );
