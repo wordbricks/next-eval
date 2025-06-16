@@ -1,0 +1,55 @@
+name: CI-Main
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  DO_NOT_TRACK: 1
+  NEXT_TELEMETRY_DISABLED: 1
+  NODE_OPTIONS: ${{ vars.NODE_OPTIONS }}
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  CI:
+    name: CI-Main
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@main
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: ".bun-version"
+
+      # - name: Create root env file
+      #   env:
+      #     dotenvx_keys: ${{ secrets.DOTENVX_KEYS }}
+      #   run: |
+      #     echo "$dotenvx_keys" > ./.env.keys
+
+      - run: bun i -g @antfu/ni
+      - run: ni --ignore-scripts
+
+      - name: Lint
+        run: nr lint --affected
+
+      - name: test
+        run: nr test
+
+      - name: Build
+        run: nr build -F web
+        env:
+          TARGET_ENV: production
+
+      # - name: Sync Linear
+      #   run: nr linear:sync
+      #   env:
+      #     LINEAR_OAUTH_TOKEN: ${{ secrets.LINEAR_OAUTH_TOKEN }}
