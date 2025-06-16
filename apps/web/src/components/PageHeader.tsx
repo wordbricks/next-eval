@@ -16,8 +16,8 @@ export const PageHeader = () => {
 
       <div className="mb-4 text-center">
         <p className="mx-auto max-w-2xl text-gray-600 text-lg leading-relaxed">
-          Compare the performance of traditional and LLM-based methods by
-          uploading an HTML file or fetching any live URL
+          Compare the performance of traditional algorithm and LLM-based methods
+          by uploading an HTML file or fetching any live URL
         </p>
       </div>
 
