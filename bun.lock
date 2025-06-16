@@ -83,15 +83,8 @@
     "packages/html-core": {
       "name": "@next-eval/html-core",
       "version": "0.0.1",
-      "dependencies": {
-        "munkres-js": "1.2.2",
-        "mustache": "4.2.0",
-        "node-html-parser": "^7.0.1",
-        "zod": "^3.22.4",
-      },
       "devDependencies": {
         "@next-eval/tsconfig": "workspace:*",
-        "@types/mustache": "^4.2.6",
         "@types/node": "22.14.0",
         "typescript": "5.8.3",
       },

@@ -1,7 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { runMDRWithDetails } from "@/lib/utils/runMDR";
-import { slimHtml } from "@/lib/utils/slimHtml";
+import { slimHtml } from "@next-eval/html-core/utils/slimHtml";
 import { JSDOM } from "jsdom";
 import { beforeAll, describe, expect, it } from "vitest";
 
