@@ -1,11 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { GEMINI_PRO_2_5_PREVIEW_03 } from "@/app/api/utils/constants";
-import { google } from "@ai-sdk/google";
+import { getLLMResponse } from "@next-eval/llm-core/utils/getLLMResponse";
 import type { LLMResponse } from "@next-eval/shared/interfaces/LLMResponse";
 import type { PromptType } from "@next-eval/shared/interfaces/types";
-import { loadPromptContent } from "@next-eval/shared/prompts/promptLoader";
-import { generateText } from "ai";
 import { Hono } from "hono";
 
 const llmApp = new Hono();
@@ -73,18 +70,8 @@ llmApp.post("/", async (c) => {
     if (!promptType || !["slim", "flat", "hier"].includes(promptType)) {
       return c.json({ error: "Invalid prompt type" } as LLMResponse, 400);
     }
-
-    // Generate text using AI
-    const systemPromptContent = await loadPromptContent(promptType);
-    const combinedPrompt = `${systemPromptContent}\n\nInput Data:\n${data}`;
     const temperature = 1.0;
-
-    const { text, usage } = await generateText({
-      model: google(GEMINI_PRO_2_5_PREVIEW_03),
-      prompt: combinedPrompt,
-      temperature: temperature,
-    });
-
+    const { text, usage } = await getLLMResponse(data, promptType, temperature);
     const responsePayload: LLMResponse = {
       content: text || "```json[]```",
       usage: usage
