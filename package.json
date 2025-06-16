@@ -15,7 +15,8 @@
     "preprocess": "turbo run preprocess --filter=@next-eval/core",
     "runLLM": "turbo run runLLM --filter=@next-eval/core",
     "mdr": "turbo run mdr --filter=@next-eval/core",
-    "evaluate": "turbo run evaluate --filter=@next-eval/core"
+    "evaluate": "turbo run evaluate --filter=@next-eval/core",
+    "test": "turbo run test"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
