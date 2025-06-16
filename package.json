@@ -12,6 +12,7 @@
     "format": "turbo format",
     "clean": "turbo clean",
     "check-types": "turbo check-types",
+    "add:component": "cd packages/ui && bun run add:component",
     "preprocess": "turbo run preprocess --filter=@next-eval/core",
     "runLLM": "turbo run runLLM --filter=@next-eval/core",
     "mdr": "turbo run mdr --filter=@next-eval/core",
