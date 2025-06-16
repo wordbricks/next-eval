@@ -1,7 +1,23 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
-:root {
-  --accent-color: oklch(0.7048 0.1868 47.6);
+@theme {
+  --color-white: #ffffff;
+  --color-gray-200: #edf2f7;
+  --color-accent: oklch(0.7048 0.1868 47.6);
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@layer base {
+  body {
+    background-color: var(--color-white);
+  }
 }

@@ -77,7 +77,11 @@
       "**/node_modules",
       "**/.next",
       "**/dist",
-      "**/public/rust_mdr_pkg"
+      "**/public/rust_mdr_pkg",
+      "packages/rust-mdr/pkg",
+      "packages/rust-mdr/target",
+      "**/.claude/settings.local.json",
+      "apps/web/src/assets/**"
     ]
   },
   "formatter": {
@@ -89,7 +93,11 @@
       "**/node_modules",
       "**/.next",
       "**/dist",
-      "**/public/rust_mdr_pkg"
+      "**/public/rust_mdr_pkg",
+      "packages/rust-mdr/pkg",
+      "packages/rust-mdr/target",
+      "**/.claude/settings.local.json",
+      "apps/web/src/assets/**"
     ]
   },
   "organizeImports": {
@@ -98,7 +106,11 @@
       "**/node_modules",
       "**/.next",
       "**/dist",
-      "**/public/rust_mdr_pkg"
+      "**/public/rust_mdr_pkg",
+      "packages/rust-mdr/pkg",
+      "packages/rust-mdr/target",
+      "**/.claude/settings.local.json",
+      "apps/web/src/assets/**"
     ]
   },
   "javascript": {
@@ -118,7 +130,9 @@
       "**/dist",
       "**/node_modules",
       "**/rust_mdr_pkg/*.js",
-      "**/pkg/*.js"
+      "**/pkg/*.js",
+      "**/.claude/settings.local.json",
+      "apps/web/src/assets/**"
     ]
   }
 }
