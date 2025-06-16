@@ -129,7 +129,7 @@
       "**/.next",
       "**/dist",
       "**/node_modules",
-      "**/rust_mdr_pkg/*.js",
+      "**/rust_mdr_pkg",
       "**/pkg/*.js",
       "**/.claude/settings.local.json",
       "apps/web/src/assets/**"

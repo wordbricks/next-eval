@@ -5,7 +5,7 @@ import ThumbsDownIcon from "@/components/icons/ThumbsDownIcon";
 import ThumbsUpIcon from "@/components/icons/ThumbsUpIcon";
 import { useMdr } from "@/hooks/useMdr";
 import { Progress } from "@next-eval/ui/components/progress";
-import type { ExtendedHtmlResult } from "@wordbricks/next-eval/shared/interfaces/HtmlResult";
+import type { ExtendedHtmlResult } from "@wordbricks/next-eval";
 import { useState } from "react";
 
 interface MdrTabProps {

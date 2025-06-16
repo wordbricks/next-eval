@@ -12,9 +12,11 @@ import DownloadIcon from "@/components/icons/DownloadIcon";
 import ThumbsDownIcon from "@/components/icons/ThumbsDownIcon";
 import ThumbsUpIcon from "@/components/icons/ThumbsUpIcon";
 import { readFileAsText } from "@/lib/utils/readFileAsText";
-import { mapResponseToFullXpath } from "@wordbricks/next-eval/evaluation/utils/mapResponseToFullXpath";
-import { processHtmlContent } from "@wordbricks/next-eval/html/utils/processHtmlContent";
-import type { ExtendedHtmlResult } from "@wordbricks/next-eval/shared/interfaces/HtmlResult";
+import {
+  type ExtendedHtmlResult,
+  mapResponseToFullXpath,
+  processHtmlContent,
+} from "@wordbricks/next-eval";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";

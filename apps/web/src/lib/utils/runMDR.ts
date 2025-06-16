@@ -1,6 +1,8 @@
-import { removeCommentScriptStyleFromHTML } from "@wordbricks/next-eval/html/utils/removeCommentScriptStyleFromHTML";
-import type { TagNode } from "@wordbricks/next-eval/shared/interfaces/TagNode";
-import { buildTagTree } from "@wordbricks/next-eval/shared/utils/buildTagTree";
+import {
+  type TagNode,
+  buildTagTree,
+  removeCommentScriptStyleFromHTML,
+} from "@wordbricks/next-eval";
 import { parse } from "node-html-parser";
 
 // MDR (Mining Data Region) constants

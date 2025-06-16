@@ -41,7 +41,7 @@ export const calculateEvaluationMetrics = (
 
   // Use munkres to find the optimal assignment (indices of matched pairs)
   // munkres-js handles rectangular matrices
-  const K = Math.min(M, N);
+  const _K = Math.min(M, N);
   const assignmentIndices: [number, number][] = munkres(costMatrix); // Returns array of pairs [predIndex, gtIndex]
 
   // Calculate the total overlap sum from the optimal matching

@@ -1,4 +1,4 @@
-import type { NestedTextMap } from "@wordbricks/next-eval/shared/interfaces/HtmlResult";
+import type { NestedTextMap } from "../../shared/interfaces/HtmlResult";
 import { generateXPath } from "./generateXPath";
 
 // Helper function to extract text and build flat/hierarchical maps

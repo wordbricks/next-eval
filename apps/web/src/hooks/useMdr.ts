@@ -6,8 +6,10 @@ import {
   mdrResponseAtom,
 } from "@/atoms/mdr";
 import { runMDR } from "@/lib/utils/runMDR";
-import { mapResponseToFullXpath } from "@wordbricks/next-eval/evaluation/utils/mapResponseToFullXpath";
-import type { ExtendedHtmlResult } from "@wordbricks/next-eval/shared/interfaces/HtmlResult";
+import {
+  type ExtendedHtmlResult,
+  mapResponseToFullXpath,
+} from "@wordbricks/next-eval";
 import { useAtom } from "jotai";
 import { useCallback } from "react";
 

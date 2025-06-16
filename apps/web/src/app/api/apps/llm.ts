@@ -1,8 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { getLLMResponse } from "@wordbricks/next-eval/llm/utils/getLLMResponse";
-import type { LLMResponse } from "@wordbricks/next-eval/shared/interfaces/LLMResponse";
-import type { PromptType } from "@wordbricks/next-eval/shared/interfaces/types";
+import type { LLMResponse, PromptType } from "@wordbricks/next-eval";
+import { getLLMResponse } from "@wordbricks/next-eval/server";
 import { Hono } from "hono";
 
 const llmApp = new Hono();

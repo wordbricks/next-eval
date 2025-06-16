@@ -1,7 +1,7 @@
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { runMDRWithDetails } from "@/lib/utils/runMDR";
-import { slimHtml } from "@wordbricks/next-eval/html/utils/slimHtml";
+import { slimHtml } from "@wordbricks/next-eval";
 import { JSDOM } from "jsdom";
 
 /**

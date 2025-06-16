@@ -1,9 +1,9 @@
 import { google } from "@ai-sdk/google";
-import { loadPromptContent } from "@wordbricks/next-eval/llm/prompts/promptLoader";
-import type { LLMUsage } from "@wordbricks/next-eval/shared/interfaces/LLMResponse";
-import type { PromptType } from "@wordbricks/next-eval/shared/interfaces/types";
 import { generateText } from "ai";
+import type { LLMUsage } from "../../shared/interfaces/LLMResponse";
+import type { PromptType } from "../../shared/interfaces/types";
 import { GEMINI_PRO_2_5_PREVIEW_03 } from "../constants";
+import { loadPromptContent } from "../prompts/promptLoader";
 
 export const getLLMResponse = async (
   data: string,

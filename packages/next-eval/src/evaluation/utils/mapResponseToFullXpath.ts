@@ -22,7 +22,7 @@ export const mapResponseToFullXpath = (
           }
           if (!/\[\d+\]$/.test(segment)) {
             // If segment is not empty and does not end with [number]
-            return segment + "[1]";
+            return `${segment}[1]`;
           }
           return segment;
         });

@@ -1,10 +1,10 @@
-import type { TagNode } from "@wordbricks/next-eval/shared/interfaces/TagNode";
 import {
   type HTMLElement,
   type Node,
   NodeType,
   type TextNode,
 } from "node-html-parser";
+import type { TagNode } from "../interfaces/TagNode";
 
 export function buildTagTree(domNode: Node, parentElementXPath = ""): TagNode {
   if (!domNode) {
