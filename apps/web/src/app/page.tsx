@@ -14,6 +14,7 @@ import { runMDR } from "@/lib/utils/runMDR";
 import { mapResponseToFullXpath } from "@next-eval/next-eval/evaluation/utils/mapResponseToFullXpath";
 import { processHtmlContent } from "@next-eval/next-eval/html/utils/processHtmlContent";
 import type { ExtendedHtmlResult } from "@next-eval/next-eval/shared/interfaces/HtmlResult";
+import { Progress } from "@next-eval/ui/components/progress";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -36,6 +37,7 @@ interface MdrResponseState {
   numPredictedRecords: number | null;
   isLoading: boolean;
   error: string | null;
+  progress: number;
 }
 
 interface LlmAllResponses {
@@ -64,6 +66,7 @@ const initialMdrResponseState: MdrResponseState = {
   numPredictedRecords: null,
   isLoading: false,
   error: null,
+  progress: 0,
 };
 
 // Helper function for timeout
@@ -370,9 +373,17 @@ export default function HomePage() {
     });
 
     try {
+      // Progress callback to update the progress bar
+      const progressCallback = (progress: number) => {
+        setMdrResponse((prev) => ({
+          ...prev,
+          progress,
+        }));
+      };
+
       // Assuming runMDR is not excessively long-running for now.
       // For very large HTML or complex MDR, consider a Web Worker.
-      const mdrPromise = runMDR(processedData.html);
+      const mdrPromise = runMDR(processedData.html, true, progressCallback);
       const mdrPredictedXPaths = await timeoutPromise(
         mdrPromise,
         60000, // 1 minute in milliseconds
@@ -421,6 +432,7 @@ export default function HomePage() {
         numPredictedRecords: validatedMdrXPaths.length,
         isLoading: false,
         error: null,
+        progress: 100,
       });
     } catch (error) {
       console.error("Error running MDR:", error);
@@ -1480,9 +1492,18 @@ export default function HomePage() {
                       MDR Algorithm Response
                     </h3>
                     {mdrResponse.isLoading && (
-                      <p className="animate-pulse font-medium text-blue-600 text-md">
-                        Processing with MDR, please wait...
-                      </p>
+                      <div className="space-y-3">
+                        <p className="animate-pulse font-medium text-blue-600 text-md">
+                          Processing with MDR, please wait...
+                        </p>
+                        <Progress
+                          value={mdrResponse.progress}
+                          className="w-full"
+                        />
+                        <p className="text-center text-gray-600 text-sm">
+                          {mdrResponse.progress}% complete
+                        </p>
+                      </div>
                     )}
                     {mdrResponse.error && (
                       <div

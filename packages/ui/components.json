@@ -11,10 +11,10 @@
   },
   "iconLibrary": "lucide",
   "aliases": {
-    "components": "@ui/components",
-    "utils": "@ui/lib/utils",
-    "hooks": "@ui/hooks",
-    "lib": "@ui/lib",
-    "ui": "@ui/components"
+    "components": "@next-eval/ui/components",
+    "utils": "@next-eval/ui/lib/utils",
+    "hooks": "@next-eval/ui/hooks",
+    "lib": "@next-eval/ui/lib",
+    "ui": "@next-eval/ui/components"
   }
 }

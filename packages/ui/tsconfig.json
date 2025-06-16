@@ -6,7 +6,7 @@
     "baseUrl": ".",
     "jsx": "react-jsx",
     "paths": {
-      "@ui/*": ["./src/*"]
+      "@next-eval/ui/*": ["./src/*"]
     }
   }
 }

@@ -23,6 +23,7 @@
     "@supabase/supabase-js": "2.49.8",
     "@t3-oss/env-core": "0.13.8",
     "@t3-oss/env-nextjs": "0.13.8",
+    "@next-eval/ui": "workspace:*",
     "ai": "4.3.2",
     "dotenv": "16.4.7",
     "hono": "4.7.10",

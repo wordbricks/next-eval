@@ -1,4 +1,4 @@
-import { useMediaQuery } from "@ui/hooks/useMediaQuery";
+import { useMediaQuery } from "@next-eval/ui/hooks/useMediaQuery";
 
 const MOBILE_BREAKPOINT = 768;
 

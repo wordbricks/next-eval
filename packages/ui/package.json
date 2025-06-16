@@ -1,11 +1,10 @@
 {
-  "name": "@ui",
+  "name": "@next-eval/ui",
   "version": "0.0.1",
   "type": "module",
   "private": true,
   "sideEffects": false,
   "exports": {
-    "./globals.css": "./src/styles/globals.css",
     "./lib/*": "./src/lib/*.ts",
     "./utils/*": "./src/utils/*.ts",
     "./components/*": "./src/components/*.tsx",

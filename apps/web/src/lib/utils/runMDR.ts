@@ -541,6 +541,7 @@ function extractTextsFromRecords(records: DataRecord[]): string[] {
 export async function runMDRWithDetails(
   rawHtml: string,
   useRust = true,
+  progressCallback?: (progress: number) => void,
 ): Promise<MDRResult> {
   const cleanedHtml = removeCommentScriptStyleFromHTML(rawHtml);
   const rootDom = parse(cleanedHtml, {
@@ -564,7 +565,9 @@ export async function runMDRWithDetails(
   // Use Rust implementation if requested
   if (useRust) {
     try {
+      progressCallback?.(10); // Start progress
       const result = await runRustMDR(rootNode, MDR_K, MDR_T);
+      progressCallback?.(90); // Almost done
       finalRecords = result.finalRecords;
     } catch (error) {
       console.error("Rust MDR failed, falling back to TypeScript:", error);
@@ -575,17 +578,25 @@ export async function runMDRWithDetails(
 
   if (!useRust) {
     // TypeScript implementation
+    progressCallback?.(5); // Starting
     await initializeWasm();
+    progressCallback?.(10); // WASM initialized
 
     // Step 1 & 2: Find Data Regions
+    progressCallback?.(20); // Starting data region detection
     const allDataRegions = await runMDRAlgorithm(rootNode, MDR_K, MDR_T);
+    progressCallback?.(50); // Data regions found
 
     // Step 3: Identify Records from Regions (with adjacent merging)
+    progressCallback?.(60); // Identifying records
     const initialRecords = await identifyAllDataRecords(allDataRegions, MDR_T);
+    progressCallback?.(80); // Records identified
 
     // Step 4: Find Orphan Records
+    progressCallback?.(85); // Finding orphan records
     const orphanRecordsSet = await findOrphanRecords(allDataRegions, MDR_T);
     const orphanRecords = Array.from(orphanRecordsSet);
+    progressCallback?.(90); // Orphan records found
 
     // Combine and Finalize Records
     finalRecords = [...initialRecords];
@@ -625,6 +636,8 @@ export async function runMDRWithDetails(
   // Extract texts
   const texts = extractTextsFromRecords(finalRecords);
 
+  progressCallback?.(100); // Complete
+
   return {
     xpaths,
     records: finalRecords,
@@ -635,6 +648,7 @@ export async function runMDRWithDetails(
 export async function runMDR(
   rawHtml: string,
   useRust = true,
+  progressCallback?: (progress: number) => void,
 ): Promise<string[][]> {
   const cleanedHtml = removeCommentScriptStyleFromHTML(rawHtml);
   const rootDom = parse(cleanedHtml, {
@@ -656,7 +670,9 @@ export async function runMDR(
   // Use Rust implementation if requested
   if (useRust) {
     try {
+      progressCallback?.(10); // Start progress
       const { finalRecords } = await runRustMDR(rootNode, MDR_K, MDR_T);
+      progressCallback?.(90); // Almost done
 
       // Convert to XPath arrays
       const finalRecordXpaths: string[][] = finalRecords
@@ -675,6 +691,7 @@ export async function runMDR(
         })
         .filter((xpathArray) => xpathArray.length > 0);
 
+      progressCallback?.(100); // Complete
       return finalRecordXpaths;
     } catch (error) {
       console.error("Rust MDR failed, falling back to TypeScript:", error);
@@ -683,15 +700,23 @@ export async function runMDR(
   }
 
   // TypeScript implementation (fallback or when flag is disabled)
+  progressCallback?.(5); // Starting
   await initializeWasm();
+  progressCallback?.(10); // WASM initialized
 
   // Step 1 & 2: Find Data Regions
+  progressCallback?.(20); // Starting data region detection
   const allDataRegions = await runMDRAlgorithm(rootNode, MDR_K, MDR_T);
+  progressCallback?.(50); // Data regions found
   // Step 3: Identify Records from Regions (with adjacent merging)
+  progressCallback?.(60); // Identifying records
   const initialRecords = await identifyAllDataRecords(allDataRegions, MDR_T);
+  progressCallback?.(80); // Records identified
   // Step 4: Find Orphan Records
+  progressCallback?.(85); // Finding orphan records
   const orphanRecordsSet = await findOrphanRecords(allDataRegions, MDR_T);
   const orphanRecords = Array.from(orphanRecordsSet);
+  progressCallback?.(90); // Orphan records found
 
   // Combine and Finalize Records
   const finalRecords: DataRecord[] = [...initialRecords];
@@ -734,5 +759,7 @@ export async function runMDR(
       return []; // Return empty array for invalid entries
     })
     .filter((xpathArray) => xpathArray.length > 0); // Filter out records that became empty
+
+  progressCallback?.(100); // Complete
   return finalRecordXpaths;
 }
