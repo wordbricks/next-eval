@@ -1,17 +1,17 @@
 "use client";
 
+import { handleDownload } from "@/app/utils/handleDownload";
+import {
+  type ValidatedXpathArray,
+  parseAndValidateXPaths,
+} from "@/app/utils/xpathValidation";
 import CopyIcon from "@/components/icons/CopyIcon";
 import DownloadIcon from "@/components/icons/DownloadIcon";
 import ThumbsDownIcon from "@/components/icons/ThumbsDownIcon";
 import ThumbsUpIcon from "@/components/icons/ThumbsUpIcon";
-import { handleDownload } from "@/lib/utils/handleDownload";
-import { processHtmlContent } from "@/lib/utils/processHtmlContent";
 import { readFileAsText } from "@/lib/utils/readFileAsText";
 import { runMDR } from "@/lib/utils/runMDR";
-import {
-  type ValidatedXpathArray,
-  parseAndValidateXPaths,
-} from "@/lib/utils/xpathValidation";
+import { processHtmlContent } from "@next-eval/html-core/utils/processHtmlContent";
 import type { ExtendedHtmlResult } from "@next-eval/shared/interfaces/HtmlResult";
 // import { calculateEvaluationMetrics } from '@/lib/utils/evaluation';
 import { mapResponseToFullXPath } from "@next-eval/shared/utils/mapResponseToFullXPath";

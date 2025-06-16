@@ -1,0 +1,20 @@
+{
+  "name": "@next-eval/html-core",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "lint": "biome check --diagnostic-level=error",
+    "format": "biome format --fix",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@next-eval/tsconfig": "workspace:*",
+    "@types/node": "22.14.0",
+    "typescript": "5.8.3"
+  },
+  "packageManager": "bun@1.2.15"
+}

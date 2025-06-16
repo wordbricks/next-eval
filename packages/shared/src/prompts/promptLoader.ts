@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { PromptType } from "@/app/api/types/llmTypes";
+import type { PromptType } from "@next-eval/shared/interfaces/types";
 
 export const loadPromptContent = async (
   promptType: PromptType,

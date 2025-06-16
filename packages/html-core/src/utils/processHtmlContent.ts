@@ -1,5 +1,5 @@
-import { extractTextWithXPaths } from "@/lib/utils/extractTextWithXPaths";
-import { slimHtml } from "@/lib/utils/slimHtml";
+import { extractTextWithXPaths } from "@next-eval/html-core/utils/extractTextWithXPaths";
+import { slimHtml } from "@next-eval/html-core/utils/slimHtml";
 import type { NestedTextMap } from "@next-eval/shared/interfaces/HtmlResult";
 
 // Helper function to process HTML content

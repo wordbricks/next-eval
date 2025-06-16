@@ -1,4 +1,3 @@
-// Helper function to download content as a file
 export const handleDownload = (
   content: string,
   fileName: string,
