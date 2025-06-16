@@ -32,7 +32,7 @@ async function regenerateMDRExpected() {
     const slimmedHtml = slimHtml(dom.window.document);
 
     // Run current Rust MDR implementation
-    const result = await runMDRWithDetails(slimmedHtml, true);
+    const result = await runMDRWithDetails(slimmedHtml);
 
     console.log(
       `  Found ${result.xpaths.length} groups, ${result.texts.length} texts`,

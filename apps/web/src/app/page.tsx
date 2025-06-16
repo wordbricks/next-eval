@@ -384,7 +384,7 @@ export default function HomePage() {
 
       // Assuming runMDR is not excessively long-running for now.
       // For very large HTML or complex MDR, consider a Web Worker.
-      const mdrPromise = runMDR(processedData.html, true, progressCallback);
+      const mdrPromise = runMDR(processedData.html, progressCallback);
       const mdrPredictedXPaths = await timeoutPromise(
         mdrPromise,
         60000, // 1 minute in milliseconds

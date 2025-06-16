@@ -69,7 +69,7 @@ describe("MDR Implementation Consistency Test", () => {
         const slimmedHtml = slimHtml(dom.window.document);
 
         // Run MDR implementation
-        const result = await runMDRWithDetails(slimmedHtml, true);
+        const result = await runMDRWithDetails(slimmedHtml);
 
         console.log(
           `Expected: ${expected.xpaths.length} groups, ${expected.texts.length} texts`,
