@@ -1,0 +1,1515 @@
+{
+  "xpaths": [
+    ["/html[1]/head[1]/title[1]"],
+    ["/html[1]/body[1]"],
+    ["/html[1]/body[1]/div[1]/div[1]"],
+    ["/html[1]/body[1]/div[2]"],
+    ["/html[1]/body[1]/iframe[1]"],
+    ["/html[1]/body[1]/div[2]/div[1]"],
+    ["/html[1]/body[1]/div[2]/div[2]"],
+    ["/html[1]/body[1]/div[2]/div[3]"],
+    ["/html[1]/body[1]/div[2]/div[4]"],
+    ["/html[1]/body[1]/div[2]/div[5]"],
+    ["/html[1]/body[1]/div[2]/div[6]"],
+    ["/html[1]/body[1]/div[2]/div[7]"],
+    ["/html[1]/body[1]/div[2]/div[8]"],
+    ["/html[1]/body[1]/div[2]/div[9]/p[3]"]
+  ],
+  "texts": [
+    "Please wait...",
+    "Support Our Startup News",
+    "to inform us of any issues.",
+    "to inform us of any issues.",
+    "Support Our Startup Platform",
+    "to share details of the issue.",
+    "to share details of the issue.",
+    "Support the Startup News Site",
+    "Please help us protect the startup news site by confirming you are a human and not a bot. We apologize for the inconvenience. If you continue to receive this message, please inform us by sending an email to",
+    "Help us grow Startup News",
+    "to notify us about the problem.",
+    "to notify us about the problem.",
+    "Support our Startup News",
+    ".",
+    ".",
+    "Help us secure InnovateHub",
+    "to notify us of any issues.",
+    "to notify us of any issues.",
+    "Assist us in safeguarding TechForward",
+    "to let us know about the difficulty.",
+    "to let us know about the difficulty.",
+    "Support us to defend StartupCentral",
+    "to tell us about the challenge.",
+    "to tell us about the challenge.",
+    "CF-205 / a4b1c6950012fb22",
+    "Awaiting www.innovatehub.com to reply...",
+    "Support Our Startup News",
+    "to inform us of any issues.",
+    "to inform us of any issues.",
+    "Support Our Startup Platform",
+    "to share details of the issue.",
+    "to share details of the issue.",
+    "Support the Startup News Site",
+    "Please help us protect the startup news site by confirming you are a human and not a bot. We apologize for the inconvenience. If you continue to receive this message, please inform us by sending an email to",
+    "Help us grow Startup News",
+    "to notify us about the problem.",
+    "to notify us about the problem.",
+    "Support our Startup News",
+    ".",
+    ".",
+    "Help us secure InnovateHub",
+    "to notify us of any issues.",
+    "to notify us of any issues.",
+    "Assist us in safeguarding TechForward",
+    "to let us know about the difficulty.",
+    "to let us know about the difficulty.",
+    "Support us to defend StartupCentral",
+    "to tell us about the challenge.",
+    "to tell us about the challenge.",
+    "CF-205 / a4b1c6950012fb22",
+    "Awaiting www.innovatehub.com to reply...",
+    "Support Our Startup News",
+    "to inform us of any issues.",
+    "to inform us of any issues.",
+    "Support Our Startup Platform",
+    "to share details of the issue.",
+    "to share details of the issue.",
+    "Support the Startup News Site",
+    "Please help us protect the startup news site by confirming you are a human and not a bot. We apologize for the inconvenience. If you continue to receive this message, please inform us by sending an email to",
+    "Help us grow Startup News",
+    "to notify us about the problem.",
+    "to notify us about the problem.",
+    "Support our Startup News",
+    ".",
+    ".",
+    "Help us secure InnovateHub",
+    "to notify us of any issues.",
+    "to notify us of any issues.",
+    "Assist us in safeguarding TechForward",
+    "to let us know about the difficulty.",
+    "to let us know about the difficulty.",
+    "Support us to defend StartupCentral",
+    "to tell us about the challenge.",
+    "to tell us about the challenge."
+  ],
+  "records": [
+    {
+      "tag": "title",
+      "children": [
+        {
+          "tag": "text",
+          "children": [],
+          "rawText": "Please wait...",
+          "xpath": "/html[1]/head[1]/title[1]"
+        }
+      ],
+      "rawText": "",
+      "xpath": "/html[1]/head[1]/title[1]"
+    },
+    {
+      "tag": "body",
+      "children": [
+        {
+          "tag": "div",
+          "children": [
+            {
+              "tag": "div",
+              "children": [
+                {
+                  "tag": "img",
+                  "children": [],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[1]/div[1]/img[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[1]/div[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[1]"
+        },
+        {
+          "tag": "div",
+          "children": [
+            {
+              "tag": "div",
+              "children": [
+                {
+                  "tag": "h1",
+                  "children": [
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "Support Our Startup News",
+                      "xpath": "/html[1]/body[1]/div[2]/div[1]/h1[1]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[1]/h1[1]"
+                },
+                {
+                  "tag": "p",
+                  "children": [
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "to inform us of any issues.",
+                      "xpath": "/html[1]/body[1]/div[2]/div[1]/p[1]"
+                    },
+                    {
+                      "tag": "img",
+                      "children": [],
+                      "rawText": "",
+                      "xpath": "/html[1]/body[1]/div[2]/div[1]/p[1]/img[1]"
+                    },
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "to inform us of any issues.",
+                      "xpath": "/html[1]/body[1]/div[2]/div[1]/p[1]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[1]/p[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[1]"
+            },
+            {
+              "tag": "div",
+              "children": [
+                {
+                  "tag": "h1",
+                  "children": [
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "Support Our Startup Platform",
+                      "xpath": "/html[1]/body[1]/div[2]/div[2]/h1[1]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[2]/h1[1]"
+                },
+                {
+                  "tag": "p",
+                  "children": [
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "to share details of the issue.",
+                      "xpath": "/html[1]/body[1]/div[2]/div[2]/p[1]"
+                    },
+                    {
+                      "tag": "img",
+                      "children": [],
+                      "rawText": "",
+                      "xpath": "/html[1]/body[1]/div[2]/div[2]/p[1]/img[1]"
+                    },
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "to share details of the issue.",
+                      "xpath": "/html[1]/body[1]/div[2]/div[2]/p[1]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[2]/p[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[2]"
+            },
+            {
+              "tag": "div",
+              "children": [
+                {
+                  "tag": "h1",
+                  "children": [
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "Support the Startup News Site",
+                      "xpath": "/html[1]/body[1]/div[2]/div[3]/h1[1]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[3]/h1[1]"
+                },
+                {
+                  "tag": "p",
+                  "children": [
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "Please help us protect the startup news site by confirming you are a human and not a bot. We apologize for the inconvenience. If you continue to receive this message, please inform us by sending an email to",
+                      "xpath": "/html[1]/body[1]/div[2]/div[3]/p[1]"
+                    },
+                    {
+                      "tag": "img",
+                      "children": [],
+                      "rawText": "",
+                      "xpath": "/html[1]/body[1]/div[2]/div[3]/p[1]/img[1]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[3]/p[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[3]"
+            },
+            {
+              "tag": "div",
+              "children": [
+                {
+                  "tag": "h1",
+                  "children": [
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "Help us grow Startup News",
+                      "xpath": "/html[1]/body[1]/div[2]/div[4]/h1[1]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[4]/h1[1]"
+                },
+                {
+                  "tag": "p",
+                  "children": [
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "to notify us about the problem.",
+                      "xpath": "/html[1]/body[1]/div[2]/div[4]/p[1]"
+                    },
+                    {
+                      "tag": "img",
+                      "children": [],
+                      "rawText": "",
+                      "xpath": "/html[1]/body[1]/div[2]/div[4]/p[1]/img[1]"
+                    },
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "to notify us about the problem.",
+                      "xpath": "/html[1]/body[1]/div[2]/div[4]/p[1]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[4]/p[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[4]"
+            },
+            {
+              "tag": "div",
+              "children": [
+                {
+                  "tag": "h1",
+                  "children": [
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "Support our Startup News",
+                      "xpath": "/html[1]/body[1]/div[2]/div[5]/h1[1]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[5]/h1[1]"
+                },
+                {
+                  "tag": "p",
+                  "children": [
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": ".",
+                      "xpath": "/html[1]/body[1]/div[2]/div[5]/p[1]"
+                    },
+                    {
+                      "tag": "img",
+                      "children": [],
+                      "rawText": "",
+                      "xpath": "/html[1]/body[1]/div[2]/div[5]/p[1]/img[1]"
+                    },
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": ".",
+                      "xpath": "/html[1]/body[1]/div[2]/div[5]/p[1]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[5]/p[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[5]"
+            },
+            {
+              "tag": "div",
+              "children": [
+                {
+                  "tag": "h1",
+                  "children": [
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "Help us secure InnovateHub",
+                      "xpath": "/html[1]/body[1]/div[2]/div[6]/h1[1]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[6]/h1[1]"
+                },
+                {
+                  "tag": "p",
+                  "children": [
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "to notify us of any issues.",
+                      "xpath": "/html[1]/body[1]/div[2]/div[6]/p[1]"
+                    },
+                    {
+                      "tag": "img",
+                      "children": [],
+                      "rawText": "",
+                      "xpath": "/html[1]/body[1]/div[2]/div[6]/p[1]/img[1]"
+                    },
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "to notify us of any issues.",
+                      "xpath": "/html[1]/body[1]/div[2]/div[6]/p[1]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[6]/p[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[6]"
+            },
+            {
+              "tag": "div",
+              "children": [
+                {
+                  "tag": "h1",
+                  "children": [
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "Assist us in safeguarding TechForward",
+                      "xpath": "/html[1]/body[1]/div[2]/div[7]/h1[1]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[7]/h1[1]"
+                },
+                {
+                  "tag": "p",
+                  "children": [
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "to let us know about the difficulty.",
+                      "xpath": "/html[1]/body[1]/div[2]/div[7]/p[1]"
+                    },
+                    {
+                      "tag": "img",
+                      "children": [],
+                      "rawText": "",
+                      "xpath": "/html[1]/body[1]/div[2]/div[7]/p[1]/img[1]"
+                    },
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "to let us know about the difficulty.",
+                      "xpath": "/html[1]/body[1]/div[2]/div[7]/p[1]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[7]/p[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[7]"
+            },
+            {
+              "tag": "div",
+              "children": [
+                {
+                  "tag": "h1",
+                  "children": [
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "Support us to defend StartupCentral",
+                      "xpath": "/html[1]/body[1]/div[2]/div[8]/h1[1]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[8]/h1[1]"
+                },
+                {
+                  "tag": "p",
+                  "children": [
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "to tell us about the challenge.",
+                      "xpath": "/html[1]/body[1]/div[2]/div[8]/p[1]"
+                    },
+                    {
+                      "tag": "img",
+                      "children": [],
+                      "rawText": "",
+                      "xpath": "/html[1]/body[1]/div[2]/div[8]/p[1]/img[1]"
+                    },
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "to tell us about the challenge.",
+                      "xpath": "/html[1]/body[1]/div[2]/div[8]/p[1]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[8]/p[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[8]"
+            },
+            {
+              "tag": "div",
+              "children": [
+                {
+                  "tag": "p",
+                  "children": [
+                    {
+                      "tag": "text",
+                      "children": [],
+                      "rawText": "CF-205 / a4b1c6950012fb22",
+                      "xpath": "/html[1]/body[1]/div[2]/div[9]/p[1]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[9]/p[1]"
+                },
+                {
+                  "tag": "p",
+                  "children": [],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[9]/p[2]"
+                },
+                {
+                  "tag": "div",
+                  "children": [
+                    {
+                      "tag": "div",
+                      "children": [
+                        {
+                          "tag": "p",
+                          "children": [],
+                          "rawText": "",
+                          "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/p[1]"
+                        },
+                        {
+                          "tag": "div",
+                          "children": [
+                            {
+                              "tag": "div",
+                              "children": [
+                                {
+                                  "tag": "div",
+                                  "children": [],
+                                  "rawText": "",
+                                  "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[1]/div[1]/div[1]"
+                                }
+                              ],
+                              "rawText": "",
+                              "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[1]/div[1]"
+                            }
+                          ],
+                          "rawText": "",
+                          "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[1]"
+                        },
+                        {
+                          "tag": "div",
+                          "children": [
+                            {
+                              "tag": "div",
+                              "children": [
+                                {
+                                  "tag": "div",
+                                  "children": [],
+                                  "rawText": "",
+                                  "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[2]/div[1]/div[1]"
+                                },
+                                {
+                                  "tag": "div",
+                                  "children": [],
+                                  "rawText": "",
+                                  "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[2]/div[1]/div[2]"
+                                },
+                                {
+                                  "tag": "div",
+                                  "children": [],
+                                  "rawText": "",
+                                  "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[2]/div[1]/div[3]"
+                                },
+                                {
+                                  "tag": "div",
+                                  "children": [],
+                                  "rawText": "",
+                                  "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[2]/div[1]/div[4]"
+                                }
+                              ],
+                              "rawText": "",
+                              "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[2]/div[1]"
+                            }
+                          ],
+                          "rawText": "",
+                          "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[2]"
+                        },
+                        {
+                          "tag": "div",
+                          "children": [],
+                          "rawText": "",
+                          "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[3]"
+                        },
+                        {
+                          "tag": "div",
+                          "children": [
+                            {
+                              "tag": "div",
+                              "children": [
+                                {
+                                  "tag": "text",
+                                  "children": [],
+                                  "rawText": "Awaiting www.innovatehub.com to reply...",
+                                  "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[4]/div[1]"
+                                }
+                              ],
+                              "rawText": "",
+                              "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[4]/div[1]"
+                            }
+                          ],
+                          "rawText": "",
+                          "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[4]"
+                        }
+                      ],
+                      "rawText": "",
+                      "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]"
+                },
+                {
+                  "tag": "p",
+                  "children": [],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[9]/p[3]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[9]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]"
+        },
+        {
+          "tag": "iframe",
+          "children": [],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/iframe[1]"
+        }
+      ],
+      "rawText": "",
+      "xpath": "/html[1]/body[1]"
+    },
+    {
+      "tag": "div",
+      "children": [
+        {
+          "tag": "img",
+          "children": [],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[1]/div[1]/img[1]"
+        }
+      ],
+      "rawText": "",
+      "xpath": "/html[1]/body[1]/div[1]/div[1]"
+    },
+    {
+      "tag": "div",
+      "children": [
+        {
+          "tag": "div",
+          "children": [
+            {
+              "tag": "h1",
+              "children": [
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "Support Our Startup News",
+                  "xpath": "/html[1]/body[1]/div[2]/div[1]/h1[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[1]/h1[1]"
+            },
+            {
+              "tag": "p",
+              "children": [
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "to inform us of any issues.",
+                  "xpath": "/html[1]/body[1]/div[2]/div[1]/p[1]"
+                },
+                {
+                  "tag": "img",
+                  "children": [],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[1]/p[1]/img[1]"
+                },
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "to inform us of any issues.",
+                  "xpath": "/html[1]/body[1]/div[2]/div[1]/p[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[1]/p[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[1]"
+        },
+        {
+          "tag": "div",
+          "children": [
+            {
+              "tag": "h1",
+              "children": [
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "Support Our Startup Platform",
+                  "xpath": "/html[1]/body[1]/div[2]/div[2]/h1[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[2]/h1[1]"
+            },
+            {
+              "tag": "p",
+              "children": [
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "to share details of the issue.",
+                  "xpath": "/html[1]/body[1]/div[2]/div[2]/p[1]"
+                },
+                {
+                  "tag": "img",
+                  "children": [],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[2]/p[1]/img[1]"
+                },
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "to share details of the issue.",
+                  "xpath": "/html[1]/body[1]/div[2]/div[2]/p[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[2]/p[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[2]"
+        },
+        {
+          "tag": "div",
+          "children": [
+            {
+              "tag": "h1",
+              "children": [
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "Support the Startup News Site",
+                  "xpath": "/html[1]/body[1]/div[2]/div[3]/h1[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[3]/h1[1]"
+            },
+            {
+              "tag": "p",
+              "children": [
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "Please help us protect the startup news site by confirming you are a human and not a bot. We apologize for the inconvenience. If you continue to receive this message, please inform us by sending an email to",
+                  "xpath": "/html[1]/body[1]/div[2]/div[3]/p[1]"
+                },
+                {
+                  "tag": "img",
+                  "children": [],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[3]/p[1]/img[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[3]/p[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[3]"
+        },
+        {
+          "tag": "div",
+          "children": [
+            {
+              "tag": "h1",
+              "children": [
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "Help us grow Startup News",
+                  "xpath": "/html[1]/body[1]/div[2]/div[4]/h1[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[4]/h1[1]"
+            },
+            {
+              "tag": "p",
+              "children": [
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "to notify us about the problem.",
+                  "xpath": "/html[1]/body[1]/div[2]/div[4]/p[1]"
+                },
+                {
+                  "tag": "img",
+                  "children": [],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[4]/p[1]/img[1]"
+                },
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "to notify us about the problem.",
+                  "xpath": "/html[1]/body[1]/div[2]/div[4]/p[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[4]/p[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[4]"
+        },
+        {
+          "tag": "div",
+          "children": [
+            {
+              "tag": "h1",
+              "children": [
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "Support our Startup News",
+                  "xpath": "/html[1]/body[1]/div[2]/div[5]/h1[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[5]/h1[1]"
+            },
+            {
+              "tag": "p",
+              "children": [
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": ".",
+                  "xpath": "/html[1]/body[1]/div[2]/div[5]/p[1]"
+                },
+                {
+                  "tag": "img",
+                  "children": [],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[5]/p[1]/img[1]"
+                },
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": ".",
+                  "xpath": "/html[1]/body[1]/div[2]/div[5]/p[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[5]/p[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[5]"
+        },
+        {
+          "tag": "div",
+          "children": [
+            {
+              "tag": "h1",
+              "children": [
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "Help us secure InnovateHub",
+                  "xpath": "/html[1]/body[1]/div[2]/div[6]/h1[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[6]/h1[1]"
+            },
+            {
+              "tag": "p",
+              "children": [
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "to notify us of any issues.",
+                  "xpath": "/html[1]/body[1]/div[2]/div[6]/p[1]"
+                },
+                {
+                  "tag": "img",
+                  "children": [],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[6]/p[1]/img[1]"
+                },
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "to notify us of any issues.",
+                  "xpath": "/html[1]/body[1]/div[2]/div[6]/p[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[6]/p[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[6]"
+        },
+        {
+          "tag": "div",
+          "children": [
+            {
+              "tag": "h1",
+              "children": [
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "Assist us in safeguarding TechForward",
+                  "xpath": "/html[1]/body[1]/div[2]/div[7]/h1[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[7]/h1[1]"
+            },
+            {
+              "tag": "p",
+              "children": [
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "to let us know about the difficulty.",
+                  "xpath": "/html[1]/body[1]/div[2]/div[7]/p[1]"
+                },
+                {
+                  "tag": "img",
+                  "children": [],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[7]/p[1]/img[1]"
+                },
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "to let us know about the difficulty.",
+                  "xpath": "/html[1]/body[1]/div[2]/div[7]/p[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[7]/p[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[7]"
+        },
+        {
+          "tag": "div",
+          "children": [
+            {
+              "tag": "h1",
+              "children": [
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "Support us to defend StartupCentral",
+                  "xpath": "/html[1]/body[1]/div[2]/div[8]/h1[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[8]/h1[1]"
+            },
+            {
+              "tag": "p",
+              "children": [
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "to tell us about the challenge.",
+                  "xpath": "/html[1]/body[1]/div[2]/div[8]/p[1]"
+                },
+                {
+                  "tag": "img",
+                  "children": [],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[8]/p[1]/img[1]"
+                },
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "to tell us about the challenge.",
+                  "xpath": "/html[1]/body[1]/div[2]/div[8]/p[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[8]/p[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[8]"
+        },
+        {
+          "tag": "div",
+          "children": [
+            {
+              "tag": "p",
+              "children": [
+                {
+                  "tag": "text",
+                  "children": [],
+                  "rawText": "CF-205 / a4b1c6950012fb22",
+                  "xpath": "/html[1]/body[1]/div[2]/div[9]/p[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[9]/p[1]"
+            },
+            {
+              "tag": "p",
+              "children": [],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[9]/p[2]"
+            },
+            {
+              "tag": "div",
+              "children": [
+                {
+                  "tag": "div",
+                  "children": [
+                    {
+                      "tag": "p",
+                      "children": [],
+                      "rawText": "",
+                      "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/p[1]"
+                    },
+                    {
+                      "tag": "div",
+                      "children": [
+                        {
+                          "tag": "div",
+                          "children": [
+                            {
+                              "tag": "div",
+                              "children": [],
+                              "rawText": "",
+                              "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[1]/div[1]/div[1]"
+                            }
+                          ],
+                          "rawText": "",
+                          "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[1]/div[1]"
+                        }
+                      ],
+                      "rawText": "",
+                      "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[1]"
+                    },
+                    {
+                      "tag": "div",
+                      "children": [
+                        {
+                          "tag": "div",
+                          "children": [
+                            {
+                              "tag": "div",
+                              "children": [],
+                              "rawText": "",
+                              "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[2]/div[1]/div[1]"
+                            },
+                            {
+                              "tag": "div",
+                              "children": [],
+                              "rawText": "",
+                              "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[2]/div[1]/div[2]"
+                            },
+                            {
+                              "tag": "div",
+                              "children": [],
+                              "rawText": "",
+                              "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[2]/div[1]/div[3]"
+                            },
+                            {
+                              "tag": "div",
+                              "children": [],
+                              "rawText": "",
+                              "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[2]/div[1]/div[4]"
+                            }
+                          ],
+                          "rawText": "",
+                          "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[2]/div[1]"
+                        }
+                      ],
+                      "rawText": "",
+                      "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[2]"
+                    },
+                    {
+                      "tag": "div",
+                      "children": [],
+                      "rawText": "",
+                      "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[3]"
+                    },
+                    {
+                      "tag": "div",
+                      "children": [
+                        {
+                          "tag": "div",
+                          "children": [
+                            {
+                              "tag": "text",
+                              "children": [],
+                              "rawText": "Awaiting www.innovatehub.com to reply...",
+                              "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[4]/div[1]"
+                            }
+                          ],
+                          "rawText": "",
+                          "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[4]/div[1]"
+                        }
+                      ],
+                      "rawText": "",
+                      "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]/div[4]"
+                    }
+                  ],
+                  "rawText": "",
+                  "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]/div[1]"
+                }
+              ],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[9]/div[1]"
+            },
+            {
+              "tag": "p",
+              "children": [],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[9]/p[3]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[9]"
+        }
+      ],
+      "rawText": "",
+      "xpath": "/html[1]/body[1]/div[2]"
+    },
+    {
+      "tag": "iframe",
+      "children": [],
+      "rawText": "",
+      "xpath": "/html[1]/body[1]/iframe[1]"
+    },
+    {
+      "tag": "div",
+      "children": [
+        {
+          "tag": "h1",
+          "children": [
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "Support Our Startup News",
+              "xpath": "/html[1]/body[1]/div[2]/div[1]/h1[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[1]/h1[1]"
+        },
+        {
+          "tag": "p",
+          "children": [
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "to inform us of any issues.",
+              "xpath": "/html[1]/body[1]/div[2]/div[1]/p[1]"
+            },
+            {
+              "tag": "img",
+              "children": [],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[1]/p[1]/img[1]"
+            },
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "to inform us of any issues.",
+              "xpath": "/html[1]/body[1]/div[2]/div[1]/p[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[1]/p[1]"
+        }
+      ],
+      "rawText": "",
+      "xpath": "/html[1]/body[1]/div[2]/div[1]"
+    },
+    {
+      "tag": "div",
+      "children": [
+        {
+          "tag": "h1",
+          "children": [
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "Support Our Startup Platform",
+              "xpath": "/html[1]/body[1]/div[2]/div[2]/h1[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[2]/h1[1]"
+        },
+        {
+          "tag": "p",
+          "children": [
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "to share details of the issue.",
+              "xpath": "/html[1]/body[1]/div[2]/div[2]/p[1]"
+            },
+            {
+              "tag": "img",
+              "children": [],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[2]/p[1]/img[1]"
+            },
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "to share details of the issue.",
+              "xpath": "/html[1]/body[1]/div[2]/div[2]/p[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[2]/p[1]"
+        }
+      ],
+      "rawText": "",
+      "xpath": "/html[1]/body[1]/div[2]/div[2]"
+    },
+    {
+      "tag": "div",
+      "children": [
+        {
+          "tag": "h1",
+          "children": [
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "Support the Startup News Site",
+              "xpath": "/html[1]/body[1]/div[2]/div[3]/h1[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[3]/h1[1]"
+        },
+        {
+          "tag": "p",
+          "children": [
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "Please help us protect the startup news site by confirming you are a human and not a bot. We apologize for the inconvenience. If you continue to receive this message, please inform us by sending an email to",
+              "xpath": "/html[1]/body[1]/div[2]/div[3]/p[1]"
+            },
+            {
+              "tag": "img",
+              "children": [],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[3]/p[1]/img[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[3]/p[1]"
+        }
+      ],
+      "rawText": "",
+      "xpath": "/html[1]/body[1]/div[2]/div[3]"
+    },
+    {
+      "tag": "div",
+      "children": [
+        {
+          "tag": "h1",
+          "children": [
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "Help us grow Startup News",
+              "xpath": "/html[1]/body[1]/div[2]/div[4]/h1[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[4]/h1[1]"
+        },
+        {
+          "tag": "p",
+          "children": [
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "to notify us about the problem.",
+              "xpath": "/html[1]/body[1]/div[2]/div[4]/p[1]"
+            },
+            {
+              "tag": "img",
+              "children": [],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[4]/p[1]/img[1]"
+            },
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "to notify us about the problem.",
+              "xpath": "/html[1]/body[1]/div[2]/div[4]/p[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[4]/p[1]"
+        }
+      ],
+      "rawText": "",
+      "xpath": "/html[1]/body[1]/div[2]/div[4]"
+    },
+    {
+      "tag": "div",
+      "children": [
+        {
+          "tag": "h1",
+          "children": [
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "Support our Startup News",
+              "xpath": "/html[1]/body[1]/div[2]/div[5]/h1[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[5]/h1[1]"
+        },
+        {
+          "tag": "p",
+          "children": [
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": ".",
+              "xpath": "/html[1]/body[1]/div[2]/div[5]/p[1]"
+            },
+            {
+              "tag": "img",
+              "children": [],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[5]/p[1]/img[1]"
+            },
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": ".",
+              "xpath": "/html[1]/body[1]/div[2]/div[5]/p[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[5]/p[1]"
+        }
+      ],
+      "rawText": "",
+      "xpath": "/html[1]/body[1]/div[2]/div[5]"
+    },
+    {
+      "tag": "div",
+      "children": [
+        {
+          "tag": "h1",
+          "children": [
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "Help us secure InnovateHub",
+              "xpath": "/html[1]/body[1]/div[2]/div[6]/h1[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[6]/h1[1]"
+        },
+        {
+          "tag": "p",
+          "children": [
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "to notify us of any issues.",
+              "xpath": "/html[1]/body[1]/div[2]/div[6]/p[1]"
+            },
+            {
+              "tag": "img",
+              "children": [],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[6]/p[1]/img[1]"
+            },
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "to notify us of any issues.",
+              "xpath": "/html[1]/body[1]/div[2]/div[6]/p[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[6]/p[1]"
+        }
+      ],
+      "rawText": "",
+      "xpath": "/html[1]/body[1]/div[2]/div[6]"
+    },
+    {
+      "tag": "div",
+      "children": [
+        {
+          "tag": "h1",
+          "children": [
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "Assist us in safeguarding TechForward",
+              "xpath": "/html[1]/body[1]/div[2]/div[7]/h1[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[7]/h1[1]"
+        },
+        {
+          "tag": "p",
+          "children": [
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "to let us know about the difficulty.",
+              "xpath": "/html[1]/body[1]/div[2]/div[7]/p[1]"
+            },
+            {
+              "tag": "img",
+              "children": [],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[7]/p[1]/img[1]"
+            },
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "to let us know about the difficulty.",
+              "xpath": "/html[1]/body[1]/div[2]/div[7]/p[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[7]/p[1]"
+        }
+      ],
+      "rawText": "",
+      "xpath": "/html[1]/body[1]/div[2]/div[7]"
+    },
+    {
+      "tag": "div",
+      "children": [
+        {
+          "tag": "h1",
+          "children": [
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "Support us to defend StartupCentral",
+              "xpath": "/html[1]/body[1]/div[2]/div[8]/h1[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[8]/h1[1]"
+        },
+        {
+          "tag": "p",
+          "children": [
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "to tell us about the challenge.",
+              "xpath": "/html[1]/body[1]/div[2]/div[8]/p[1]"
+            },
+            {
+              "tag": "img",
+              "children": [],
+              "rawText": "",
+              "xpath": "/html[1]/body[1]/div[2]/div[8]/p[1]/img[1]"
+            },
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "to tell us about the challenge.",
+              "xpath": "/html[1]/body[1]/div[2]/div[8]/p[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[8]/p[1]"
+        }
+      ],
+      "rawText": "",
+      "xpath": "/html[1]/body[1]/div[2]/div[8]"
+    },
+    {
+      "tag": "p",
+      "children": [],
+      "rawText": "",
+      "xpath": "/html[1]/body[1]/div[2]/div[9]/p[3]"
+    }
+  ]
+}

@@ -33,9 +33,7 @@ pub fn ident_drs(
 
                 let distance = get_normalized_edit_distance_sequences(gn1, gn2);
 
-                // Add small epsilon to handle floating point precision issues
-                // matching TypeScript behavior where 0.30000001 > 0.3
-                if distance <= t - 0.0000001 {
+                if distance <= t {
                     if !is_continuing_region {
                         current_dr = Some((gn_length, check_idx, 2 * gn_length));
                         is_continuing_region = true;

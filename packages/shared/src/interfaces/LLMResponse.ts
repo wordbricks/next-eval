@@ -6,6 +6,7 @@ export interface LLMUsage {
 
 export interface LLMResponse {
   content?: string;
+  role?: string;
   error?: string;
   usage?: LLMUsage;
   systemPromptUsed?: string;
