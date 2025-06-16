@@ -5,6 +5,7 @@ import {
   type ValidatedXpathArray,
   parseAndValidateXPaths,
 } from "@/app/utils/xpathValidation";
+import { PageHeader } from "@/components/PageHeader";
 import CopyIcon from "@/components/icons/CopyIcon";
 import DownloadIcon from "@/components/icons/DownloadIcon";
 import ThumbsDownIcon from "@/components/icons/ThumbsDownIcon";
@@ -757,14 +758,16 @@ export default function HomePage() {
 
   return (
     <main className="container mx-auto max-w-[1000px] p-4">
-      <h1 className="my-8 text-center font-bold text-3xl">
-        NEXT-EVAL: Web Data Records Extraction
-      </h1>
-      {/* File Input Section */}
+      <PageHeader />
       <section className="mb-8 rounded-lg border bg-white p-6 shadow-md">
         <h2 className="mb-4 font-semibold text-2xl">
           1.Upload and process HTML
         </h2>
+        <p className="mb-6 text-gray-600">
+          Upload an HTML file or enter a URL to process it into three
+          formats—Slimmed HTML, Hierarchical JSON, or Flat JSON—then select one
+          to begin your evaluation for the next step.
+        </p>
         {/* Toggle for input method */}
         <div
           className="mb-4 flex space-x-2"
@@ -1118,6 +1121,11 @@ export default function HomePage() {
           <h2 className="mb-4 font-semibold text-2xl">
             2. Extract data records
           </h2>
+          <p className="mb-6 text-gray-600">
+            Select your extraction method—an LLM model or the traditional MDR
+            algorithm—and experiment with different HTML processing techniques
+            to find the most effective combination.
+          </p>
 
           {/* Tab Navigation */}
           <div className="mb-6 border-gray-200 border-b">
@@ -1642,6 +1650,45 @@ export default function HomePage() {
           )}
         </section>
       )}
+
+      {/* Contact Information Footer */}
+      <footer className="mt-16 rounded-lg border bg-white p-6 shadow-md">
+        <div className="space-y-4 text-center">
+          <p className="text-gray-700">
+            Have questions or ideas? We'd love to hear from you. Contact us at{" "}
+            <a
+              href="mailto:research@wordbricks.ai"
+              className="font-medium text-orange-600 transition-colors duration-150 hover:text-orange-700 focus:underline focus:outline-hidden"
+            >
+              research@wordbricks.ai
+            </a>
+          </p>
+
+          <p className="text-gray-700">
+            Inspired by our research? We are looking for innovative thinkers to
+            join our team. Please email your resume to{" "}
+            <a
+              href="mailto:hr@wordbricks.ai"
+              className="font-medium text-orange-600 transition-colors duration-150 hover:text-orange-700 focus:underline focus:outline-hidden"
+            >
+              hr@wordbricks.ai
+            </a>{" "}
+            and be sure to mention our paper.
+          </p>
+
+          <p className="text-gray-700">
+            To see what else we're building, explore our latest technologies at{" "}
+            <a
+              href="https://nextrows.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-orange-600 transition-colors duration-150 hover:text-orange-700 focus:underline focus:outline-hidden"
+            >
+              nextrows.com
+            </a>
+          </p>
+        </div>
+      </footer>
     </main>
   );
 }
