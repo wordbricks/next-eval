@@ -144,12 +144,16 @@
       "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[6]"
     ],
     [
-      "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[3]/div[1]",
+      "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[3]/div[1]"
+    ],
+    [
       "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[4]/div[1]"
     ],
     [
-      "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[5]",
-      "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[6]"
+      "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[5]"
+    ],
+    [
+      "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[6]/a[1]"
     ],
     [
       "/html[1]/body[1]/div[2]/div[8]/div[1]/footer[1]/nav[1]",
@@ -38895,82 +38899,71 @@
       "rawText": "",
       "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[6]"
     },
-    [
-      {
-        "tag": "div",
-        "children": [
-          {
-            "tag": "text",
-            "children": [],
-            "rawText": "$20",
-            "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[3]/div[1]"
-          }
-        ],
-        "rawText": "",
-        "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[3]/div[1]"
-      },
-      {
-        "tag": "div",
-        "children": [
-          {
-            "tag": "text",
-            "children": [],
-            "rawText": "y",
-            "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[4]/div[1]"
-          }
-        ],
-        "rawText": "",
-        "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[4]/div[1]"
-      }
-    ],
-    [
-      {
-        "tag": "td",
-        "children": [
-          {
-            "tag": "text",
-            "children": [],
-            "rawText": "Up to",
-            "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[5]"
-          },
-          {
-            "tag": "div",
-            "children": [
-              {
-                "tag": "text",
-                "children": [],
-                "rawText": "$300",
-                "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[5]/div[1]"
-              }
-            ],
-            "rawText": "",
-            "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[5]/div[1]"
-          }
-        ],
-        "rawText": "",
-        "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[5]"
-      },
-      {
-        "tag": "td",
-        "children": [
-          {
-            "tag": "a",
-            "children": [
-              {
-                "tag": "text",
-                "children": [],
-                "rawText": "DETAILS",
-                "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[6]/a[1]"
-              }
-            ],
-            "rawText": "",
-            "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[6]/a[1]"
-          }
-        ],
-        "rawText": "",
-        "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[6]"
-      }
-    ],
+    {
+      "tag": "div",
+      "children": [
+        {
+          "tag": "text",
+          "children": [],
+          "rawText": "$20",
+          "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[3]/div[1]"
+        }
+      ],
+      "rawText": "",
+      "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[3]/div[1]"
+    },
+    {
+      "tag": "div",
+      "children": [
+        {
+          "tag": "text",
+          "children": [],
+          "rawText": "y",
+          "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[4]/div[1]"
+        }
+      ],
+      "rawText": "",
+      "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[4]/div[1]"
+    },
+    {
+      "tag": "td",
+      "children": [
+        {
+          "tag": "text",
+          "children": [],
+          "rawText": "Up to",
+          "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[5]"
+        },
+        {
+          "tag": "div",
+          "children": [
+            {
+              "tag": "text",
+              "children": [],
+              "rawText": "$300",
+              "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[5]/div[1]"
+            }
+          ],
+          "rawText": "",
+          "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[5]/div[1]"
+        }
+      ],
+      "rawText": "",
+      "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[5]"
+    },
+    {
+      "tag": "a",
+      "children": [
+        {
+          "tag": "text",
+          "children": [],
+          "rawText": "DETAILS",
+          "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[6]/a[1]"
+        }
+      ],
+      "rawText": "",
+      "xpath": "/html[1]/body[1]/div[2]/div[7]/main[1]/section[1]/div[1]/div[1]/table[1]/tbody[1]/tr[1]/td[6]/a[1]"
+    },
     [
       {
         "tag": "nav",
