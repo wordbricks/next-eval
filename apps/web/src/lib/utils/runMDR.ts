@@ -1,6 +1,6 @@
+import { removeCommentScriptStyleFromHTML } from "@next-eval/html-core/utils/removeCommentScriptStyleFromHTML";
 import type { TagNode } from "@next-eval/shared/interfaces/TagNode";
 import { buildTagTree } from "@next-eval/shared/utils/buildTagTree";
-import { removeCommentScriptStyleFromHTML } from "@next-eval/shared/utils/removeCommentScriptStyleFromHTML";
 import { parse } from "node-html-parser";
 
 // MDR (Mining Data Region) constants

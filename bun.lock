@@ -16,6 +16,9 @@
       "dependencies": {
         "@ai-sdk/google": "1.2.8",
         "@google/generative-ai": "^0.11.3",
+        "@next-eval/evaluation-core": "workspace:*",
+        "@next-eval/html-core": "workspace:*",
+        "@next-eval/llm-core": "workspace:*",
         "@next-eval/shared": "workspace:*",
         "@supabase/supabase-js": "2.49.8",
         "ai": "4.3.2",
@@ -80,9 +83,40 @@
         "typescript": "5.8.2",
       },
     },
+    "packages/evaluation-core": {
+      "name": "@next-eval/evaluation-core",
+      "version": "0.0.1",
+      "dependencies": {
+        "munkres-js": "1.2.2",
+        "node-html-parser": "^7.0.1",
+        "zod": "^3.22.4",
+      },
+      "devDependencies": {
+        "@next-eval/tsconfig": "workspace:*",
+        "@types/mustache": "^4.2.6",
+        "@types/node": "22.14.0",
+        "typescript": "5.8.3",
+      },
+    },
     "packages/html-core": {
       "name": "@next-eval/html-core",
       "version": "0.0.1",
+      "devDependencies": {
+        "@next-eval/tsconfig": "workspace:*",
+        "@types/node": "22.14.0",
+        "typescript": "5.8.3",
+      },
+    },
+    "packages/llm-core": {
+      "name": "@next-eval/llm-core",
+      "version": "0.0.1",
+      "dependencies": {
+        "@ai-sdk/google": "1.2.8",
+        "@google/generative-ai": "^0.11.3",
+        "@next-eval/shared": "workspace:*",
+        "ai": "4.3.2",
+        "mustache": "4.2.0",
+      },
       "devDependencies": {
         "@next-eval/tsconfig": "workspace:*",
         "@types/node": "22.14.0",
@@ -283,7 +317,11 @@
 
     "@next-eval/core": ["@next-eval/core@workspace:packages/core"],
 
+    "@next-eval/evaluation-core": ["@next-eval/evaluation-core@workspace:packages/evaluation-core"],
+
     "@next-eval/html-core": ["@next-eval/html-core@workspace:packages/html-core"],
+
+    "@next-eval/llm-core": ["@next-eval/llm-core@workspace:packages/llm-core"],
 
     "@next-eval/rust-mdr": ["@next-eval/rust-mdr@workspace:packages/rust-mdr"],
 
@@ -393,7 +431,7 @@
 
     "@types/diff-match-patch": ["@types/diff-match-patch@1.0.36", "", {}, "sha512-xFdR6tkm0MWvBfO8xXCSsinYxHcqkQUlcHeSpMC2ukzOb6lwQAfDmW+Qt0AvlGd8HpsS28qKsB+oPeJn9I39jg=="],
 
-    "@types/estree": ["@types/estree@1.0.8", "", {}, "sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w=="],
+    "@types/estree": ["@types/estree@1.0.7", "", {}, "sha512-w28IoSUCJpidD/TGviZwwMJckNESJZXFu7NBZ5YJ4mEUnNraUn9Pm8HSZm/jDF1pDWYKspWE7oVphigUPRakIQ=="],
 
     "@types/filesystem": ["@types/filesystem@0.0.36", "", { "dependencies": { "@types/filewriter": "*" } }, "sha512-vPDXOZuannb9FZdxgHnqSwAG/jvdGM8Wq+6N4D/d80z+D4HWH+bItqsZaVRQykAn6WEVeEkLm2oQigyHtgb0RA=="],
 
@@ -1157,7 +1195,7 @@
 
     "yocto-queue": ["yocto-queue@1.2.1", "", {}, "sha512-AyeEbWOu/TAXdxlV9wmGcR0+yh2j3vYPGOECcIj2S7MkrLyC7ne+oye2BKTItt0ii2PHk4cDy+95+LshzbXnGg=="],
 
-    "zod": ["zod@3.25.63", "", {}, "sha512-3ttCkqhtpncYXfP0f6dsyabbYV/nEUW+Xlu89jiXbTBifUfjaSqXOG6JnQPLtqt87n7KAmnMqcjay6c0Wq0Vbw=="],
+    "zod": ["zod@3.25.64", "", {}, "sha512-hbP9FpSZf7pkS7hRVUrOjhwKJNyampPgtXKc3AN6DsWtoHsg2Sb4SQaS4Tcay380zSwd2VPo9G9180emBACp5g=="],
 
     "zod-to-json-schema": ["zod-to-json-schema@3.24.5", "", { "peerDependencies": { "zod": "^3.24.1" } }, "sha512-/AuWwMP+YqiPbsJx5D6TfgRTc4kTLjsh5SOcd4bLsfUg2RcEXrFMJl1DGgdHy2aCfsIA/cr/1JM0xcB2GZji8g=="],
 
@@ -1242,8 +1280,6 @@
     "puppeteer-core/debug": ["debug@4.4.1", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-KcKCqiftBJcZr++7ykoDIEwSa3XWowTfNPo92BYxjXiyYEVrUQh2aLyhxBCwww+heortUFxEJYcRzosstTEBYQ=="],
 
     "readdirp/picomatch": ["picomatch@2.3.1", "", {}, "sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA=="],
-
-    "rollup/@types/estree": ["@types/estree@1.0.7", "", {}, "sha512-w28IoSUCJpidD/TGviZwwMJckNESJZXFu7NBZ5YJ4mEUnNraUn9Pm8HSZm/jDF1pDWYKspWE7oVphigUPRakIQ=="],
 
     "simple-swizzle/is-arrayish": ["is-arrayish@0.3.2", "", {}, "sha512-eVRqCvVlZbuw3GrM63ovNSNAeA1K16kaR/LRY/92w0zxQ5/1YzwblUX652i4Xs9RwAGjW9d9y6X88t8OaAJfWQ=="],
 

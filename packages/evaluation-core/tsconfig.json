@@ -4,7 +4,7 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "@next-eval/html-core/*": ["./src/*"]
+      "@next-eval/evaluation-core/*": ["./src/*"]
     }
   },
   "include": ["src/**/*"],

@@ -11,13 +11,10 @@
 
 Welcome to **NEXT-EVAL**, a comprehensive toolkit for the rigorous evaluation and comparison of methods for extracting **tabular data records** from web pages. This framework supports both traditional algorithms and modern Large Language Model (LLM)-based approaches. We provide the necessary components to generate datasets, preprocess web data, evaluate model performance, and conduct standardized benchmarking.
 
-
 **NEXT-EVAL** is an open-source library accompanying the NeurIPS 2025 paper:
 
 > 📄 **NEXT-EVAL: Next Evaluation of Traditional and LLM Web Data Record Extraction**
-> Authors: \[Names to be added]
-> \[Paper Link (to be added)]
-
+> \[https://arxiv.org/abs/2505.17125] 
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-brightgreen.svg?style=flat)](CONTRIBUTING.md)
 [![Paper](https://img.shields.io/badge/Read%20the%20Paper-blue)](https://arxiv.org/abs/6452467) 
@@ -29,48 +26,68 @@ This library provides tools for generating web-to-table datasets, applying extra
 
 ## 🔧 Components
 
-### 1. Dataset Generation Tool
+### 1. HTML processing Tool
 
-Convert real-world webpages into structured datasets using the following tools:
+Convert real-world webpage HTML into a compact format for LLM using the following tools:
 
-* **MHTML Downloader**: Save complete webpages as `.mhtml` archives.
-* **HTML to Slim HTML**: Clean and simplify raw HTML for readability and model input.
-* **HTML to JSON Converter**: Annotate and structure webpage content into a consistent JSON format for table extraction and supervision.
+* **HTML to Slim HTML**: Clean and simplify raw HTML for model input.
+* **HTML to Hierachical Json**: Structure webpage HTML into a nested JSON format which conserves the original structure.
+* **HTML to Flat Json**: Structure HTML into a flat JSON format where the key is xpath and the value is the text.
+
+```typescript
+import { processHtmlContent } from "@next-eval/html-core/utils/processHtmlContent";
+
+const htmlString = "<!DOCTYPE html>
+<html lang="en">
+<body>
+  <div class="container">
+    <h1>Main Page</h1>
+    <div class="card">
+      <div class="card-title">User Profile</div>
+      <div class="card-content">
+        <ul>
+          <li><strong>Name:</strong> Jane Doe</li>
+          <li><strong>Email:</strong> jane@example.com</li>
+          <li>
+            <strong>Skills:</strong>
+            <ul>
+              <li>JavaScript</li>
+              <li>Python</li>
+              <li>HTML & CSS</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+";
+const { html: slimmedHtml, textMapFlat, textMap } = await processHtmlContent(htmlString);
+
+console.log("[Slim HTML]", slimmedHtml);
+console.log("[Hierachcial JSON]", textMap);
+console.log("[Flat JSON]", textMapFlat);
+```
 
 ### 2. Table Generation Tool
 
 Generate tabular data from web content using:
 
-* **Traditional MDR Algorithms**: Integrate existing Model-based Data Record (MDR) extractors to produce tables from HTML.
 * **LLM-based Extraction**: Run large language models to extract tabular data from raw or simplified HTML inputs.
+
+```
+import { getLLMResponse } from "@next-eval/llm-core/utils/getLLMResponse";
+
+const promptType = "slim" //"flat", "hier";
+const data = slimmHtml // textMapFlat, textMap;
+const temperature = 1.0;
+const { text, usage } = await getLLMResponse(data, promptType, temperature);
+```
 
 ### 3. Evaluation Framework
 
-Measure and compare the performance of different extraction methods:
-
-* **Scoring Engine**: Compute precision, recall, and F1 scores on both cell-level and schema-level.
-* **Evaluation Scripts**: Ready-to-run scripts to benchmark traditional and LLM extractors on your dataset.
-
-### 4. Data
-
-Get started with:
-
-* ✅ **Sample MHTML Files**: A curated set of real-world webpages.
-* ✅ **Sample Annotations**: Human-verified ground truth tables in JSON.
-
-### 5. Benchmark Suite
-
-Includes standardized datasets and evaluation results for:
-
-* Traditional MDR algorithms
-* LLM-based extractors (e.g., gemini-2.5-preview)
-* Hybrid pipelines
-
-This enables reproducible comparisons across techniques and tasks, such as:
-
-* Web product listings
-* Event calendars
-* Job listings, etc.
+TODO
 
 ---
 
@@ -80,6 +97,7 @@ This project uses a Turborepo monorepo structure with the following organization
 - `apps/web` - Next.js web playground for interactive demos
 - `packages/core` - Core library with extraction and evaluation scripts
 - `packages/shared` - Shared utilities and interfaces
+- `packages/llm-core` - Shared utilities and interfaces
 - `packages/rust-mdr` - Rust WASM module for MDR algorithms
 
 ### Installation
