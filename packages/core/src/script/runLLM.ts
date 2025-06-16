@@ -40,7 +40,7 @@ const retryXPathExtraction = async (
         temperature,
         seed,
       );
-      const validatedXPaths = parseAndValidateXPaths(llmResponse.content);
+      const validatedXPaths = parseAndValidateXPaths(llmResponse.content || "");
       return {
         xpaths: validatedXPaths,
         usage: llmResponse.usage,
