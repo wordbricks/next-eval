@@ -91,18 +91,31 @@ export default function HomePage() {
 
   // Move sampleUrls and handler inside the component
   const sampleUrls = [
-    { label: "Product Hunt", value: "https://www.producthunt.com" },
-    { label: "Fortune 500", value: "https://fortune.com/fortune500/" },
     {
-      label: "Betalist/ai-tools",
-      value: "https://betalist.com/topics/ai-tools",
+      label: "Campus Dining Menu",
+      value: "https://dining.berkeley.edu/menus/",
     },
     {
-      label: "Future Tools",
-      value: "https://getgpt.app/marketplace/productivity",
+      label: "Course Bulletin",
+      value:
+        "https://explorecourses.stanford.edu/search?view=catalog&filter-coursestatus-Active=on&page=0&catalog=&academicYear=&q=CS231&collapse=",
+    },
+    {
+      label: "Scholarships List",
+      value:
+        "https://www.scholarships.com/financial-aid/college-scholarships/scholarship-directory/sat-score/sat-scores-from-1401-to-1600",
+    },
+    {
+      label: "OECD Dashboard",
+      value:
+        "https://www.oecd.org/en/data/dashboards.html?orderBy=mostRelevant&page=0",
+    },
+    {
+      label: "Pubmed Library",
+      value:
+        "https://pubmed.ncbi.nlm.nih.gov/?term=Digital+Twins+of+Human+Biology&filter=simsearch3.fft&size=50",
     },
   ];
-
   const handleSampleUrlClick = (url: string) => {
     setUrlInput(url);
   };
@@ -703,7 +716,23 @@ export default function HomePage() {
             aria-labelledby="url-fetch-tab"
             className="space-y-3"
           >
-            {/* Sample URL buttons */}
+            <label
+              htmlFor="url-input"
+              className="block font-medium text-gray-700 text-sm"
+            >
+              Enter a public web page URL to fetch HTML
+            </label>
+            <input
+              id="url-input"
+              type="url"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              className="block w-full rounded-md border border-gray-300 p-2 text-sm shadow-xs focus:border-orange-500 focus:outline-hidden focus:ring-2 focus:ring-orange-500"
+              placeholder="https://example.com"
+              aria-label="Web page URL"
+              disabled={isLoading || overallLlmFetching}
+              autoComplete="off"
+            />
             <div className="mb-2 flex flex-wrap gap-2">
               {sampleUrls.map((sample) => (
                 <button
@@ -722,23 +751,6 @@ export default function HomePage() {
                 </button>
               ))}
             </div>
-            <label
-              htmlFor="url-input"
-              className="block font-medium text-gray-700 text-sm"
-            >
-              Enter a public web page URL to fetch HTML
-            </label>
-            <input
-              id="url-input"
-              type="url"
-              value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
-              className="block w-full rounded-md border border-gray-300 p-2 text-sm shadow-xs focus:border-orange-500 focus:outline-hidden focus:ring-2 focus:ring-orange-500"
-              placeholder="https://example.com"
-              aria-label="Web page URL"
-              disabled={isLoading || overallLlmFetching}
-              autoComplete="off"
-            />
             <div className="flex items-center gap-2">
               <button
                 type="button"
