@@ -13,7 +13,8 @@
       "env": [
         "GOOGLE_GENERATIVE_AI_API_KEY",
         "NEXT_PUBLIC_SUPABASE_URL",
-        "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "SLACK_WEBHOOK_URL"
       ],
       "cache": true
     },
@@ -23,7 +24,8 @@
       "env": [
         "GOOGLE_GENERATIVE_AI_API_KEY",
         "NEXT_PUBLIC_SUPABASE_URL",
-        "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "SLACK_WEBHOOK_URL"
       ]
     },
     "lint": {
