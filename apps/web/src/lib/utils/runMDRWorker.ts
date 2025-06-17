@@ -134,6 +134,31 @@ async function runMDRInWorker(
     console.log("[runMDRWorker] Ready promise state:", ready);
     await ready;
     console.log("[runMDRWorker] Worker is ready");
+
+    // Send start-pool message to let wasm-bindgen-rayon consume it and remove its stub
+    await new Promise<void>((res, rej) => {
+      const once = (e: MessageEvent) => {
+        if (e.data?.type === "pool-ready") {
+          worker.removeEventListener("message", once);
+          console.log("[runMDRWorker] Thread pool ready");
+          res();
+        }
+        if (e.data?.type === "error") {
+          worker.removeEventListener("message", once);
+          console.error(
+            "[runMDRWorker] Thread pool initialization error:",
+            e.data.error,
+          );
+          rej(new Error(e.data.error || "Failed to initialize thread pool"));
+        }
+      };
+      worker.addEventListener("message", once);
+      console.log("[runMDRWorker] Sending start-pool message");
+      worker.postMessage({
+        type: "start-pool",
+        threads: navigator.hardwareConcurrency ?? 4,
+      });
+    });
   } catch (error) {
     console.error("[runMDRWorker] Worker initialization failed:", error);
     throw error;

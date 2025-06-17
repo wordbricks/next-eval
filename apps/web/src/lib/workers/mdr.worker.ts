@@ -206,6 +206,34 @@ async function handleMessage(event: MessageEvent) {
         }
         break;
 
+      case "start-pool":
+        console.log("[mdr.worker] Processing start-pool message");
+        try {
+          // Initialize thread pool if WASM module supports it
+          if (wasmModule?.initThreadPool) {
+            await wasmModule.initThreadPool(event.data.threads || 4);
+            console.log("[mdr.worker] Thread pool initialized");
+          } else {
+            console.log(
+              "[mdr.worker] Thread pool not supported or WASM not loaded",
+            );
+          }
+          self.postMessage({ type: "pool-ready" });
+        } catch (error) {
+          console.error(
+            "[mdr.worker] Thread pool initialization error:",
+            error,
+          );
+          self.postMessage({
+            type: "error",
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to initialize thread pool",
+          });
+        }
+        break;
+
       case "run":
         console.log("[mdr.worker] Processing run message");
         // Wait for initialization to complete
@@ -241,7 +269,8 @@ async function handleMessage(event: MessageEvent) {
 
 // Set up message handler using capturing phase to avoid wasm-bindgen-rayon race condition
 // The capturing phase listener fires BEFORE wasm-bindgen's stub can call stopImmediatePropagation()
-self.addEventListener("message", handleMessage, { capture: true });
+// Use plain boolean true instead of {capture: true} to survive Terser/SWC minification
+self.addEventListener("message", handleMessage, true);
 
 console.log("[mdr.worker] Worker ready to receive messages");
 
