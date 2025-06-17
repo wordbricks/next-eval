@@ -1,46 +1,18 @@
 import type { ValidatedXpathArray } from "@/app/utils/xpathValidation";
 import { mdrErrorAtom, mdrLoadingAtom, mdrResponseAtom } from "@/atoms/mdr";
 import { processedDataAtom } from "@/atoms/shared";
-import { runMDR, terminateMDRWorker } from "@/lib/utils/runMDRWorker";
+import { runMDR } from "@/lib/utils/runMDR";
+import { wait } from "@/utils/wait";
 import { mapResponseToFullXpath } from "@wordbricks/next-eval";
 import { useAtom, useAtomValue } from "jotai";
-import { useCallback, useEffect } from "react";
-
-// Helper function for timeout
-const timeoutPromise = <T>(
-  promise: Promise<T>,
-  ms: number,
-  timeoutError = new Error("Operation timed out"),
-) => {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(timeoutError);
-    }, ms);
-
-    promise
-      .then((value) => {
-        clearTimeout(timer);
-        resolve(value);
-      })
-      .catch((error) => {
-        clearTimeout(timer);
-        reject(error);
-      });
-  });
-};
+import ms from "ms";
+import { useCallback } from "react";
 
 export const useMdr = () => {
   const [mdrResponse, setMdrResponse] = useAtom(mdrResponseAtom);
   const [isLoading, setIsLoading] = useAtom(mdrLoadingAtom);
   const [error, setError] = useAtom(mdrErrorAtom);
   const processedData = useAtomValue(processedDataAtom);
-
-  // Clean up worker on unmount
-  useEffect(() => {
-    return () => {
-      terminateMDRWorker();
-    };
-  }, []);
 
   const runMdrAlgorithm = useCallback(async () => {
     if (!processedData?.originalHtml || !processedData.textMapFlat) {
@@ -53,7 +25,6 @@ export const useMdr = () => {
       return;
     }
 
-    // Reset state before running
     setMdrResponse({
       predictXpathList: null,
       mappedPredictionText: null,
@@ -63,13 +34,13 @@ export const useMdr = () => {
     setIsLoading(true);
 
     try {
-      // Run MDR with timeout
       const mdrPromise = runMDR(processedData.html);
-      const mdrPredictedXPaths = await timeoutPromise(
+      const mdrPredictedXPaths = await Promise.race([
         mdrPromise,
-        60000, // 1 minute
-        new Error("MDR processing timed out after 1 minute"),
-      );
+        wait(ms("1m")).then(() => {
+          throw new Error("MDR processing timed out after 1 minute");
+        }),
+      ]);
 
       if (!mdrPredictedXPaths || mdrPredictedXPaths.length === 0) {
         setMdrResponse({

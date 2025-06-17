@@ -27,9 +27,10 @@
   },
   "files": ["dist", "README.md", "LICENSE"],
   "scripts": {
-    "build": "concurrently \"nr prompts:gen\" && tsc",
+    "build": "concurrently \"nr prompts:gen\"",
     "clean": "rm -rf dist .content-collections",
     "lint": "biome check --diagnostic-level=error",
+    "format": "biome format --fix",
     "check-types": "tsc --noEmit",
     "prepublishOnly": "bun run clean && bun run build",
     "prompts:gen": "content-collections build"

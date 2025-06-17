@@ -281,7 +281,6 @@ export const useLlm = () => {
     });
   }, [setLlmResponses, processedData]);
 
-  // Run evaluation when responses or processedData change
   useEffect(() => {
     evaluateLlmResponses();
   }, [llmResponses, evaluateLlmResponses]);

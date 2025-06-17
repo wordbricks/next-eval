@@ -1,4 +1,5 @@
 import path from "node:path";
+import ms from "ms";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -6,8 +7,8 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./tests/setup.ts"],
-    testTimeout: 180000, // 3 minutes timeout for all tests
-    hookTimeout: 180000, // 3 minutes timeout for hooks
+    testTimeout: ms("3min"),
+    hookTimeout: ms("3min"),
     server: {
       deps: {
         inline: [/@next-eval/],
@@ -23,7 +24,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@next-eval/shared": path.resolve(__dirname, "../../packages/shared/src"),
       "/next-eval/rust_mdr_pkg": path.resolve(
         __dirname,
         "./public/rust_mdr_pkg",

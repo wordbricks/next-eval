@@ -1,8 +1,15 @@
 "use client";
 
 import { handleDownload } from "@/app/utils/handleDownload";
-import { mdrResponseAtom } from "@/atoms/mdr";
 import {
+  initialLlmStageResponse,
+  llmResponsesAtom,
+  overallLlmFetchingAtom,
+  selectedStageAtom,
+} from "@/atoms/llm";
+import { mdrErrorAtom, mdrLoadingAtom, mdrResponseAtom } from "@/atoms/mdr";
+import {
+  feedbackSentAtom,
   htmlIdAtom,
   processedDataAtom,
   randomNumberAtom,
@@ -28,6 +35,12 @@ export default function HomePage() {
   const setRandomNumber = useSetAtom(randomNumberAtom);
   const setHtmlId = useSetAtom(htmlIdAtom);
   const setMdrResponse = useSetAtom(mdrResponseAtom);
+  const setMdrLoading = useSetAtom(mdrLoadingAtom);
+  const setMdrError = useSetAtom(mdrErrorAtom);
+  const setLlmResponses = useSetAtom(llmResponsesAtom);
+  const setOverallLlmFetching = useSetAtom(overallLlmFetchingAtom);
+  const setSelectedStage = useSetAtom(selectedStageAtom);
+  const setFeedbackSent = useSetAtom(feedbackSentAtom);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -95,16 +108,34 @@ export default function HomePage() {
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    setRandomNumber(null);
     if (file) {
+      // Reset states BUT preserve the file input
+      setRandomNumber(null);
       setSelectedFile(file);
       setErrorMessage(null);
       setProcessedData(null);
+      setUrlInput("");
+
+      // Reset MDR states
       setMdrResponse({
         predictXpathList: null,
         mappedPredictionText: null,
         numPredictedRecords: null,
       });
+      setMdrLoading(false);
+      setMdrError(null);
+
+      // Reset LLM states
+      setLlmResponses({
+        html: { ...initialLlmStageResponse },
+        textMap: { ...initialLlmStageResponse },
+        textMapFlat: { ...initialLlmStageResponse },
+      });
+      setOverallLlmFetching(false);
+      setSelectedStage("textMapFlat");
+
+      // Reset feedback states
+      setFeedbackSent({});
     } else {
       setSelectedFile(null);
     }
@@ -123,7 +154,7 @@ export default function HomePage() {
       predictXpathList: null,
       mappedPredictionText: null,
       numPredictedRecords: null,
-    }); // Reset MDR state when processing file
+    });
 
     try {
       const htmlString = await readFileAsText(selectedFile);
@@ -159,15 +190,55 @@ export default function HomePage() {
     }
   }, [selectedFile, handleProcessFile]);
 
+  // Helper function to reset all states when loading new data
+  const resetAllStates = useCallback(
+    (preserveUrlInput = false) => {
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      setSelectedFile(null);
+      if (!preserveUrlInput) {
+        setUrlInput("");
+      }
+
+      // Reset MDR states
+      setMdrResponse({
+        predictXpathList: null,
+        mappedPredictionText: null,
+        numPredictedRecords: null,
+      });
+      setMdrLoading(false);
+      setMdrError(null);
+
+      // Reset LLM states
+      setLlmResponses({
+        html: { ...initialLlmStageResponse },
+        textMap: { ...initialLlmStageResponse },
+        textMapFlat: { ...initialLlmStageResponse },
+      });
+      setOverallLlmFetching(false);
+      setSelectedStage("textMapFlat");
+
+      // Reset feedback states
+      setFeedbackSent({});
+    },
+    [
+      setMdrResponse,
+      setMdrLoading,
+      setMdrError,
+      setLlmResponses,
+      setOverallLlmFetching,
+      setSelectedStage,
+      setFeedbackSent,
+    ],
+  );
+
   const handleLoadSyntheticData = async () => {
     setIsLoading(true);
     setErrorMessage(null);
     setProcessedData(null);
-    setMdrResponse({
-      predictXpathList: null,
-      mappedPredictionText: null,
-      numPredictedRecords: null,
-    });
+    resetAllStates();
 
     const newRandomNumber = Math.floor(Math.random() * 20) + 1; // Generate number between 1 and 20
     setRandomNumber(newRandomNumber); // Set the randomNumber state
@@ -210,7 +281,6 @@ export default function HomePage() {
   // Add handler for fetching and processing HTML from URL
   const handleFetchUrl = async () => {
     setUrlError(null);
-    setRandomNumber(null);
     if (!urlInput.trim()) {
       setUrlError("Please enter a URL.");
       return;
@@ -222,11 +292,8 @@ export default function HomePage() {
     setIsLoading(true);
     setErrorMessage(null);
     setProcessedData(null);
-    setMdrResponse({
-      predictXpathList: null,
-      mappedPredictionText: null,
-      numPredictedRecords: null,
-    });
+    resetAllStates(true); // Preserve URL input
+    setRandomNumber(null);
     try {
       const response = await fetch("/next-eval/api/fetch", {
         method: "POST",

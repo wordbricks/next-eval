@@ -1,3 +1,4 @@
+import { runRustMDR } from "@/lib/utils/wasmLoader";
 import {
   type TagNode,
   buildTagTree,
@@ -11,16 +12,12 @@ export const MDR_T = 0.3; // Similarity threshold for data region detection
 
 type DataRecord = TagNode | TagNode[];
 
-// Import WASM loader utilities
-import { runRustMDR } from "@/lib/utils/wasmLoader";
-
-export interface MDRResult {
+interface MDRResult {
   xpaths: string[][];
   records: DataRecord[];
   texts: string[];
 }
 
-// Helper function to extract texts from records
 function extractTextsFromRecords(records: DataRecord[]): string[] {
   const texts: string[] = [];
 
@@ -55,18 +52,13 @@ function extractTextsFromRecords(records: DataRecord[]): string[] {
   return texts;
 }
 
-// New function that returns detailed results
-export async function runMDRWithDetails(
-  rawHtml: string,
-  progressCallback?: (progress: number) => void,
-): Promise<MDRResult> {
+export async function runMDRWithDetails(rawHtml: string): Promise<MDRResult> {
   const cleanedHtml = removeCommentScriptStyleFromHTML(rawHtml);
   const rootDom = parse(cleanedHtml, {
     lowerCaseTagName: true,
     comment: false,
   });
 
-  // Find the HTML element (could be the root or a child)
   const htmlElement =
     rootDom.querySelector("html") ||
     rootDom.childNodes.find((node: any) => node.tagName === "html");
@@ -77,10 +69,7 @@ export async function runMDRWithDetails(
 
   const rootNode = buildTagTree(htmlElement);
 
-  // Use Rust implementation
-  progressCallback?.(10); // Start progress
   const result = await runRustMDR(rootNode, MDR_K, MDR_T);
-  progressCallback?.(90); // Almost done
   const finalRecords: DataRecord[] = result.finalRecords;
 
   // Convert to XPath arrays
@@ -101,8 +90,6 @@ export async function runMDRWithDetails(
   // Extract texts
   const texts = extractTextsFromRecords(finalRecords);
 
-  progressCallback?.(100); // Complete
-
   return {
     xpaths,
     records: finalRecords,
@@ -110,47 +97,7 @@ export async function runMDRWithDetails(
   };
 }
 
-export async function runMDR(
-  rawHtml: string,
-  progressCallback?: (progress: number) => void,
-): Promise<string[][]> {
-  const cleanedHtml = removeCommentScriptStyleFromHTML(rawHtml);
-  const rootDom = parse(cleanedHtml, {
-    lowerCaseTagName: true,
-    comment: false,
-  });
-
-  // Find the HTML element (could be the root or a child)
-  const htmlElement =
-    rootDom.querySelector("html") ||
-    rootDom.childNodes.find((node: any) => node.tagName === "html");
-  if (!htmlElement) {
-    console.error("No HTML element found");
-    return [];
-  }
-
-  const rootNode = buildTagTree(htmlElement);
-
-  // Use Rust implementation
-  progressCallback?.(10); // Start progress
-  const { finalRecords } = await runRustMDR(rootNode, MDR_K, MDR_T);
-  progressCallback?.(90); // Almost done
-
-  // Convert to XPath arrays
-  const finalRecordXpaths: string[][] = finalRecords
-    .map((record) => {
-      if (Array.isArray(record)) {
-        return record
-          .filter((node) => node && typeof node === "object" && "xpath" in node)
-          .map((node) => node.xpath);
-      }
-      if (record && typeof record === "object" && "xpath" in record) {
-        return [record.xpath];
-      }
-      return [];
-    })
-    .filter((xpathArray) => xpathArray.length > 0);
-
-  progressCallback?.(100); // Complete
-  return finalRecordXpaths;
+export async function runMDR(rawHtml: string): Promise<string[][]> {
+  const result = await runMDRWithDetails(rawHtml);
+  return result.xpaths;
 }

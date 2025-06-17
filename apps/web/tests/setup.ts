@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-// Test setup file for Vitest
 import { beforeAll } from "vitest";
 
 // Setup for WASM in Node environment
