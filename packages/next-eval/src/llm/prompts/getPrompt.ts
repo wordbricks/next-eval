@@ -1,4 +1,7 @@
-import { type Prompt, allPrompts } from "content-collections";
+import {
+  type Prompt,
+  allPrompts,
+} from "@wordbricks/next-eval/content-collections";
 import { z } from "zod";
 
 export const getPrompt = (name: string) => {

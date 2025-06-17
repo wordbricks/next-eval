@@ -5,7 +5,9 @@
     "baseUrl": ".",
     "paths": {
       "@wordbricks/next-eval/*": ["./src/*"],
-      "content-collections": ["./.content-collections/generated"]
+      "@wordbricks/next-eval/content-collections": [
+        "./.content-collections/generated"
+      ]
     }
   },
   "include": ["src/**/*", "content-collections.ts"],
