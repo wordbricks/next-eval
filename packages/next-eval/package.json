@@ -1,17 +1,24 @@
 {
   "name": "@wordbricks/next-eval",
+  "description": "Web data extraction evaluation framework",
   "version": "0.0.3",
+  "author": "Wordbricks",
+  "license": "MIT",
+  "homepage": "https://nextrows.com/next-eval",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wordbricks/next-eval.git",
+    "directory": "packages/next-eval"
+  },
+  "bugs": "https://github.com/wordbricks/next-eval/issues",
   "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "main": "./dist/src/index.js",
   "module": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
-  "sideEffects": false,
-  "typesVersions": {
-    "*": {
-      "*": ["./dist/src/*"],
-      "server": ["./dist/src/server.d.ts"]
-    }
-  },
   "exports": {
     ".": {
       "types": "./dist/src/index.d.ts",
@@ -25,7 +32,9 @@
     },
     "./content-collections": "./.content-collections/generated/index.js"
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "concurrently \"nr prompts:gen\"",
     "clean": "rm -rf dist .content-collections",
@@ -36,28 +45,40 @@
     "prompts:gen": "content-collections build"
   },
   "dependencies": {
-    "@ai-sdk/google": "1.2.8",
+    "@ai-sdk/google": "^1.2.19",
     "@content-collections/core": "^0.9.1",
-    "ai": "4.3.2",
+    "ai": "^4.3.16",
     "find-up": "^7.0.0",
-    "munkres-js": "1.2.2",
-    "mustache": "4.2.0",
+    "munkres-js": "^1.2.2",
+    "mustache": "^4.2.0",
     "node-html-parser": "^7.0.1",
-    "server-only": "^0.0.1",
-    "zod": "^3.22.4"
+    "server-only": "^0.0.1"
+  },
+  "peerDependencies": {
+    "zod": ">=3"
   },
   "devDependencies": {
     "@content-collections/cli": "^0.1.6",
     "@next-eval/tsconfig": "workspace:*",
     "@types/mustache": "^4.2.6",
-    "@types/node": "22.14.0",
+    "@types/node": "^24.0.3",
     "concurrently": "^9.1.2",
-    "typescript": "5.8.3"
+    "typescript": "^5.8.3"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/wordbricks/next-eval.git"
-  },
-  "license": "MIT",
-  "packageManager": "bun@1.2.15"
+  "files": ["dist", "README.md", "LICENSE"],
+  "keywords": [
+    "data-extraction",
+    "evaluation",
+    "llm",
+    "mdr",
+    "structured-data",
+    "web-extraction"
+  ],
+  "packageManager": "bun@1.2.15",
+  "typesVersions": {
+    "*": {
+      "*": ["./dist/src/*"],
+      "server": ["./dist/src/server.d.ts"]
+    }
+  }
 }
