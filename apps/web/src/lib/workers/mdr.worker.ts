@@ -186,7 +186,7 @@ async function processMDR(request: MdrWorkerRequest): Promise<void> {
   }
 }
 
-// Single, permanent message handler - no swapping!
+// Single, permanent message handler - using addEventListener to prevent overwrites
 self.addEventListener("message", async (event: MessageEvent) => {
   console.log("[mdr.worker] Message received:", event.data?.type);
 
@@ -251,14 +251,11 @@ self.addEventListener("message", async (event: MessageEvent) => {
   }
 });
 
-// Clear onmessage to make it obvious we're using addEventListener
-self.onmessage = null;
-
 console.log("[mdr.worker] Worker ready to receive messages");
 
 // Heartbeat to confirm worker is alive
 setInterval(() => {
-  console.debug(
+  console.log(
     "[mdr.worker] Heartbeat - worker is alive, initialized:",
     isInitialized,
   );
