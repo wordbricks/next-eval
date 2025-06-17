@@ -109,12 +109,33 @@ export default function HomePage() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Reset all states when a new file is selected
-      resetAllStates();
+      // Reset states BUT preserve the file input
       setRandomNumber(null);
       setSelectedFile(file);
       setErrorMessage(null);
       setProcessedData(null);
+      setUrlInput("");
+
+      // Reset MDR states
+      setMdrResponse({
+        predictXpathList: null,
+        mappedPredictionText: null,
+        numPredictedRecords: null,
+      });
+      setMdrLoading(false);
+      setMdrError(null);
+
+      // Reset LLM states
+      setLlmResponses({
+        html: { ...initialLlmStageResponse },
+        textMap: { ...initialLlmStageResponse },
+        textMapFlat: { ...initialLlmStageResponse },
+      });
+      setOverallLlmFetching(false);
+      setSelectedStage("textMapFlat");
+
+      // Reset feedback states
+      setFeedbackSent({});
     } else {
       setSelectedFile(null);
     }
