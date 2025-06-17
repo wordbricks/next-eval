@@ -68,6 +68,16 @@ async function initializeWasm(): Promise<void> {
         }
 
         wasmModule = importedModule as RustMDRModule;
+
+        // Verify WASM module has expected methods
+        console.log(
+          "[mdr.worker] WASM module methods:",
+          Object.keys(importedModule),
+        );
+        if (!wasmModule.runMdrFull) {
+          throw new Error("WASM module missing runMdrFull method");
+        }
+
         isInitialized = true;
         console.log("[mdr.worker] WASM module loaded successfully");
         console.timeEnd(`WASM initialization attempt ${attempt}`);
@@ -97,6 +107,7 @@ async function initializeWasm(): Promise<void> {
 
 // Process MDR request
 async function processMDR(request: MdrWorkerRequest): Promise<void> {
+  console.log("[mdr.worker] processMDR called");
   try {
     console.time("MDR total processing");
 
@@ -110,13 +121,50 @@ async function processMDR(request: MdrWorkerRequest): Promise<void> {
       throw new Error("WASM module not initialized");
     }
 
+    console.log("[mdr.worker] WASM is ready, running MDR algorithm...");
+
     console.time("MDR algorithm execution");
-    // Run the MDR algorithm
-    const { regions, records, orphans } = wasmModule.runMdrFull(
-      request.rootNode,
+    console.log(
+      "[mdr.worker] Calling wasmModule.runMdrFull with K=",
       request.K,
+      "T=",
       request.T,
-    ) as unknown as MdrFullOutput;
+    );
+    console.log("[mdr.worker] rootNode structure:", {
+      hasXpath: !!request.rootNode?.xpath,
+      hasChildren: !!request.rootNode?.children,
+      childrenCount: request.rootNode?.children?.length || 0,
+      tag: request.rootNode?.tag,
+    });
+
+    let mdrResult: unknown;
+    try {
+      // Run the MDR algorithm
+      console.log("[mdr.worker] About to call runMdrFull...");
+      console.log(
+        "[mdr.worker] wasmModule.runMdrFull type:",
+        typeof wasmModule.runMdrFull,
+      );
+      mdrResult = wasmModule.runMdrFull(request.rootNode, request.K, request.T);
+      console.log("[mdr.worker] runMdrFull completed");
+      console.log("[mdr.worker] mdrResult type:", typeof mdrResult);
+      console.log("[mdr.worker] mdrResult value:", mdrResult);
+    } catch (wasmError) {
+      console.error("[mdr.worker] WASM runMdrFull error:", wasmError);
+      throw new Error(
+        `WASM execution failed: ${wasmError instanceof Error ? wasmError.message : "Unknown WASM error"}`,
+      );
+    }
+
+    const { regions, records, orphans } = mdrResult as unknown as MdrFullOutput;
+    console.log(
+      "[mdr.worker] MDR algorithm completed. Regions:",
+      regions?.length,
+      "Records:",
+      records?.length,
+      "Orphans:",
+      orphans?.length,
+    );
     console.timeEnd("MDR algorithm execution");
 
     // Combine records (avoiding duplicates)
@@ -152,7 +200,18 @@ async function processMDR(request: MdrWorkerRequest): Promise<void> {
 self.addEventListener(
   "message",
   async (event: MessageEvent<MdrWorkerRequest | { type: "init" }>) => {
+    console.log("[mdr.worker] Message event fired");
     console.log("[mdr.worker] Received message:", event.data.type);
+    console.log(
+      "[mdr.worker] Full message data:",
+      JSON.stringify({
+        type: event.data.type,
+        hasRootNode: event.data.type === "run" ? !!event.data.rootNode : false,
+        K: event.data.type === "run" ? event.data.K : undefined,
+        T: event.data.type === "run" ? event.data.T : undefined,
+      }),
+    );
+
     if (event.data.type === "init") {
       // Pre-initialize WASM
       console.log("[mdr.worker] Processing init message");
@@ -172,7 +231,18 @@ self.addEventListener(
       }
     } else if (event.data.type === "run") {
       console.log("[mdr.worker] Processing run message");
-      await processMDR(event.data);
+      try {
+        await processMDR(event.data);
+      } catch (error) {
+        console.error("[mdr.worker] Error in processMDR:", error);
+        self.postMessage({
+          type: "error",
+          error:
+            error instanceof Error
+              ? error.message
+              : "Unknown error in processMDR",
+        });
+      }
     }
   },
 );

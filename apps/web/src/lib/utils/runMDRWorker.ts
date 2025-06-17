@@ -108,29 +108,66 @@ async function runMDRInWorker(
     throw error;
   }
 
-  return new Promise((resolve, reject) => {
+  const workerPromise = new Promise((resolve, reject) => {
     const handleMessage = (event: MessageEvent) => {
+      console.log(
+        "[runMDRWorker] Received message from worker during run:",
+        event.data.type,
+      );
       const { type, result, error } = event.data;
 
       switch (type) {
         case "result":
+          console.log("[runMDRWorker] Received result from worker");
           worker.removeEventListener("message", handleMessage);
           console.timeEnd("MDR Worker Total");
           resolve(result);
           break;
         case "error":
+          console.error("[runMDRWorker] Received error from worker:", error);
           worker.removeEventListener("message", handleMessage);
           console.timeEnd("MDR Worker Total");
           reject(new Error(error || "Unknown error in worker"));
           break;
+        default:
+          console.log("[runMDRWorker] Received unexpected message type:", type);
       }
     };
 
     worker.addEventListener("message", handleMessage);
     console.time("DOM Serialization");
-    worker.postMessage({ type: "run", rootNode, K, T });
+    console.log(
+      "[runMDRWorker] Posting run message to worker with K=",
+      K,
+      "T=",
+      T,
+    );
+    try {
+      worker.postMessage({ type: "run", rootNode, K, T });
+    } catch (postError) {
+      console.error(
+        "[runMDRWorker] Failed to post message to worker:",
+        postError,
+      );
+      worker.removeEventListener("message", handleMessage);
+      reject(
+        new Error(
+          `Failed to send data to worker: ${postError instanceof Error ? postError.message : "Unknown error"}`,
+        ),
+      );
+      return;
+    }
     console.timeEnd("DOM Serialization");
+    console.log("[runMDRWorker] Run message posted, waiting for response...");
   });
+
+  // Add timeout using Promise.race pattern
+  return Promise.race([
+    workerPromise,
+    wait(ms("30s")).then(() => {
+      throw new Error("MDR worker processing timed out after 30 seconds");
+    }),
+  ]);
 }
 
 export async function runMDRViaWorker(rawHtml: string): Promise<string[][]> {
