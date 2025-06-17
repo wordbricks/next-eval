@@ -15,16 +15,7 @@ export const useMdr = () => {
   const processedData = useAtomValue(processedDataAtom);
 
   const runMdrAlgorithm = useCallback(async () => {
-    if (!processedData?.originalHtml || !processedData.textMapFlat) {
-      console.error(
-        "Original HTML or textMapFlat not available for MDR execution.",
-      );
-      setError(
-        "Required data (original HTML or text map) is not processed yet.",
-      );
-      return;
-    }
-
+    // Immediately reset state to show responsiveness
     setMdrResponse({
       predictXpathList: null,
       mappedPredictionText: null,
@@ -32,6 +23,20 @@ export const useMdr = () => {
     });
     setError(null);
     setIsLoading(true);
+
+    // Small delay to ensure UI updates are visible
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    if (!processedData?.originalHtml || !processedData.textMapFlat) {
+      console.error(
+        "Original HTML or textMapFlat not available for MDR execution.",
+      );
+      setError(
+        "Required data (original HTML or text map) is not processed yet.",
+      );
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const mdrPromise = runMDR(processedData.html);
