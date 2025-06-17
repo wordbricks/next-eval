@@ -25,10 +25,10 @@
     },
     "./content-collections": "./.content-collections/generated/index.js"
   },
-  "files": ["dist", ".content-collections", "README.md", "LICENSE"],
+  "files": ["dist", "README.md", "LICENSE"],
   "scripts": {
     "build": "concurrently \"nr prompts:gen\" && tsc",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist .content-collections",
     "lint": "biome check --diagnostic-level=error",
     "check-types": "tsc --noEmit",
     "prepublishOnly": "bun run clean && bun run build",
@@ -37,8 +37,8 @@
   "dependencies": {
     "@ai-sdk/google": "1.2.8",
     "@content-collections/core": "^0.9.1",
-    "@google/generative-ai": "^0.11.3",
     "ai": "4.3.2",
+    "find-up": "^7.0.0",
     "munkres-js": "1.2.2",
     "mustache": "4.2.0",
     "node-html-parser": "^7.0.1",
