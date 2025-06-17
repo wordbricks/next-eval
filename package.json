@@ -6,6 +6,7 @@
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "preinstall": "bunx only-allow bun",
+    "postinstall": "turbo build --filter=@wordbricks/next-eval",
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
