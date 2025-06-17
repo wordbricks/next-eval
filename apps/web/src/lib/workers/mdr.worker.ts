@@ -217,8 +217,10 @@ async function handleMessage(event: MessageEvent) {
         console.log("[mdr.worker] Processing start-pool message");
         try {
           // Initialize thread pool if WASM module supports it
-          if (wasmModule?.initThreadPool) {
-            await wasmModule.initThreadPool(event.data.threads || 4);
+          // Cast to any to access initThreadPool which may be injected by wasm-bindgen-rayon
+          const moduleWithPool = wasmModule as any;
+          if (moduleWithPool?.initThreadPool) {
+            await moduleWithPool.initThreadPool(event.data.threads || 4);
             console.log("[mdr.worker] Thread pool initialized");
           } else {
             console.log(
