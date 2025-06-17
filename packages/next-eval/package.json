@@ -50,9 +50,9 @@
     "@content-collections/core": "^0.9.1",
     "ai": "^4.3.16",
     "find-up": "^7.0.0",
+    "linkedom": "^0.18.11",
     "munkres-js": "^1.2.2",
     "mustache": "^4.2.0",
-    "node-html-parser": "^7.0.1",
     "server-only": "^0.0.1"
   },
   "peerDependencies": {

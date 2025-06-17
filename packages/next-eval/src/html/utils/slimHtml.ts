@@ -1,23 +1,34 @@
+import {
+  getAttribute,
+  getAttributes,
+  getElementsByTagName,
+  getOuterHTML,
+  parseHTML,
+  querySelectorAll,
+  removeAttribute,
+  removeElement,
+} from "./domParser";
+
 // Helper function to remove script, style tags, and comments from HTML
 export const slimHtml = (doc: Document): string => {
   // 1. Initial DOM-based removal of specific tags
-  for (const el of doc.querySelectorAll("script")) {
-    el.remove();
+  for (const el of querySelectorAll(doc, "script")) {
+    removeElement(el);
   }
-  for (const el of doc.querySelectorAll("style")) {
-    el.remove();
+  for (const el of querySelectorAll(doc, "style")) {
+    removeElement(el);
   }
-  for (const el of doc.querySelectorAll("meta")) {
-    if (el.getAttribute("charset") === null) {
-      el.remove();
+  for (const el of querySelectorAll(doc, "meta")) {
+    if (getAttribute(el, "charset") === null) {
+      removeElement(el);
     }
   }
-  for (const el of doc.querySelectorAll("link")) {
-    el.remove();
+  for (const el of querySelectorAll(doc, "link")) {
+    removeElement(el);
   }
 
   // 2. Convert to string
-  const htmlContent = doc.documentElement ? doc.documentElement.outerHTML : "";
+  const htmlContent = getOuterHTML(doc);
   if (!htmlContent) {
     return ""; // Return empty if no content after initial cleaning
   }
@@ -31,34 +42,18 @@ export const slimHtml = (doc: Document): string => {
     .trim(); // Remove leading/trailing whitespace
 
   // 3. Create a new document from the string-cleaned content
-  let tempDoc: Document;
-
-  // Check if DOMParser is available (browser environment)
-  if (typeof DOMParser !== "undefined") {
-    const parser = new DOMParser();
-    tempDoc = parser.parseFromString(stringCleanedContent, "text/html");
-  } else {
-    // In Node.js, we'll need to use the passed document's methods
-    // This assumes the document has a way to parse HTML (like JSDOM)
-    const domImplementation = doc.implementation;
-    tempDoc = domImplementation.createHTMLDocument("");
-    tempDoc.documentElement.innerHTML = stringCleanedContent;
-  }
+  const tempDoc = parseHTML(stringCleanedContent);
 
   // 4. Remove all attributes from all elements in the new document
-  if (tempDoc.documentElement) {
-    const elements = tempDoc.getElementsByTagName("*");
-    for (let i = 0; i < elements.length; i++) {
-      const element = elements[i];
-      const attributes = element.attributes;
-      // Iterate backwards because attributes is a live collection
-      for (let j = attributes.length - 1; j >= 0; j--) {
-        const attr = attributes[j];
-        element.removeAttribute(attr.name);
-      }
+  const elements = getElementsByTagName(tempDoc, "*");
+  for (const element of elements) {
+    const attributes = getAttributes(element);
+    // Remove all attributes
+    for (const attr of attributes) {
+      removeAttribute(element, attr.name);
     }
   }
 
   // 5. Return the final cleaned HTML
-  return tempDoc.documentElement ? tempDoc.documentElement.outerHTML : "";
+  return getOuterHTML(tempDoc);
 };

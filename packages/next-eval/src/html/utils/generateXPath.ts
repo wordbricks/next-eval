@@ -1,28 +1,63 @@
 // Helper function to generate a simple XPath for an element
-export const generateXPath = (element: Element | null): string => {
+export const generateXPath = (element: any): string => {
   if (!element) return "";
-  // Prioritize id if present and it's reasonably simple (e.g., no spaces, not just a number)
-  if (element.id && /^[a-zA-Z][\w-]*$/.test(element.id))
-    return `id(\'${element.id}\')`;
+
+  // Check for ID attribute (works in both environments)
+  const id = element.id || element.getAttribute?.("id");
+  if (id && /^[a-zA-Z][\w-]*$/.test(id)) {
+    return `id('${id}')`;
+  }
 
   let path = "";
-  let currentElement: Element | null = element;
-  while (currentElement && currentElement.nodeType === Node.ELEMENT_NODE) {
+  let currentElement: any = element;
+
+  while (
+    currentElement &&
+    (currentElement.nodeType === 1 || currentElement.tagName)
+  ) {
     let siblingIndex = 1;
-    let sibling = currentElement.previousElementSibling;
-    while (sibling) {
-      if (sibling.nodeName === currentElement.nodeName) {
-        siblingIndex++;
+
+    // Get previous siblings - handle both browser and node-html-parser
+    if (currentElement.previousElementSibling) {
+      // Browser API
+      let sibling = currentElement.previousElementSibling;
+      while (sibling) {
+        if (
+          sibling.nodeName === currentElement.nodeName ||
+          sibling.tagName === currentElement.tagName
+        ) {
+          siblingIndex++;
+        }
+        sibling = sibling.previousElementSibling;
       }
-      sibling = sibling.previousElementSibling;
+    } else if (currentElement.parentNode || currentElement.parentElement) {
+      // node-html-parser fallback - count siblings manually
+      const parent = currentElement.parentNode || currentElement.parentElement;
+      const children = parent.childNodes || parent.children || [];
+      const nodeName = currentElement.nodeName || currentElement.tagName;
+
+      for (let i = 0; i < children.length; i++) {
+        const child = children[i];
+        if (child === currentElement) break;
+        if ((child.nodeName || child.tagName) === nodeName) {
+          siblingIndex++;
+        }
+      }
     }
-    const tagName = currentElement.nodeName.toLowerCase();
+
+    const tagName = (
+      currentElement.nodeName ||
+      currentElement.tagName ||
+      ""
+    ).toLowerCase();
     const segment = `[${siblingIndex}]`;
     path = `/${tagName}${segment}${path}`;
-    currentElement = currentElement.parentElement;
+    currentElement = currentElement.parentElement || currentElement.parentNode;
   }
+
   // Remove leading /html if present to make paths relative to html's direct children (head, body)
   if (path.startsWith("/html[1]/")) {
+    // FIXME Is it correct?
     return path.substring(8); // length of "/html"
   }
   return path || "/";

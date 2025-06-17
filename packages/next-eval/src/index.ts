@@ -16,6 +16,7 @@ export * from "./evaluation/utils/calculateOverlap";
 export * from "./evaluation/utils/mapResponseToFullXpath";
 
 // HTML processing utilities
+export * from "./html/utils/domParser";
 export * from "./html/utils/extractTextWithXPaths";
 export * from "./html/utils/generateXPath";
 export * from "./html/utils/processHtmlContent";
