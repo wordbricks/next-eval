@@ -22,7 +22,8 @@
       "types": "./dist/src/server.d.ts",
       "import": "./dist/src/server.js",
       "default": "./dist/src/server.js"
-    }
+    },
+    "./content-collections": "./.content-collections/generated/index.js"
   },
   "files": ["dist", "README.md", "LICENSE"],
   "scripts": {
