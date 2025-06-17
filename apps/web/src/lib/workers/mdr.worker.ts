@@ -174,8 +174,8 @@ async function processMDR(request: MdrWorkerRequest): Promise<void> {
   }
 }
 
-// Single, permanent message handler - using addEventListener to prevent overwrites
-self.addEventListener("message", async (event: MessageEvent) => {
+// Main message handler
+async function handleMessage(event: MessageEvent) {
   console.log("[mdr.worker] Message received:", event.data?.type);
 
   try {
@@ -237,7 +237,11 @@ self.addEventListener("message", async (event: MessageEvent) => {
         error instanceof Error ? error.message : "Catastrophic error in worker",
     });
   }
-});
+}
+
+// Set up message handler using capturing phase to avoid wasm-bindgen-rayon race condition
+// The capturing phase listener fires BEFORE wasm-bindgen's stub can call stopImmediatePropagation()
+self.addEventListener("message", handleMessage, { capture: true });
 
 console.log("[mdr.worker] Worker ready to receive messages");
 
