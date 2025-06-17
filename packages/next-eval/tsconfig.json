@@ -2,6 +2,7 @@
   "extends": "@next-eval/tsconfig/library.json",
   "compilerOptions": {
     "outDir": "dist",
+    "rootDir": ".",
     "baseUrl": ".",
     "paths": {
       "@wordbricks/next-eval/*": ["./src/*"],

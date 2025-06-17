@@ -70,7 +70,6 @@
         "@content-collections/cli": "^0.1.6",
         "@next-eval/tsconfig": "workspace:*",
         "@types/mustache": "^4.2.6",
-        "@types/node": "^24.0.3",
         "concurrently": "^9.1.2",
         "typescript": "^5.8.3",
       },

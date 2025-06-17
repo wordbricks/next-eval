@@ -1,7 +1,6 @@
 {
   "name": "web",
   "version": "0.1.0",
-  "private": true,
   "scripts": {
     "preinstall": "bunx only-allow bun",
     "dev": "next dev -p 3839 --turbo",

@@ -1,11 +1,8 @@
-name: Release @next-eval/core to npm
+name: Release to npm
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'packages/core/**'
-      - '.github/workflows/release-core.yml'
 
 jobs:
   check-version:
@@ -21,16 +18,17 @@ jobs:
 
       - name: Check if version changed
         id: check
+        working-directory: packages/next-eval
         run: |
           # Get current version from package.json
-          CURRENT_VERSION=$(node -p "require('./packages/core/package.json').version")
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
 
           # Get previous version from package.json in the previous commit
-          git checkout HEAD~1 -- packages/core/package.json 2>/dev/null || echo "No previous commit"
-          PREVIOUS_VERSION=$(node -p "require('./packages/core/package.json').version" 2>/dev/null || echo "0.0.0")
+          git checkout HEAD~1 -- package.json 2>/dev/null || echo "No previous commit"
+          PREVIOUS_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "0.0.0")
 
           # Reset to current version
-          git checkout HEAD -- packages/core/package.json
+          git checkout HEAD -- package.json
 
           echo "Previous version: $PREVIOUS_VERSION"
           echo "Current version: $CURRENT_VERSION"
@@ -61,17 +59,12 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Run type checks
-        run: bun run check-types
-        working-directory: packages/core
-
-      - name: Run lint
-        run: bun run lint
-        working-directory: packages/core
+      - name: Run tests
+        run: bun test
 
       - name: Build package
         run: bun run build
-        working-directory: packages/core
+        working-directory: packages/next-eval
 
       - name: Setup npm registry
         run: |
@@ -79,35 +72,45 @@ jobs:
           echo "registry=https://registry.npmjs.org/" >> ~/.npmrc
 
       - name: Publish to npm
-        run: npm publish --access restricted
-        working-directory: packages/core
+        run: npm publish --access public
+        working-directory: packages/next-eval
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.check-version.outputs.version }}
-          release_name: Release v${{ needs.check-version.outputs.version }}
+          name: Release v${{ needs.check-version.outputs.version }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             ## Changes
 
-            Release of @next-eval/core v${{ needs.check-version.outputs.version }}
+            Auto-generated release for @wordbricks/next-eval version ${{ needs.check-version.outputs.version }}
 
-            ### Installation (Private Package)
+            ### Installation
 
             ```bash
-            npm install @next-eval/core
+            npm install @wordbricks/next-eval@latest
+            # or
+            bun add @wordbricks/next-eval@latest
+            # or
+            yarn add @wordbricks/next-eval@latest
             ```
 
             ### Usage
 
             ```typescript
-            import { runMDR } from '@next-eval/core/script/runMDR';
-            import { PROMPTS } from '@next-eval/core/constant';
-            import { replaceMultipleSpaces } from '@next-eval/core/utils/stringUtils';
+            import { HTMLProcessor, evaluateExtractions } from '@wordbricks/next-eval';
+
+            // Process HTML
+            const processor = new HTMLProcessor(html);
+            const { slimHtml, hierarchicalJson, flatJson } = processor.process();
+
+            // Evaluate extractions
+            const results = evaluateExtractions(groundTruth, predictions);
             ```
+
+            For more details, see the [documentation](https://github.com/wordbricks/next-eval).
           draft: false
           prerelease: false
