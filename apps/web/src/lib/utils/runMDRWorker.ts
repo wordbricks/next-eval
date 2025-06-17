@@ -1,9 +1,4 @@
-import {
-  type MDRResult,
-  MDR_K,
-  MDR_T,
-  extractTextsFromRecords,
-} from "@/lib/utils/runMDR";
+import { MDR_K, MDR_T } from "@/lib/utils/runMDR";
 import type { DataRecord } from "@/lib/utils/wasmLoader";
 import { wait } from "@/utils/wait";
 import {
@@ -102,49 +97,6 @@ async function runMDRInWorker(
     worker.postMessage({ type: "run", rootNode, K, T });
     console.timeEnd("DOM Serialization");
   });
-}
-
-export async function runMDRWithDetails(rawHtml: string): Promise<MDRResult> {
-  const cleanedHtml = removeCommentScriptStyleFromHTML(rawHtml);
-  const rootDom = parse(cleanedHtml, {
-    lowerCaseTagName: true,
-    comment: false,
-  });
-
-  const htmlElement =
-    rootDom.querySelector("html") ||
-    rootDom.childNodes.find((node: any) => node.tagName === "html");
-  if (!htmlElement) {
-    console.error("No HTML element found");
-    return { xpaths: [], records: [], texts: [] };
-  }
-
-  const rootNode = buildTagTree(htmlElement);
-
-  const result = await runMDRInWorker(rootNode, MDR_K, MDR_T);
-  const finalRecords: DataRecord[] = result.finalRecords;
-
-  const xpaths: string[][] = finalRecords
-    .map((record) => {
-      if (Array.isArray(record)) {
-        return record
-          .filter((node) => node && typeof node === "object" && "xpath" in node)
-          .map((node) => node.xpath);
-      }
-      if (record && typeof record === "object" && "xpath" in record) {
-        return [record.xpath];
-      }
-      return [];
-    })
-    .filter((xpathArray) => xpathArray.length > 0);
-
-  const texts = extractTextsFromRecords(finalRecords);
-
-  return {
-    xpaths,
-    records: finalRecords,
-    texts,
-  };
 }
 
 export async function runMDRViaWorker(rawHtml: string): Promise<string[][]> {

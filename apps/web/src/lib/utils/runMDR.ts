@@ -56,10 +56,7 @@ export function extractTextsFromRecords(records: DataRecord[]): string[] {
 }
 
 // New function that returns detailed results
-export async function runMDRWithDetails(
-  rawHtml: string,
-  progressCallback?: (progress: number) => void,
-): Promise<MDRResult> {
+export async function runMDRWithDetails(rawHtml: string): Promise<MDRResult> {
   const cleanedHtml = removeCommentScriptStyleFromHTML(rawHtml);
   const rootDom = parse(cleanedHtml, {
     lowerCaseTagName: true,
@@ -78,9 +75,7 @@ export async function runMDRWithDetails(
   const rootNode = buildTagTree(htmlElement);
 
   // Use Rust implementation
-  progressCallback?.(10); // Start progress
   const result = await runRustMDR(rootNode, MDR_K, MDR_T);
-  progressCallback?.(90); // Almost done
   const finalRecords: DataRecord[] = result.finalRecords;
 
   // Convert to XPath arrays
@@ -100,8 +95,6 @@ export async function runMDRWithDetails(
 
   // Extract texts
   const texts = extractTextsFromRecords(finalRecords);
-
-  progressCallback?.(100); // Complete
 
   return {
     xpaths,
