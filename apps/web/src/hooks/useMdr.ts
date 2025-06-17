@@ -1,15 +1,10 @@
 import type { ValidatedXpathArray } from "@/app/utils/xpathValidation";
-import {
-  mdrErrorAtom,
-  mdrLoadingAtom,
-  mdrProgressAtom,
-  mdrResponseAtom,
-} from "@/atoms/mdr";
+import { mdrErrorAtom, mdrLoadingAtom, mdrResponseAtom } from "@/atoms/mdr";
 import { processedDataAtom } from "@/atoms/shared";
-import { runMDR } from "@/lib/utils/runMDR";
+import { runMDR, terminateMDRWorker } from "@/lib/utils/runMDRWorker";
 import { mapResponseToFullXpath } from "@wordbricks/next-eval";
 import { useAtom, useAtomValue } from "jotai";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 // Helper function for timeout
 const timeoutPromise = <T>(
@@ -36,21 +31,16 @@ const timeoutPromise = <T>(
 
 export const useMdr = () => {
   const [mdrResponse, setMdrResponse] = useAtom(mdrResponseAtom);
-  const [progress, setProgress] = useAtom(mdrProgressAtom);
   const [isLoading, setIsLoading] = useAtom(mdrLoadingAtom);
   const [error, setError] = useAtom(mdrErrorAtom);
   const processedData = useAtomValue(processedDataAtom);
 
-  const resetMdr = useCallback(() => {
-    setMdrResponse({
-      predictXpathList: null,
-      mappedPredictionText: null,
-      numPredictedRecords: null,
-    });
-    setProgress(0);
-    setIsLoading(false);
-    setError(null);
-  }, [setMdrResponse, setProgress, setIsLoading, setError]);
+  // Clean up worker on unmount
+  useEffect(() => {
+    return () => {
+      terminateMDRWorker();
+    };
+  }, []);
 
   const runMdrAlgorithm = useCallback(async () => {
     if (!processedData?.originalHtml || !processedData.textMapFlat) {
@@ -63,17 +53,18 @@ export const useMdr = () => {
       return;
     }
 
-    resetMdr();
+    // Reset state before running
+    setMdrResponse({
+      predictXpathList: null,
+      mappedPredictionText: null,
+      numPredictedRecords: null,
+    });
+    setError(null);
     setIsLoading(true);
 
     try {
-      // Progress callback to update the progress bar
-      const progressCallback = (progressValue: number) => {
-        setProgress(progressValue);
-      };
-
       // Run MDR with timeout
-      const mdrPromise = runMDR(processedData.html, progressCallback);
+      const mdrPromise = runMDR(processedData.html);
       const mdrPredictedXPaths = await timeoutPromise(
         mdrPromise,
         60000, // 1 minute
@@ -93,10 +84,7 @@ export const useMdr = () => {
       // Validate XPaths
       const validatedMdrXPaths: ValidatedXpathArray =
         mdrPredictedXPaths as ValidatedXpathArray;
-      const textMapFlatForEval = processedData.textMapFlat as Record<
-        string,
-        string
-      >;
+      const textMapFlatForEval = processedData.textMapFlat;
       const mdrFullXPaths = mapResponseToFullXpath(
         textMapFlatForEval,
         validatedMdrXPaths,
@@ -118,28 +106,18 @@ export const useMdr = () => {
         mappedPredictionText: mappedText,
         numPredictedRecords: validatedMdrXPaths.length,
       });
-      setProgress(100);
     } catch (err) {
       console.error("Error running MDR:", err);
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setIsLoading(false);
     }
-  }, [
-    resetMdr,
-    setMdrResponse,
-    setProgress,
-    setIsLoading,
-    setError,
-    processedData,
-  ]);
+  }, [setMdrResponse, setIsLoading, setError, processedData]);
 
   return {
     mdrResponse,
-    progress,
     isLoading,
     error,
     runMdrAlgorithm,
-    resetMdr,
   };
 };

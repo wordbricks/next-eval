@@ -1,6 +1,7 @@
 "use client";
 
 import { handleDownload } from "@/app/utils/handleDownload";
+import { mdrResponseAtom } from "@/atoms/mdr";
 import {
   htmlIdAtom,
   processedDataAtom,
@@ -26,6 +27,7 @@ export default function HomePage() {
   const [processedData, setProcessedData] = useAtom(processedDataAtom);
   const setRandomNumber = useSetAtom(randomNumberAtom);
   const setHtmlId = useSetAtom(htmlIdAtom);
+  const setMdrResponse = useSetAtom(mdrResponseAtom);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -98,6 +100,11 @@ export default function HomePage() {
       setSelectedFile(file);
       setErrorMessage(null);
       setProcessedData(null);
+      setMdrResponse({
+        predictXpathList: null,
+        mappedPredictionText: null,
+        numPredictedRecords: null,
+      });
     } else {
       setSelectedFile(null);
     }
@@ -112,6 +119,11 @@ export default function HomePage() {
     setIsLoading(true);
     setErrorMessage(null);
     setProcessedData(null);
+    setMdrResponse({
+      predictXpathList: null,
+      mappedPredictionText: null,
+      numPredictedRecords: null,
+    }); // Reset MDR state when processing file
 
     try {
       const htmlString = await readFileAsText(selectedFile);
@@ -151,6 +163,11 @@ export default function HomePage() {
     setIsLoading(true);
     setErrorMessage(null);
     setProcessedData(null);
+    setMdrResponse({
+      predictXpathList: null,
+      mappedPredictionText: null,
+      numPredictedRecords: null,
+    });
 
     const newRandomNumber = Math.floor(Math.random() * 20) + 1; // Generate number between 1 and 20
     setRandomNumber(newRandomNumber); // Set the randomNumber state
@@ -205,6 +222,11 @@ export default function HomePage() {
     setIsLoading(true);
     setErrorMessage(null);
     setProcessedData(null);
+    setMdrResponse({
+      predictXpathList: null,
+      mappedPredictionText: null,
+      numPredictedRecords: null,
+    });
     try {
       const response = await fetch("/next-eval/api/fetch", {
         method: "POST",

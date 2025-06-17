@@ -7,7 +7,6 @@ import ThumbsDownIcon from "@/components/icons/ThumbsDownIcon";
 import ThumbsUpIcon from "@/components/icons/ThumbsUpIcon";
 import { useFeedback } from "@/hooks/useFeedback";
 import { useMdr } from "@/hooks/useMdr";
-import { Progress } from "@next-eval/ui/components/progress";
 import { useAtomValue } from "jotai";
 import { useState } from "react";
 
@@ -16,7 +15,7 @@ interface MdrTabProps {
 }
 
 export function MdrTab({ isProcessing }: MdrTabProps) {
-  const { mdrResponse, progress, isLoading, error, runMdrAlgorithm } = useMdr();
+  const { mdrResponse, isLoading, error, runMdrAlgorithm } = useMdr();
   const { feedbackSent, handleFeedback, getCurrentFeedbackId } = useFeedback();
   const processedData = useAtomValue(processedDataAtom);
   const overallLlmFetching = useAtomValue(overallLlmFetchingAtom);
@@ -57,15 +56,9 @@ export function MdrTab({ isProcessing }: MdrTabProps) {
             MDR Algorithm Response
           </h3>
           {isLoading && (
-            <div className="space-y-3">
-              <p className="animate-pulse font-medium text-blue-600 text-md">
-                Processing with MDR, please wait...
-              </p>
-              <Progress value={progress} className="w-full" />
-              <p className="text-center text-gray-600 text-sm">
-                {progress}% complete
-              </p>
-            </div>
+            <p className="animate-pulse font-medium text-blue-600 text-md">
+              Processing with MDR, please wait...
+            </p>
           )}
           {error && (
             <div
