@@ -1,51 +1,56 @@
 {
   "name": "@wordbricks/next-eval",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/src/index.js",
+  "module": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
   "sideEffects": false,
   "typesVersions": {
     "*": {
-      "*": ["./dist/*"],
-      "server": ["./dist/server.d.ts"]
+      "*": ["./dist/src/*"],
+      "server": ["./dist/src/server.d.ts"]
     }
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "default": "./dist/index.js"
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js",
+      "default": "./dist/src/index.js"
     },
     "./server": {
-      "types": "./dist/server.d.ts",
-      "import": "./dist/server.js",
-      "default": "./dist/server.js"
+      "types": "./dist/src/server.d.ts",
+      "import": "./dist/src/server.js",
+      "default": "./dist/src/server.js"
     }
   },
   "files": ["dist", "README.md", "LICENSE"],
   "scripts": {
-    "build": "tsc",
+    "build": "concurrently \"nr prompts:gen\" && tsc",
     "clean": "rm -rf dist",
     "lint": "biome check --diagnostic-level=error",
     "check-types": "tsc --noEmit",
-    "prepublishOnly": "bun run clean && bun run build"
+    "prepublishOnly": "bun run clean && bun run build",
+    "prompts:gen": "content-collections build"
   },
   "dependencies": {
-    "node-html-parser": "^7.0.1",
-    "munkres-js": "1.2.2",
-    "zod": "^3.22.4",
-    "ai": "4.3.2",
     "@ai-sdk/google": "1.2.8",
+    "@content-collections/core": "^0.9.1",
     "@google/generative-ai": "^0.11.3",
-    "mustache": "4.2.0"
+    "ai": "4.3.2",
+    "munkres-js": "1.2.2",
+    "mustache": "4.2.0",
+    "node-html-parser": "^7.0.1",
+    "server-only": "^0.0.1",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@content-collections/cli": "^0.1.6",
     "@next-eval/tsconfig": "workspace:*",
+    "@types/mustache": "^4.2.6",
     "@types/node": "22.14.0",
-    "typescript": "5.8.3",
-    "@types/mustache": "^4.2.6"
+    "concurrently": "^9.1.2",
+    "typescript": "5.8.3"
   },
   "repository": {
     "type": "git",

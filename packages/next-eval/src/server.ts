@@ -1,3 +1,5 @@
+import "server-only";
+
 // Server-side only exports for @wordbricks/next-eval
 // These exports use Node.js APIs and should only be imported in server environments
 
@@ -5,5 +7,5 @@
 export * from "./index";
 
 // Server-only exports
-export * from "./llm/prompts/promptLoader";
+export * from "./llm/prompts/getPrompt";
 export * from "./llm/utils/getLLMResponse";

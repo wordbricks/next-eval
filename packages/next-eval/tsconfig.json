@@ -4,9 +4,10 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "@wordbricks/next-eval/*": ["./src/*"]
+      "@wordbricks/next-eval/*": ["./src/*"],
+      "content-collections": ["./.content-collections/generated"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "content-collections.ts"],
   "exclude": ["node_modules", "dist"]
 }

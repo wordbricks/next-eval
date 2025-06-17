@@ -29,6 +29,7 @@ build
 .vercel
 
 dist
+.content-collections
 
 ### rust
 
