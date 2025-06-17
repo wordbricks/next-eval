@@ -26,35 +26,69 @@ interface MdrWorkerResponse {
 
 let wasmModule: RustMDRModule | null = null;
 let initPromise: Promise<void> | null = null;
+let isInitialized = false;
 
 // Initialize WASM in the worker
 async function initializeWasm(): Promise<void> {
-  if (wasmModule) return;
-  if (initPromise) return initPromise;
+  console.log("[mdr.worker] initializeWasm called");
+  if (wasmModule) {
+    console.log("[mdr.worker] WASM module already loaded");
+    return;
+  }
+  if (initPromise) {
+    console.log("[mdr.worker] WASM initialization already in progress");
+    return initPromise;
+  }
 
   initPromise = (async () => {
-    try {
-      console.time("WASM initialization");
-      // Use self.location.origin to get the correct base URL in worker context
-      const importPath = `${self.location.origin}/next-eval/rust_mdr_pkg/rust_mdr_utils.js`;
+    const maxRetries = 3;
+    const retryDelay = 500; // ms
 
-      const importedModule = await import(
-        /* webpackIgnore: true */
-        importPath
-      );
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.time(`WASM initialization attempt ${attempt}`);
+        // Use self.location.origin to get the correct base URL in worker context
+        const basePath = "/next-eval";
+        const importPath = `${self.location.origin}${basePath}/rust_mdr_pkg/rust_mdr_utils.js`;
+        console.log(
+          `[mdr.worker] Attempt ${attempt}: Importing WASM from:`,
+          importPath,
+        );
+        console.log("[mdr.worker] Current location:", self.location.href);
 
-      // Initialize WASM
-      if (typeof importedModule.default === "function") {
-        await importedModule.default();
+        const importedModule = await import(
+          /* webpackIgnore: true */
+          importPath
+        );
+
+        // Initialize WASM
+        if (typeof importedModule.default === "function") {
+          console.log("[mdr.worker] Initializing WASM module...");
+          await importedModule.default();
+        }
+
+        wasmModule = importedModule as RustMDRModule;
+        isInitialized = true;
+        console.log("[mdr.worker] WASM module loaded successfully");
+        console.timeEnd(`WASM initialization attempt ${attempt}`);
+        return; // Success, exit the retry loop
+      } catch (error) {
+        console.error(
+          `[mdr.worker] WASM initialization attempt ${attempt} failed:`,
+          error,
+        );
+
+        if (attempt === maxRetries) {
+          initPromise = null; // Reset on final error to allow retry
+          throw new Error(
+            `Failed to initialize WASM in worker after ${maxRetries} attempts: ${error instanceof Error ? error.message : "Unknown error"}`,
+          );
+        }
+
+        // Wait before retry
+        console.log(`[mdr.worker] Retrying in ${retryDelay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
       }
-
-      wasmModule = importedModule as RustMDRModule;
-      console.timeEnd("WASM initialization");
-    } catch (error) {
-      initPromise = null; // Reset on error to allow retry
-      throw new Error(
-        `Failed to initialize WASM in worker: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
     }
   })();
 
@@ -66,10 +100,13 @@ async function processMDR(request: MdrWorkerRequest): Promise<void> {
   try {
     console.time("MDR total processing");
 
-    // Initialize WASM if needed (should already be initialized)
-    await initializeWasm();
+    // Ensure WASM is initialized
+    if (!isInitialized) {
+      console.log("[mdr.worker] WASM not initialized, initializing now...");
+      await initializeWasm();
+    }
 
-    if (!wasmModule) {
+    if (!wasmModule || !isInitialized) {
       throw new Error("WASM module not initialized");
     }
 
@@ -115,12 +152,16 @@ async function processMDR(request: MdrWorkerRequest): Promise<void> {
 self.addEventListener(
   "message",
   async (event: MessageEvent<MdrWorkerRequest | { type: "init" }>) => {
+    console.log("[mdr.worker] Received message:", event.data.type);
     if (event.data.type === "init") {
       // Pre-initialize WASM
+      console.log("[mdr.worker] Processing init message");
       try {
         await initializeWasm();
+        console.log("[mdr.worker] Sending initialized message");
         self.postMessage({ type: "initialized" });
       } catch (error) {
+        console.error("[mdr.worker] Init message error:", error);
         self.postMessage({
           type: "error",
           error:
@@ -130,12 +171,11 @@ self.addEventListener(
         });
       }
     } else if (event.data.type === "run") {
+      console.log("[mdr.worker] Processing run message");
       await processMDR(event.data);
     }
   },
 );
 
-// Pre-initialize WASM immediately when worker starts
-initializeWasm().catch((error) => {
-  console.error("Failed to pre-initialize WASM:", error);
-});
+// Worker will wait for explicit init message to initialize WASM
+console.log("[mdr.worker] Worker script loaded, waiting for init message");

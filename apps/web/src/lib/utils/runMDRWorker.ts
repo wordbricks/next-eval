@@ -13,25 +13,46 @@ let worker: Worker | null = null;
 let workerReadyPromise: Promise<void> | null = null;
 
 function createWorker(): { worker: Worker; ready: Promise<void> } {
+  console.log("[runMDRWorker] Creating new worker...");
   const newWorker = new Worker(
     new URL("../workers/mdr.worker.ts", import.meta.url),
     {
       type: "module",
     },
   );
+  console.log("[runMDRWorker] Worker created");
 
   const initPromise = new Promise<void>((resolve, reject) => {
-    newWorker.addEventListener("message", function initHandler(event) {
+    const messageHandler = function initHandler(event: MessageEvent) {
+      console.log(
+        "[runMDRWorker] Received message from worker:",
+        event.data.type,
+      );
       if (event.data.type === "initialized") {
-        console.log("MDR Worker WASM initialized");
+        console.log("[runMDRWorker] MDR Worker WASM initialized successfully");
         newWorker.removeEventListener("message", initHandler);
         resolve();
       } else if (event.data.type === "error") {
+        console.error(
+          "[runMDRWorker] Worker initialization error:",
+          event.data.error,
+        );
         newWorker.removeEventListener("message", initHandler);
         reject(new Error(event.data.error || "Worker initialization failed"));
       }
-    });
+    };
 
+    const errorHandler = (error: ErrorEvent) => {
+      console.error("[runMDRWorker] Worker error event:", error);
+      newWorker.removeEventListener("error", errorHandler);
+      newWorker.removeEventListener("message", messageHandler);
+      reject(new Error(`Worker error: ${error.message}`));
+    };
+
+    newWorker.addEventListener("message", messageHandler);
+    newWorker.addEventListener("error", errorHandler);
+
+    console.log("[runMDRWorker] Sending init message to worker");
     newWorker.postMessage({ type: "init" });
   });
 
@@ -47,9 +68,20 @@ function createWorker(): { worker: Worker; ready: Promise<void> } {
 
 function getOrCreateWorker(): { worker: Worker; ready: Promise<void> } {
   if (!worker || !workerReadyPromise) {
+    console.log("[runMDRWorker] No existing worker, creating new one");
     const created = createWorker();
     worker = created.worker;
     workerReadyPromise = created.ready;
+
+    // Handle worker failure
+    workerReadyPromise.catch((error) => {
+      console.error("[runMDRWorker] Worker failed to initialize:", error);
+      // Reset to allow retry on next call
+      worker = null;
+      workerReadyPromise = null;
+    });
+  } else {
+    console.log("[runMDRWorker] Reusing existing worker");
   }
   return { worker, ready: workerReadyPromise };
 }
@@ -68,9 +100,11 @@ async function runMDRInWorker(
   const { worker, ready } = getOrCreateWorker();
 
   try {
+    console.log("[runMDRWorker] Waiting for worker to be ready...");
     await ready;
+    console.log("[runMDRWorker] Worker is ready");
   } catch (error) {
-    console.error("Worker initialization failed:", error);
+    console.error("[runMDRWorker] Worker initialization failed:", error);
     throw error;
   }
 
@@ -144,7 +178,17 @@ export function terminateMDRWorker(): void {
 }
 
 if (typeof window !== "undefined") {
-  getOrCreateWorker().ready.catch((error) => {
-    console.error("Failed to pre-initialize MDR worker:", error);
-  });
+  console.log(
+    "[runMDRWorker] Browser environment detected, pre-initializing worker...",
+  );
+  getOrCreateWorker()
+    .ready.then(() => {
+      console.log("[runMDRWorker] Worker pre-initialization successful");
+    })
+    .catch((error) => {
+      console.error(
+        "[runMDRWorker] Failed to pre-initialize MDR worker:",
+        error,
+      );
+    });
 }
