@@ -27,6 +27,7 @@
   "files": ["dist", "README.md", "LICENSE"],
   "scripts": {
     "build": "tsc",
+    "postbuild": "cp src/llm/prompts/*.md dist/llm/prompts/",
     "clean": "rm -rf dist",
     "lint": "biome check --diagnostic-level=error",
     "check-types": "tsc --noEmit",

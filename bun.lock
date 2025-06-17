@@ -56,7 +56,7 @@
     },
     "packages/next-eval": {
       "name": "@wordbricks/next-eval",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "dependencies": {
         "@ai-sdk/google": "1.2.8",
         "@google/generative-ai": "^0.11.3",
