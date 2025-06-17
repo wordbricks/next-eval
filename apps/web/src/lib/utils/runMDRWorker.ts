@@ -23,7 +23,24 @@ function createWorker(): { worker: Worker; ready: Promise<void> } {
   console.log("[runMDRWorker] Worker created");
 
   const initPromise = new Promise<void>((resolve, reject) => {
-    let settled = false; // guards resolve/reject once
+    let settled = false;
+
+    // Set timeout for initialization
+    const timeoutId = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        cleanup();
+        newWorker.terminate();
+        reject(new Error("Worker initialization timed out after 15 seconds"));
+      }
+    }, 15000);
+
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      newWorker.removeEventListener("message", messageHandler);
+      newWorker.removeEventListener("error", errorHandler);
+      newWorker.removeEventListener("messageerror", messageErrorHandler);
+    };
 
     const messageHandler = (event: MessageEvent) => {
       console.log(
@@ -34,7 +51,7 @@ function createWorker(): { worker: Worker; ready: Promise<void> } {
       if (event.data.type === "ready" && !settled) {
         settled = true;
         console.log("[runMDRWorker] Worker reports ready");
-        newWorker.removeEventListener("message", messageHandler);
+        cleanup();
         resolve();
       } else if (event.data.type === "error" && !settled) {
         settled = true;
@@ -42,20 +59,18 @@ function createWorker(): { worker: Worker; ready: Promise<void> } {
           "[runMDRWorker] Worker initialization error:",
           event.data.error,
         );
-        newWorker.removeEventListener("message", messageHandler);
+        cleanup();
         reject(new Error(event.data.error || "Worker initialization failed"));
       }
-      // Ignore any other message types (like "initialized")
     };
 
     const errorHandler = (error: ErrorEvent) => {
       console.error("[runMDRWorker] Worker error event:", error);
       if (!settled) {
         settled = true;
-        newWorker.removeEventListener("message", messageHandler);
+        cleanup();
         reject(new Error(`Worker error: ${error.message}`));
       }
-      // leave the handler attached to log any future errors
     };
 
     const messageErrorHandler = (error: MessageEvent) => {
@@ -65,7 +80,7 @@ function createWorker(): { worker: Worker; ready: Promise<void> } {
       );
       if (!settled) {
         settled = true;
-        newWorker.removeEventListener("message", messageHandler);
+        cleanup();
         reject(new Error(`Worker messageerror: Failed to clone data`));
       }
     };
@@ -78,14 +93,7 @@ function createWorker(): { worker: Worker; ready: Promise<void> } {
     newWorker.postMessage({ type: "init" });
   });
 
-  const ready = Promise.race([
-    initPromise,
-    wait(ms("10s")).then(() => {
-      throw new Error("Worker initialization timed out after 10 seconds");
-    }),
-  ]);
-
-  return { worker: newWorker, ready };
+  return { worker: newWorker, ready: initPromise };
 }
 
 function getOrCreateWorker(): { worker: Worker; ready: Promise<void> } {
@@ -215,10 +223,10 @@ async function runMDRInWorker(
   // Add timeout using Promise.race pattern
   return Promise.race([
     workerPromise,
-    wait(ms("30s")).then(() => {
+    wait(ms("60s")).then(() => {
       console.error("[runMDRWorker] Worker timed out, terminating...");
       terminateMDRWorker();
-      throw new Error("MDR worker processing timed out after 30 seconds");
+      throw new Error("MDR worker processing timed out after 60 seconds");
     }),
   ]);
 }
@@ -261,6 +269,7 @@ export async function runMDRViaWorker(rawHtml: string): Promise<string[][]> {
 
 export function terminateMDRWorker(): void {
   if (worker) {
+    console.log("[runMDRWorker] Terminating worker");
     worker.terminate();
     worker = null;
     workerReadyPromise = null;

@@ -45,63 +45,51 @@ async function initializeWasm(): Promise<void> {
   }
 
   initPromise = (async () => {
-    const maxRetries = 3;
-    const retryDelay = 500; // ms
+    try {
+      console.time("WASM initialization");
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.time(`WASM initialization attempt ${attempt}`);
-        // Use self.location.origin to get the correct base URL in worker context
-        const basePath = "/next-eval";
-        const importPath = `${self.location.origin}${basePath}/rust_mdr_pkg/rust_mdr_utils.js`;
-        console.log(
-          `[mdr.worker] Attempt ${attempt}: Importing WASM from:`,
-          importPath,
-        );
+      // Construct URLs with the base path from next.config.ts
+      const basePath = "/next-eval";
+      const wasmPath = `${basePath}/rust_mdr_pkg/rust_mdr_utils.js`;
+      const importUrl = new URL(wasmPath, self.location.origin).href;
 
-        const importedModule = await import(
-          /* webpackIgnore: true */
-          importPath
-        );
+      console.log("[mdr.worker] Importing WASM from:", importUrl);
 
-        // Initialize WASM
-        if (typeof importedModule.default === "function") {
-          console.log("[mdr.worker] Initializing WASM module...");
-          await importedModule.default();
-        }
+      const importedModule = await import(
+        /* webpackIgnore: true */
+        importUrl
+      );
 
-        wasmModule = importedModule as RustMDRModule;
+      // The default export is the init function, call it with the wasm path
+      const wasmBinaryPath = `${basePath}/rust_mdr_pkg/rust_mdr_utils_bg.wasm`;
+      const wasmUrl = new URL(wasmBinaryPath, self.location.origin).href;
 
-        // Verify WASM module has expected methods
-        console.log(
-          "[mdr.worker] WASM module methods:",
-          Object.keys(importedModule),
-        );
-        if (!wasmModule.runMdrFull) {
-          throw new Error("WASM module missing runMdrFull method");
-        }
+      console.log("[mdr.worker] Initializing WASM with binary:", wasmUrl);
+      await importedModule.default(wasmUrl);
 
-        isInitialized = true;
-        console.log("[mdr.worker] WASM module loaded successfully");
-        console.timeEnd(`WASM initialization attempt ${attempt}`);
-        return; // Success, exit the retry loop
-      } catch (error) {
-        console.error(
-          `[mdr.worker] WASM initialization attempt ${attempt} failed:`,
-          error,
-        );
+      wasmModule = importedModule as RustMDRModule;
 
-        if (attempt === maxRetries) {
-          initPromise = null; // Reset on final error to allow retry
-          throw new Error(
-            `Failed to initialize WASM in worker after ${maxRetries} attempts: ${error instanceof Error ? error.message : "Unknown error"}`,
-          );
-        }
+      // Verify WASM module has expected methods
+      console.log(
+        "[mdr.worker] WASM module initialized. Available exports:",
+        Object.keys(importedModule).filter(
+          (key) => typeof importedModule[key] === "function",
+        ),
+      );
 
-        // Wait before retry
-        console.log(`[mdr.worker] Retrying in ${retryDelay}ms...`);
-        await new Promise((resolve) => setTimeout(resolve, retryDelay));
+      if (!wasmModule.runMdrFull) {
+        throw new Error("WASM module missing runMdrFull method");
       }
+
+      isInitialized = true;
+      console.log("[mdr.worker] WASM module loaded successfully");
+      console.timeEnd("WASM initialization");
+    } catch (error) {
+      console.error("[mdr.worker] WASM initialization failed:", error);
+      initPromise = null; // Reset on error to allow retry
+      throw new Error(
+        `Failed to initialize WASM in worker: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   })();
 
@@ -253,13 +241,10 @@ self.addEventListener("message", async (event: MessageEvent) => {
 
 console.log("[mdr.worker] Worker ready to receive messages");
 
-// Heartbeat to confirm worker is alive
+// Heartbeat to confirm worker is alive (less frequent to reduce noise)
 setInterval(() => {
-  console.log(
-    "[mdr.worker] Heartbeat - worker is alive, initialized:",
-    isInitialized,
-  );
-}, 5000);
+  console.log("[mdr.worker] Heartbeat - initialized:", isInitialized);
+}, 30000);
 
 // Add a global error handler
 self.addEventListener("error", (error) => {
