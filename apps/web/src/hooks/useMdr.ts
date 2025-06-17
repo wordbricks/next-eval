@@ -2,9 +2,10 @@ import type { ValidatedXpathArray } from "@/app/utils/xpathValidation";
 import { mdrErrorAtom, mdrLoadingAtom, mdrResponseAtom } from "@/atoms/mdr";
 import { processedDataAtom } from "@/atoms/shared";
 import { runMDR, terminateMDRWorker } from "@/lib/utils/runMDRWorker";
+import { useEffectOnce } from "@next-eval/ui/hooks/useEffectOnce";
 import { mapResponseToFullXpath } from "@wordbricks/next-eval";
 import { useAtom, useAtomValue } from "jotai";
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 
 // Helper function for timeout
 const timeoutPromise = <T>(
@@ -36,11 +37,11 @@ export const useMdr = () => {
   const processedData = useAtomValue(processedDataAtom);
 
   // Clean up worker on unmount
-  useEffect(() => {
+  useEffectOnce(() => {
     return () => {
       terminateMDRWorker();
     };
-  }, []);
+  });
 
   const runMdrAlgorithm = useCallback(async () => {
     if (!processedData?.originalHtml || !processedData.textMapFlat) {

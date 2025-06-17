@@ -123,7 +123,7 @@ export default function HomePage() {
       predictXpathList: null,
       mappedPredictionText: null,
       numPredictedRecords: null,
-    }); // Reset MDR state when processing file
+    });
 
     try {
       const htmlString = await readFileAsText(selectedFile);
