@@ -3,7 +3,7 @@ import { generateText } from "ai";
 import type { LLMUsage } from "../../shared/interfaces/LLMResponse";
 import type { PromptType } from "../../shared/interfaces/types";
 import { GEMINI_PRO_2_5_PREVIEW_03 } from "../constants";
-import { loadPromptContent } from "../prompts/promptLoader";
+import { getPrompt } from "../prompts/getPrompt";
 
 export const getLLMResponse = async (
   data: string,
@@ -13,7 +13,7 @@ export const getLLMResponse = async (
   text: string;
   usage: LLMUsage;
 }> => {
-  const systemPromptContent = await loadPromptContent(promptType);
+  const systemPromptContent = getPrompt(`system-llm-${promptType}`);
   const combinedPrompt = `${systemPromptContent}\n\nInput Data:\n${data}`;
   const { text, usage } = await generateText({
     model: google(GEMINI_PRO_2_5_PREVIEW_03),
