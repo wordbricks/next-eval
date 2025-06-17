@@ -1,3 +1,10 @@
+// VERY TOP of mdr.worker.ts – nothing above this line
+// Set up message handler using capturing phase to avoid wasm-bindgen-rayon race condition
+// The capturing phase listener fires BEFORE wasm-bindgen's stub can call stopImmediatePropagation()
+// Use plain boolean true instead of {capture: true} to survive Terser/SWC minification
+// @ts-ignore - handleMessage is defined below
+self.addEventListener("message", handleMessage, true);
+
 import type {
   DataRecord,
   MdrFullOutput,
@@ -266,11 +273,6 @@ async function handleMessage(event: MessageEvent) {
     });
   }
 }
-
-// Set up message handler using capturing phase to avoid wasm-bindgen-rayon race condition
-// The capturing phase listener fires BEFORE wasm-bindgen's stub can call stopImmediatePropagation()
-// Use plain boolean true instead of {capture: true} to survive Terser/SWC minification
-self.addEventListener("message", handleMessage, true);
 
 console.log("[mdr.worker] Worker ready to receive messages");
 
