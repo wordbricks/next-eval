@@ -1,3 +1,44 @@
+// CRITICAL: Ensure worker message handling works on Vercel production
+// This must be the VERY FIRST code that runs in the worker
+
+// Use a global flag to track if we're in the wasm-bindgen initialization phase
+(self as any).__wasm_bindgen_thread_id = undefined;
+
+// Message queue to handle messages that arrive before handler is ready
+const messageQueue: MessageEvent[] = [];
+let isHandlerReady = false;
+
+// Register a capturing phase handler immediately that:
+// 1. Queues messages if our handler isn't ready
+// 2. Always runs before wasm-bindgen-rayon's stub (due to capturing phase)
+self.addEventListener(
+  "message",
+  function tempHandler(event: MessageEvent) {
+    // Special handling for wasm-bindgen thread pool initialization
+    if (
+      !isHandlerReady &&
+      event.data &&
+      typeof event.data === "object" &&
+      "__wasm_bindgen_thread_id" in event.data
+    ) {
+      console.log(
+        "[mdr.worker] Allowing wasm-bindgen thread pool message to pass through",
+      );
+      return; // Let wasm-bindgen handle its own initialization
+    }
+
+    if (!isHandlerReady) {
+      console.log(
+        "[mdr.worker] Queueing message (handler not ready):",
+        event.data?.type,
+      );
+      messageQueue.push(event);
+      event.stopImmediatePropagation(); // Prevent any other handlers from running
+    }
+  },
+  true,
+);
+
 import type {
   DataRecord,
   MdrFullOutput,
@@ -266,11 +307,26 @@ async function handleMessage(event: MessageEvent) {
   }
 }
 
-// Register the message handler AFTER it's defined to avoid bundler transformation issues
-// Use capturing phase (boolean true) to ensure it fires before wasm-bindgen-rayon's stub
+// Register the real message handler
 self.addEventListener("message", handleMessage, true);
 
-console.log("[mdr.worker] Worker ready to receive messages");
+// Mark handler as ready and process any queued messages
+isHandlerReady = true;
+console.log(
+  "[mdr.worker] Worker ready to receive messages, processing",
+  messageQueue.length,
+  "queued messages",
+);
+
+// Process any messages that arrived before the handler was ready
+while (messageQueue.length > 0) {
+  const queuedEvent = messageQueue.shift()!;
+  console.log(
+    "[mdr.worker] Processing queued message:",
+    queuedEvent.data?.type,
+  );
+  handleMessage(queuedEvent);
+}
 
 // Heartbeat to confirm worker is alive (less frequent to reduce noise)
 setInterval(() => {

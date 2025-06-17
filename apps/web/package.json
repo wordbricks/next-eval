@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "preinstall": "bunx only-allow bun",
-    "dev": "next dev -p 3839",
+    "dev": "next dev -p 3839 --turbo",
     "build": "next build",
     "start": "next start",
     "lint": "biome check --diagnostic-level=error",
