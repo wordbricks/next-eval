@@ -5,18 +5,19 @@ import {
   extractTextsFromRecords,
 } from "@/lib/utils/runMDR";
 import type { DataRecord } from "@/lib/utils/wasmLoader";
+import { wait } from "@/utils/wait";
 import {
   type TagNode,
   buildTagTree,
   removeCommentScriptStyleFromHTML,
 } from "@wordbricks/next-eval";
+import ms from "ms";
 import { parse } from "node-html-parser";
 
-// Worker instance management
 let worker: Worker | null = null;
-let workerReady = false;
+let workerReadyPromise: Promise<void> | null = null;
 
-function createWorker(): Worker {
+function createWorker(): { worker: Worker; ready: Promise<void> } {
   const newWorker = new Worker(
     new URL("../workers/mdr.worker.ts", import.meta.url),
     {
@@ -24,29 +25,40 @@ function createWorker(): Worker {
     },
   );
 
-  // Send init message to pre-warm WASM
-  newWorker.postMessage({ type: "init" });
+  const initPromise = new Promise<void>((resolve, reject) => {
+    newWorker.addEventListener("message", function initHandler(event) {
+      if (event.data.type === "initialized") {
+        console.log("MDR Worker WASM initialized");
+        newWorker.removeEventListener("message", initHandler);
+        resolve();
+      } else if (event.data.type === "error") {
+        newWorker.removeEventListener("message", initHandler);
+        reject(new Error(event.data.error || "Worker initialization failed"));
+      }
+    });
 
-  // Listen for initialization complete
-  newWorker.addEventListener("message", function initHandler(event) {
-    if (event.data.type === "initialized") {
-      workerReady = true;
-      console.log("MDR Worker WASM initialized");
-      newWorker.removeEventListener("message", initHandler);
-    }
+    newWorker.postMessage({ type: "init" });
   });
 
-  return newWorker;
+  const ready = Promise.race([
+    initPromise,
+    wait(ms("10s")).then(() => {
+      throw new Error("Worker initialization timed out after 10 seconds");
+    }),
+  ]);
+
+  return { worker: newWorker, ready };
 }
 
-function getOrCreateWorker(): Worker {
-  if (!worker) {
-    worker = createWorker();
+function getOrCreateWorker(): { worker: Worker; ready: Promise<void> } {
+  if (!worker || !workerReadyPromise) {
+    const created = createWorker();
+    worker = created.worker;
+    workerReadyPromise = created.ready;
   }
-  return worker;
+  return { worker, ready: workerReadyPromise };
 }
 
-// Worker-based MDR execution
 async function runMDRInWorker(
   rootNode: TagNode,
   K: number,
@@ -58,7 +70,14 @@ async function runMDRInWorker(
   finalRecords: DataRecord[];
 }> {
   console.time("MDR Worker Total");
-  const worker = getOrCreateWorker();
+  const { worker, ready } = getOrCreateWorker();
+
+  try {
+    await ready;
+  } catch (error) {
+    console.error("Worker initialization failed:", error);
+    throw error;
+  }
 
   return new Promise((resolve, reject) => {
     const handleMessage = (event: MessageEvent) => {
@@ -85,7 +104,6 @@ async function runMDRInWorker(
   });
 }
 
-// New function that returns detailed results using Web Worker
 export async function runMDRWithDetails(rawHtml: string): Promise<MDRResult> {
   const cleanedHtml = removeCommentScriptStyleFromHTML(rawHtml);
   const rootDom = parse(cleanedHtml, {
@@ -93,7 +111,6 @@ export async function runMDRWithDetails(rawHtml: string): Promise<MDRResult> {
     comment: false,
   });
 
-  // Find the HTML element (could be the root or a child)
   const htmlElement =
     rootDom.querySelector("html") ||
     rootDom.childNodes.find((node: any) => node.tagName === "html");
@@ -104,11 +121,9 @@ export async function runMDRWithDetails(rawHtml: string): Promise<MDRResult> {
 
   const rootNode = buildTagTree(htmlElement);
 
-  // Use Web Worker for MDR execution
   const result = await runMDRInWorker(rootNode, MDR_K, MDR_T);
   const finalRecords: DataRecord[] = result.finalRecords;
 
-  // Convert to XPath arrays
   const xpaths: string[][] = finalRecords
     .map((record) => {
       if (Array.isArray(record)) {
@@ -123,7 +138,6 @@ export async function runMDRWithDetails(rawHtml: string): Promise<MDRResult> {
     })
     .filter((xpathArray) => xpathArray.length > 0);
 
-  // Extract texts
   const texts = extractTextsFromRecords(finalRecords);
 
   return {
@@ -133,14 +147,13 @@ export async function runMDRWithDetails(rawHtml: string): Promise<MDRResult> {
   };
 }
 
-export async function runMDR(rawHtml: string): Promise<string[][]> {
+export async function runMDRViaWorker(rawHtml: string): Promise<string[][]> {
   const cleanedHtml = removeCommentScriptStyleFromHTML(rawHtml);
   const rootDom = parse(cleanedHtml, {
     lowerCaseTagName: true,
     comment: false,
   });
 
-  // Find the HTML element (could be the root or a child)
   const htmlElement =
     rootDom.querySelector("html") ||
     rootDom.childNodes.find((node: any) => node.tagName === "html");
@@ -151,10 +164,8 @@ export async function runMDR(rawHtml: string): Promise<string[][]> {
 
   const rootNode = buildTagTree(htmlElement);
 
-  // Use Web Worker for MDR execution
   const { finalRecords } = await runMDRInWorker(rootNode, MDR_K, MDR_T);
 
-  // Convert to XPath arrays
   const finalRecordXpaths: string[][] = finalRecords
     .map((record) => {
       if (Array.isArray(record)) {
@@ -172,17 +183,16 @@ export async function runMDR(rawHtml: string): Promise<string[][]> {
   return finalRecordXpaths;
 }
 
-// Cleanup function to terminate worker
 export function terminateMDRWorker(): void {
   if (worker) {
     worker.terminate();
     worker = null;
-    workerReady = false;
+    workerReadyPromise = null;
   }
 }
 
-// Pre-initialize worker on module load for better performance
 if (typeof window !== "undefined") {
-  // Create worker immediately to start WASM initialization
-  getOrCreateWorker();
+  getOrCreateWorker().ready.catch((error) => {
+    console.error("Failed to pre-initialize MDR worker:", error);
+  });
 }
