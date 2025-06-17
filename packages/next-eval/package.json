@@ -25,7 +25,7 @@
     },
     "./content-collections": "./.content-collections/generated/index.js"
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": ["dist", ".content-collections", "README.md", "LICENSE"],
   "scripts": {
     "build": "concurrently \"nr prompts:gen\" && tsc",
     "clean": "rm -rf dist",
