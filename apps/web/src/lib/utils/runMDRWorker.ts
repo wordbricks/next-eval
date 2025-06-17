@@ -14,12 +14,34 @@ import { parse } from "node-html-parser";
 
 // Worker instance management
 let worker: Worker | null = null;
+let workerReady = false;
+
+function createWorker(): Worker {
+  const newWorker = new Worker(
+    new URL("../workers/mdr.worker.ts", import.meta.url),
+    {
+      type: "module",
+    },
+  );
+
+  // Send init message to pre-warm WASM
+  newWorker.postMessage({ type: "init" });
+
+  // Listen for initialization complete
+  newWorker.addEventListener("message", function initHandler(event) {
+    if (event.data.type === "initialized") {
+      workerReady = true;
+      console.log("MDR Worker WASM initialized");
+      newWorker.removeEventListener("message", initHandler);
+    }
+  });
+
+  return newWorker;
+}
 
 function getOrCreateWorker(): Worker {
   if (!worker) {
-    worker = new Worker(new URL("../workers/mdr.worker.ts", import.meta.url), {
-      type: "module",
-    });
+    worker = createWorker();
   }
   return worker;
 }
@@ -35,6 +57,7 @@ async function runMDRInWorker(
   orphans: TagNode[];
   finalRecords: DataRecord[];
 }> {
+  console.time("MDR Worker Total");
   const worker = getOrCreateWorker();
 
   return new Promise((resolve, reject) => {
@@ -42,22 +65,23 @@ async function runMDRInWorker(
       const { type, result, error } = event.data;
 
       switch (type) {
-        case "progress":
-          // Ignore progress messages
-          break;
         case "result":
           worker.removeEventListener("message", handleMessage);
+          console.timeEnd("MDR Worker Total");
           resolve(result);
           break;
         case "error":
           worker.removeEventListener("message", handleMessage);
+          console.timeEnd("MDR Worker Total");
           reject(new Error(error || "Unknown error in worker"));
           break;
       }
     };
 
     worker.addEventListener("message", handleMessage);
+    console.time("DOM Serialization");
     worker.postMessage({ type: "run", rootNode, K, T });
+    console.timeEnd("DOM Serialization");
   });
 }
 
@@ -153,5 +177,12 @@ export function terminateMDRWorker(): void {
   if (worker) {
     worker.terminate();
     worker = null;
+    workerReady = false;
   }
+}
+
+// Pre-initialize worker on module load for better performance
+if (typeof window !== "undefined") {
+  // Create worker immediately to start WASM initialization
+  getOrCreateWorker();
 }
