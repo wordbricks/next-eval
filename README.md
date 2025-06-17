@@ -82,14 +82,20 @@ Generate tabular data from web content using LLM-based extraction with customiza
 ```typescript
 import { getLLMResponse } from "@wordbricks/next-eval/llm/utils/getLLMResponse";
 
-const promptType = "slim"; // Options: "flat", "hier", "slim"
-const data = slimmedHtml; // Use textMapFlat or textMap for other formats
 const temperature = 1.0; // Control randomness (0.0 to 2.0)
 
-const { text, usage } = await getLLMResponse(data, promptType, temperature);
+// Option 1: Using Slim HTML format
+const { text: slimText, usage: slimUsage } = await getLLMResponse(slimmedHtml, "slim", temperature);
 
-console.log("Extracted table data:", text);
-console.log("API usage:", usage);
+// Option 2: Using Hierarchical JSON format
+const { text: hierText, usage: hierUsage } = await getLLMResponse(textMap, "hier", temperature);
+
+// Option 3: Using Flat JSON format  
+const { text: flatText, usage: flatUsage } = await getLLMResponse(textMapFlat, "flat", temperature);
+
+console.log("Slim HTML result:", slimText);
+console.log("Hierarchical JSON result:", hierText);
+console.log("Flat JSON result:", flatText);
 ```
 
 ### 3. Evaluation Framework
