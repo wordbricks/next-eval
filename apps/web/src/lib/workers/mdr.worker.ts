@@ -1,10 +1,3 @@
-// VERY TOP of mdr.worker.ts – nothing above this line
-// Set up message handler using capturing phase to avoid wasm-bindgen-rayon race condition
-// The capturing phase listener fires BEFORE wasm-bindgen's stub can call stopImmediatePropagation()
-// Use plain boolean true instead of {capture: true} to survive Terser/SWC minification
-// @ts-ignore - handleMessage is defined below
-self.addEventListener("message", handleMessage, true);
-
 import type {
   DataRecord,
   MdrFullOutput,
@@ -86,6 +79,24 @@ async function initializeWasm(): Promise<void> {
 
       if (!wasmModule.runMdrFull) {
         throw new Error("WASM module missing runMdrFull method");
+      }
+
+      // Initialize thread pool immediately if available (for wasm-bindgen-rayon)
+      const moduleWithPool = importedModule as any;
+      if (moduleWithPool.initThreadPool) {
+        console.log("[mdr.worker] Initializing thread pool...");
+        try {
+          await moduleWithPool.initThreadPool(
+            navigator.hardwareConcurrency || 4,
+          );
+          console.log("[mdr.worker] Thread pool initialized successfully");
+        } catch (poolError) {
+          console.warn(
+            "[mdr.worker] Thread pool initialization failed:",
+            poolError,
+          );
+          // Continue without threads - single-threaded fallback
+        }
       }
 
       isInitialized = true;
@@ -214,33 +225,12 @@ async function handleMessage(event: MessageEvent) {
         break;
 
       case "start-pool":
-        console.log("[mdr.worker] Processing start-pool message");
-        try {
-          // Initialize thread pool if WASM module supports it
-          // Cast to any to access initThreadPool which may be injected by wasm-bindgen-rayon
-          const moduleWithPool = wasmModule as any;
-          if (moduleWithPool?.initThreadPool) {
-            await moduleWithPool.initThreadPool(event.data.threads || 4);
-            console.log("[mdr.worker] Thread pool initialized");
-          } else {
-            console.log(
-              "[mdr.worker] Thread pool not supported or WASM not loaded",
-            );
-          }
-          self.postMessage({ type: "pool-ready" });
-        } catch (error) {
-          console.error(
-            "[mdr.worker] Thread pool initialization error:",
-            error,
-          );
-          self.postMessage({
-            type: "error",
-            error:
-              error instanceof Error
-                ? error.message
-                : "Failed to initialize thread pool",
-          });
-        }
+        console.log(
+          "[mdr.worker] Processing start-pool message (already initialized during WASM init)",
+        );
+        // Thread pool is already initialized during WASM initialization
+        // Just respond to maintain protocol compatibility
+        self.postMessage({ type: "pool-ready" });
         break;
 
       case "run":
@@ -275,6 +265,10 @@ async function handleMessage(event: MessageEvent) {
     });
   }
 }
+
+// Register the message handler AFTER it's defined to avoid bundler transformation issues
+// Use capturing phase (boolean true) to ensure it fires before wasm-bindgen-rayon's stub
+self.addEventListener("message", handleMessage, true);
 
 console.log("[mdr.worker] Worker ready to receive messages");
 

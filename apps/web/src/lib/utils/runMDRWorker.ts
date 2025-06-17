@@ -1,12 +1,10 @@
 import { MDR_K, MDR_T } from "@/lib/utils/runMDR";
 import type { DataRecord } from "@/lib/utils/wasmLoader";
-import { wait } from "@/utils/wait";
 import {
   type TagNode,
   buildTagTree,
   removeCommentScriptStyleFromHTML,
 } from "@wordbricks/next-eval";
-import ms from "ms";
 import { parse } from "node-html-parser";
 
 let worker: Worker | null = null;
@@ -164,13 +162,27 @@ async function runMDRInWorker(
     throw error;
   }
 
-  const workerPromise = new Promise<{
+  return new Promise<{
     regions: any[];
     records: DataRecord[];
     orphans: TagNode[];
     finalRecords: DataRecord[];
   }>((resolve, reject) => {
     let messageCount = 0;
+
+    // Set up timeout immediately to avoid lint error
+    const timeoutId = setTimeout(() => {
+      console.error("[runMDRWorker] Worker timed out, terminating...");
+      worker.removeEventListener("message", handleMessage);
+      terminateMDRWorker();
+      reject(new Error("MDR worker processing timed out after 3 seconds"));
+    }, 3000); // 3 second timeout
+
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      worker.removeEventListener("message", handleMessage);
+    };
+
     const handleMessage = (event: MessageEvent) => {
       messageCount++;
       console.log(
@@ -182,13 +194,13 @@ async function runMDRInWorker(
       switch (type) {
         case "result":
           console.log("[runMDRWorker] Received result from worker");
-          worker.removeEventListener("message", handleMessage);
+          cleanup();
           console.timeEnd("MDR Worker Total");
           resolve(result);
           break;
         case "error":
           console.error("[runMDRWorker] Received error from worker:", error);
-          worker.removeEventListener("message", handleMessage);
+          cleanup();
           console.timeEnd("MDR Worker Total");
           reject(new Error(error || "Unknown error in worker"));
           break;
@@ -199,6 +211,8 @@ async function runMDRInWorker(
           console.log("[runMDRWorker] Received unexpected message type:", type);
       }
     };
+
+    // Timeout already set up above
 
     console.log("[runMDRWorker] Adding message listener for run");
     worker.addEventListener("message", handleMessage);
@@ -233,7 +247,7 @@ async function runMDRInWorker(
         "[runMDRWorker] Failed to post message to worker:",
         postError,
       );
-      worker.removeEventListener("message", handleMessage);
+      cleanup();
       reject(
         new Error(
           `Failed to send data to worker: ${postError instanceof Error ? postError.message : "Unknown error"}`,
@@ -244,16 +258,6 @@ async function runMDRInWorker(
     console.timeEnd("DOM Serialization");
     console.log("[runMDRWorker] Run message posted, waiting for response...");
   });
-
-  // Add timeout using Promise.race pattern
-  return Promise.race([
-    workerPromise,
-    wait(ms("60s")).then(() => {
-      console.error("[runMDRWorker] Worker timed out, terminating...");
-      terminateMDRWorker();
-      throw new Error("MDR worker processing timed out after 60 seconds");
-    }),
-  ]);
 }
 
 export async function runMDRViaWorker(rawHtml: string): Promise<string[][]> {
