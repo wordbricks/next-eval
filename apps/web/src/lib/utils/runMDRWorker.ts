@@ -23,34 +23,56 @@ function createWorker(): { worker: Worker; ready: Promise<void> } {
   console.log("[runMDRWorker] Worker created");
 
   const initPromise = new Promise<void>((resolve, reject) => {
-    const messageHandler = function initHandler(event: MessageEvent) {
+    let settled = false; // guards resolve/reject once
+
+    const messageHandler = (event: MessageEvent) => {
       console.log(
         "[runMDRWorker] Received message from worker:",
         event.data.type,
       );
-      if (event.data.type === "initialized") {
-        console.log("[runMDRWorker] MDR Worker WASM initialized successfully");
-        newWorker.removeEventListener("message", initHandler);
+
+      if (event.data.type === "ready" && !settled) {
+        settled = true;
+        console.log("[runMDRWorker] Worker reports ready");
+        newWorker.removeEventListener("message", messageHandler);
         resolve();
-      } else if (event.data.type === "error") {
+      } else if (event.data.type === "error" && !settled) {
+        settled = true;
         console.error(
           "[runMDRWorker] Worker initialization error:",
           event.data.error,
         );
-        newWorker.removeEventListener("message", initHandler);
+        newWorker.removeEventListener("message", messageHandler);
         reject(new Error(event.data.error || "Worker initialization failed"));
       }
+      // Ignore any other message types (like "initialized")
     };
 
     const errorHandler = (error: ErrorEvent) => {
       console.error("[runMDRWorker] Worker error event:", error);
-      newWorker.removeEventListener("error", errorHandler);
-      newWorker.removeEventListener("message", messageHandler);
-      reject(new Error(`Worker error: ${error.message}`));
+      if (!settled) {
+        settled = true;
+        newWorker.removeEventListener("message", messageHandler);
+        reject(new Error(`Worker error: ${error.message}`));
+      }
+      // leave the handler attached to log any future errors
+    };
+
+    const messageErrorHandler = (error: MessageEvent) => {
+      console.error(
+        "[runMDRWorker] Worker messageerror event (structured-clone failure):",
+        error,
+      );
+      if (!settled) {
+        settled = true;
+        newWorker.removeEventListener("message", messageHandler);
+        reject(new Error(`Worker messageerror: Failed to clone data`));
+      }
     };
 
     newWorker.addEventListener("message", messageHandler);
     newWorker.addEventListener("error", errorHandler);
+    newWorker.addEventListener("messageerror", messageErrorHandler);
 
     console.log("[runMDRWorker] Sending init message to worker");
     newWorker.postMessage({ type: "init" });
@@ -101,6 +123,7 @@ async function runMDRInWorker(
 
   try {
     console.log("[runMDRWorker] Waiting for worker to be ready...");
+    console.log("[runMDRWorker] Ready promise state:", ready);
     await ready;
     console.log("[runMDRWorker] Worker is ready");
   } catch (error) {
@@ -108,10 +131,17 @@ async function runMDRInWorker(
     throw error;
   }
 
-  const workerPromise = new Promise((resolve, reject) => {
+  const workerPromise = new Promise<{
+    regions: any[];
+    records: DataRecord[];
+    orphans: TagNode[];
+    finalRecords: DataRecord[];
+  }>((resolve, reject) => {
+    let messageCount = 0;
     const handleMessage = (event: MessageEvent) => {
+      messageCount++;
       console.log(
-        "[runMDRWorker] Received message from worker during run:",
+        `[runMDRWorker] Received message #${messageCount} from worker during run:`,
         event.data.type,
       );
       const { type, result, error } = event.data;
@@ -129,12 +159,17 @@ async function runMDRInWorker(
           console.timeEnd("MDR Worker Total");
           reject(new Error(error || "Unknown error in worker"));
           break;
+        case "ready":
+          console.log("[runMDRWorker] Worker reports ready during run");
+          break;
         default:
           console.log("[runMDRWorker] Received unexpected message type:", type);
       }
     };
 
+    console.log("[runMDRWorker] Adding message listener for run");
     worker.addEventListener("message", handleMessage);
+
     console.time("DOM Serialization");
     console.log(
       "[runMDRWorker] Posting run message to worker with K=",
@@ -142,8 +177,24 @@ async function runMDRInWorker(
       "T=",
       T,
     );
+    console.log("[runMDRWorker] Worker object before posting:", {
+      workerExists: !!worker,
+      workerType: typeof worker,
+      hasPostMessage: typeof worker.postMessage === "function",
+      workerToString: worker.toString(),
+    });
+
     try {
-      worker.postMessage({ type: "run", rootNode, K, T });
+      console.log("[runMDRWorker] About to call postMessage...");
+      const message = { type: "run", rootNode, K, T };
+      console.log("[runMDRWorker] Message to send:", {
+        type: message.type,
+        hasRootNode: !!message.rootNode,
+        K: message.K,
+        T: message.T,
+      });
+      worker.postMessage(message);
+      console.log("[runMDRWorker] postMessage called successfully");
     } catch (postError) {
       console.error(
         "[runMDRWorker] Failed to post message to worker:",
@@ -165,6 +216,8 @@ async function runMDRInWorker(
   return Promise.race([
     workerPromise,
     wait(ms("30s")).then(() => {
+      console.error("[runMDRWorker] Worker timed out, terminating...");
+      terminateMDRWorker();
       throw new Error("MDR worker processing timed out after 30 seconds");
     }),
   ]);

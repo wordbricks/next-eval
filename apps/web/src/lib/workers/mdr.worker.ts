@@ -14,7 +14,7 @@ interface MdrWorkerRequest {
 }
 
 interface MdrWorkerResponse {
-  type: "result" | "error" | "initialized";
+  type: "result" | "error" | "initialized" | "ready";
   result?: {
     regions: any[];
     records: DataRecord[];
@@ -27,6 +27,10 @@ interface MdrWorkerResponse {
 let wasmModule: RustMDRModule | null = null;
 let initPromise: Promise<void> | null = null;
 let isInitialized = false;
+
+// Single source of truth for readiness
+let readyResolve!: () => void;
+const readyPromise = new Promise<void>((r) => (readyResolve = r));
 
 // Initialize WASM in the worker
 async function initializeWasm(): Promise<void> {
@@ -54,7 +58,6 @@ async function initializeWasm(): Promise<void> {
           `[mdr.worker] Attempt ${attempt}: Importing WASM from:`,
           importPath,
         );
-        console.log("[mdr.worker] Current location:", self.location.href);
 
         const importedModule = await import(
           /* webpackIgnore: true */
@@ -130,25 +133,12 @@ async function processMDR(request: MdrWorkerRequest): Promise<void> {
       "T=",
       request.T,
     );
-    console.log("[mdr.worker] rootNode structure:", {
-      hasXpath: !!request.rootNode?.xpath,
-      hasChildren: !!request.rootNode?.children,
-      childrenCount: request.rootNode?.children?.length || 0,
-      tag: request.rootNode?.tag,
-    });
 
     let mdrResult: unknown;
     try {
       // Run the MDR algorithm
-      console.log("[mdr.worker] About to call runMdrFull...");
-      console.log(
-        "[mdr.worker] wasmModule.runMdrFull type:",
-        typeof wasmModule.runMdrFull,
-      );
       mdrResult = wasmModule.runMdrFull(request.rootNode, request.K, request.T);
       console.log("[mdr.worker] runMdrFull completed");
-      console.log("[mdr.worker] mdrResult type:", typeof mdrResult);
-      console.log("[mdr.worker] mdrResult value:", mdrResult);
     } catch (wasmError) {
       console.error("[mdr.worker] WASM runMdrFull error:", wasmError);
       throw new Error(
@@ -196,56 +186,98 @@ async function processMDR(request: MdrWorkerRequest): Promise<void> {
   }
 }
 
-// Listen for messages
-self.addEventListener(
-  "message",
-  async (event: MessageEvent<MdrWorkerRequest | { type: "init" }>) => {
-    console.log("[mdr.worker] Message event fired");
-    console.log("[mdr.worker] Received message:", event.data.type);
-    console.log(
-      "[mdr.worker] Full message data:",
-      JSON.stringify({
-        type: event.data.type,
-        hasRootNode: event.data.type === "run" ? !!event.data.rootNode : false,
-        K: event.data.type === "run" ? event.data.K : undefined,
-        T: event.data.type === "run" ? event.data.T : undefined,
-      }),
-    );
+// Single, permanent message handler - no swapping!
+self.addEventListener("message", async (event: MessageEvent) => {
+  console.log("[mdr.worker] Message received:", event.data?.type);
 
-    if (event.data.type === "init") {
-      // Pre-initialize WASM
-      console.log("[mdr.worker] Processing init message");
-      try {
-        await initializeWasm();
-        console.log("[mdr.worker] Sending initialized message");
-        self.postMessage({ type: "initialized" });
-      } catch (error) {
-        console.error("[mdr.worker] Init message error:", error);
-        self.postMessage({
-          type: "error",
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to initialize WASM",
-        });
-      }
-    } else if (event.data.type === "run") {
-      console.log("[mdr.worker] Processing run message");
-      try {
-        await processMDR(event.data);
-      } catch (error) {
-        console.error("[mdr.worker] Error in processMDR:", error);
-        self.postMessage({
-          type: "error",
-          error:
-            error instanceof Error
-              ? error.message
-              : "Unknown error in processMDR",
-        });
-      }
+  try {
+    switch (event.data?.type) {
+      case "init":
+        console.log("[mdr.worker] Processing init message");
+        if (isInitialized) {
+          console.log("[mdr.worker] Already initialized, sending ready");
+          self.postMessage({ type: "ready" });
+          return;
+        }
+
+        try {
+          await initializeWasm();
+          isInitialized = true;
+          readyResolve(); // Settle the ready promise
+          console.log("[mdr.worker] Sending ready signal");
+          self.postMessage({ type: "ready" });
+        } catch (error) {
+          console.error("[mdr.worker] Init error:", error);
+          self.postMessage({
+            type: "error",
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to initialize WASM",
+          });
+        }
+        break;
+
+      case "run":
+        console.log("[mdr.worker] Processing run message");
+        // Wait for initialization to complete
+        await readyPromise;
+
+        try {
+          await processMDR(event.data as MdrWorkerRequest);
+          console.log("[mdr.worker] Run message processed successfully");
+        } catch (error) {
+          console.error("[mdr.worker] Run message error:", error);
+          self.postMessage({
+            type: "error",
+            error:
+              error instanceof Error
+                ? error.message
+                : "Unknown error in processMDR",
+          });
+        }
+        break;
+
+      default:
+        console.log("[mdr.worker] Unknown message type:", event.data?.type);
     }
-  },
-);
+  } catch (error) {
+    console.error("[mdr.worker] Catastrophic error in message handler:", error);
+    self.postMessage({
+      type: "error",
+      error:
+        error instanceof Error ? error.message : "Catastrophic error in worker",
+    });
+  }
+});
 
-// Worker will wait for explicit init message to initialize WASM
-console.log("[mdr.worker] Worker script loaded, waiting for init message");
+// Clear onmessage to make it obvious we're using addEventListener
+self.onmessage = null;
+
+console.log("[mdr.worker] Worker ready to receive messages");
+
+// Heartbeat to confirm worker is alive
+setInterval(() => {
+  console.debug(
+    "[mdr.worker] Heartbeat - worker is alive, initialized:",
+    isInitialized,
+  );
+}, 5000);
+
+// Add a global error handler
+self.addEventListener("error", (error) => {
+  console.error("[mdr.worker] Unhandled error in worker:", error);
+  self.postMessage({
+    type: "error",
+    error: `Unhandled worker error: ${error.message || "Unknown error"}`,
+  });
+});
+
+// Add unhandled rejection handler
+self.addEventListener("unhandledrejection", (event) => {
+  console.error("[mdr.worker] Unhandled promise rejection:", event.reason);
+  self.postMessage({
+    type: "error",
+    error: `Unhandled promise rejection: ${event.reason}`,
+  });
+});
