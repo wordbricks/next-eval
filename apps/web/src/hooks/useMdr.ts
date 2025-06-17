@@ -5,12 +5,10 @@ import {
   mdrProgressAtom,
   mdrResponseAtom,
 } from "@/atoms/mdr";
+import { processedDataAtom } from "@/atoms/shared";
 import { runMDR } from "@/lib/utils/runMDR";
-import {
-  type ExtendedHtmlResult,
-  mapResponseToFullXpath,
-} from "@wordbricks/next-eval";
-import { useAtom } from "jotai";
+import { mapResponseToFullXpath } from "@wordbricks/next-eval";
+import { useAtom, useAtomValue } from "jotai";
 import { useCallback } from "react";
 
 // Helper function for timeout
@@ -41,6 +39,7 @@ export const useMdr = () => {
   const [progress, setProgress] = useAtom(mdrProgressAtom);
   const [isLoading, setIsLoading] = useAtom(mdrLoadingAtom);
   const [error, setError] = useAtom(mdrErrorAtom);
+  const processedData = useAtomValue(processedDataAtom);
 
   const resetMdr = useCallback(() => {
     setMdrResponse({
@@ -53,83 +52,87 @@ export const useMdr = () => {
     setError(null);
   }, [setMdrResponse, setProgress, setIsLoading, setError]);
 
-  const runMdrAlgorithm = useCallback(
-    async (processedData: ExtendedHtmlResult | null) => {
-      if (!processedData?.originalHtml || !processedData.textMapFlat) {
-        console.error(
-          "Original HTML or textMapFlat not available for MDR execution.",
-        );
-        setError(
-          "Required data (original HTML or text map) is not processed yet.",
-        );
+  const runMdrAlgorithm = useCallback(async () => {
+    if (!processedData?.originalHtml || !processedData.textMapFlat) {
+      console.error(
+        "Original HTML or textMapFlat not available for MDR execution.",
+      );
+      setError(
+        "Required data (original HTML or text map) is not processed yet.",
+      );
+      return;
+    }
+
+    resetMdr();
+    setIsLoading(true);
+
+    try {
+      // Progress callback to update the progress bar
+      const progressCallback = (progressValue: number) => {
+        setProgress(progressValue);
+      };
+
+      // Run MDR with timeout
+      const mdrPromise = runMDR(processedData.html, progressCallback);
+      const mdrPredictedXPaths = await timeoutPromise(
+        mdrPromise,
+        60000, // 1 minute
+        new Error("MDR processing timed out after 1 minute"),
+      );
+
+      if (!mdrPredictedXPaths || mdrPredictedXPaths.length === 0) {
+        setMdrResponse({
+          predictXpathList: [],
+          mappedPredictionText: [],
+          numPredictedRecords: 0,
+        });
+        setError("MDR returned no XPaths.");
         return;
       }
 
-      resetMdr();
-      setIsLoading(true);
+      // Validate XPaths
+      const validatedMdrXPaths: ValidatedXpathArray =
+        mdrPredictedXPaths as ValidatedXpathArray;
+      const textMapFlatForEval = processedData.textMapFlat as Record<
+        string,
+        string
+      >;
+      const mdrFullXPaths = mapResponseToFullXpath(
+        textMapFlatForEval,
+        validatedMdrXPaths,
+      );
 
-      try {
-        // Progress callback to update the progress bar
-        const progressCallback = (progressValue: number) => {
-          setProgress(progressValue);
-        };
-
-        // Run MDR with timeout
-        const mdrPromise = runMDR(processedData.html, progressCallback);
-        const mdrPredictedXPaths = await timeoutPromise(
-          mdrPromise,
-          60000, // 1 minute
-          new Error("MDR processing timed out after 1 minute"),
+      const mappedText = mdrFullXPaths
+        .filter((xpathArray: string[]) =>
+          xpathArray.some((xpath: string) => xpath in textMapFlatForEval),
+        )
+        .map((xpathArray: string[]) =>
+          xpathArray
+            .filter((xpath: string) => xpath in textMapFlatForEval)
+            .map((xpath: string) => textMapFlatForEval[xpath])
+            .join(","),
         );
 
-        if (!mdrPredictedXPaths || mdrPredictedXPaths.length === 0) {
-          setMdrResponse({
-            predictXpathList: [],
-            mappedPredictionText: [],
-            numPredictedRecords: 0,
-          });
-          setError("MDR returned no XPaths.");
-          return;
-        }
-
-        // Validate XPaths
-        const validatedMdrXPaths: ValidatedXpathArray =
-          mdrPredictedXPaths as ValidatedXpathArray;
-        const textMapFlatForEval = processedData.textMapFlat as Record<
-          string,
-          string
-        >;
-        const mdrFullXPaths = mapResponseToFullXpath(
-          textMapFlatForEval,
-          validatedMdrXPaths,
-        );
-
-        const mappedText = mdrFullXPaths
-          .filter((xpathArray: string[]) =>
-            xpathArray.some((xpath: string) => xpath in textMapFlatForEval),
-          )
-          .map((xpathArray: string[]) =>
-            xpathArray
-              .filter((xpath: string) => xpath in textMapFlatForEval)
-              .map((xpath: string) => textMapFlatForEval[xpath])
-              .join(","),
-          );
-
-        setMdrResponse({
-          predictXpathList: validatedMdrXPaths,
-          mappedPredictionText: mappedText,
-          numPredictedRecords: validatedMdrXPaths.length,
-        });
-        setProgress(100);
-      } catch (err) {
-        console.error("Error running MDR:", err);
-        setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [resetMdr, setMdrResponse, setProgress, setIsLoading, setError],
-  );
+      setMdrResponse({
+        predictXpathList: validatedMdrXPaths,
+        mappedPredictionText: mappedText,
+        numPredictedRecords: validatedMdrXPaths.length,
+      });
+      setProgress(100);
+    } catch (err) {
+      console.error("Error running MDR:", err);
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [
+    resetMdr,
+    setMdrResponse,
+    setProgress,
+    setIsLoading,
+    setError,
+    processedData,
+  ]);
 
   return {
     mdrResponse,
