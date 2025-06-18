@@ -1,7 +1,7 @@
 {
   "name": "@wordbricks/next-eval",
   "description": "Web data extraction evaluation framework",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "author": "Wordbricks",
   "license": "MIT",
   "homepage": "https://nextrows.com/next-eval",
