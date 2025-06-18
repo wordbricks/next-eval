@@ -17,7 +17,7 @@ export const generateXPath = (element: any): string => {
   ) {
     let siblingIndex = 1;
 
-    // Get previous siblings - handle both browser and node-html-parser
+    // Get previous siblings - handle both browser and linkedom
     if (currentElement.previousElementSibling) {
       // Browser API
       let sibling = currentElement.previousElementSibling;
@@ -31,7 +31,7 @@ export const generateXPath = (element: any): string => {
         sibling = sibling.previousElementSibling;
       }
     } else if (currentElement.parentNode || currentElement.parentElement) {
-      // node-html-parser fallback - count siblings manually
+      // linkedom fallback - count siblings manually
       const parent = currentElement.parentNode || currentElement.parentElement;
       const children = parent.childNodes || parent.children || [];
       const nodeName = currentElement.nodeName || currentElement.tagName;

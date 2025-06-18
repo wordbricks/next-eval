@@ -1,14 +1,16 @@
 import type { NestedTextMap } from "../../shared/interfaces/HtmlResult";
-import { createTreeWalker } from "./domParser";
+import { createDOMContext } from "./domParser";
 import { generateXPath } from "./generateXPath";
 
 // Helper function to extract text and build flat/hierarchical maps
 export const extractTextWithXPaths = (
   doc: Document,
+  domContext?: ReturnType<typeof createDOMContext>,
 ): { textMapFlat: Record<string, string>; textMap: NestedTextMap } => {
   const textMapFlat: Record<string, string> = {};
   const textMap: NestedTextMap = {};
-  const treeWalker = createTreeWalker(doc, 0x04); // NodeFilter.SHOW_TEXT
+  const ctx = domContext || createDOMContext();
+  const treeWalker = ctx.createTreeWalker(doc, 0x04); // NodeFilter.SHOW_TEXT
 
   let currentNode = treeWalker.nextNode();
   while (currentNode) {

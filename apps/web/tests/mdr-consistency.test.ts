@@ -1,9 +1,23 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { runMDRWithDetails } from "@/lib/utils/runMDR";
-import { type TagNode, slimHtml } from "@wordbricks/next-eval";
+import {
+  type DOMParser,
+  type TagNode,
+  createDOMContext,
+  slimHtml,
+} from "@wordbricks/next-eval";
 import { JSDOM } from "jsdom";
 import { beforeAll, describe, expect, it } from "vitest";
+
+// Create a jsdom parser for tests
+const jsdomParser: DOMParser = (html: string) => {
+  const dom = new JSDOM(html);
+  return dom.window.document;
+};
+
+// Create a jsdom-based DOM context for consistent parsing
+const jsdomContext = createDOMContext(jsdomParser);
 
 type DataRecord = TagNode | TagNode[];
 
@@ -65,10 +79,10 @@ describe("MDR Implementation Consistency Test", () => {
 
         // Preprocess HTML exactly as done in extraction script
         const dom = new JSDOM(content);
-        const slimmedHtml = slimHtml(dom.window.document);
+        const slimmedHtml = slimHtml(dom.window.document, jsdomContext);
 
-        // Run MDR implementation
-        const result = await runMDRWithDetails(slimmedHtml);
+        // Run MDR implementation with jsdom context
+        const result = await runMDRWithDetails(slimmedHtml, jsdomContext);
 
         console.log(
           `Expected: ${expected.xpaths.length} groups, ${expected.texts.length} texts`,

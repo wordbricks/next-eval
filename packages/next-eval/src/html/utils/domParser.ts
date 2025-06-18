@@ -1,7 +1,3 @@
-// Simple DOM parser shim for hybrid browser/Node.js support
-// No OOP - just functions
-
-// Check if we're in a browser environment
 const isBrowser =
   typeof window !== "undefined" && typeof window.document !== "undefined";
 
@@ -16,39 +12,72 @@ function getLinkedom() {
   return linkedom;
 }
 
-// Parse HTML string to Document
-export function parseHTML(html: string): Document {
-  if (isBrowser) {
-    const parser = new DOMParser();
-    return parser.parseFromString(html, "text/html");
-  }
+// DOM Parser type
+export type DOMParser = (html: string) => Document;
 
+// Built-in parsers
+export const browserParser: DOMParser = (html: string) => {
+  const parser = new DOMParser();
+  return parser.parseFromString(html, "text/html");
+};
+
+export const linkedomParser: DOMParser = (html: string) => {
   const ld = getLinkedom();
   if (!ld) {
     throw new Error("linkedom not available in Node.js environment");
   }
-
-  // Use linkedom's parseHTML which returns a document
   const { document } = ld.parseHTML(html);
   return document;
+};
+
+// Create a DOM parser context
+export function createDOMContext(parser?: DOMParser) {
+  // Default parser selection
+  const activeParser = parser || (isBrowser ? browserParser : linkedomParser);
+
+  return {
+    parseHTML: activeParser,
+
+    // All other functions now use the injected parser
+    getOuterHTML,
+    querySelector,
+    querySelectorAll,
+    getElementsByTagName,
+    removeElement,
+    getAttribute,
+    removeAttribute,
+    getAttributes,
+    createHTMLDocument: (title = "") => {
+      if (isBrowser && document.implementation?.createHTMLDocument) {
+        return document.implementation.createHTMLDocument(title);
+      }
+      const html = `<!DOCTYPE html><html><head><title>${title}</title></head><body></body></html>`;
+      return activeParser(html);
+    },
+    setInnerHTML,
+    createTreeWalker,
+  };
 }
+
+// Default context for backward compatibility
+const defaultContext = createDOMContext();
+
+// Export individual functions for backward compatibility
+export const parseHTML = defaultContext.parseHTML;
 
 // Get outer HTML from element
 export function getOuterHTML(element: Document | Element): string {
-  if (isBrowser) {
-    if ("documentElement" in element && element.documentElement) {
-      return element.documentElement.outerHTML;
-    }
-    if ("outerHTML" in element) {
-      return element.outerHTML;
-    }
+  // Handle Document objects
+  if ("documentElement" in element && element.documentElement) {
+    return element.documentElement.outerHTML;
   }
 
-  // Node.js environment - node-html-parser
+  // Handle Element objects
   if ("outerHTML" in element) {
     return element.outerHTML;
   }
 
+  // Fallback for toString
   if ("toString" in element && typeof element.toString === "function") {
     return element.toString();
   }
@@ -98,7 +127,7 @@ export function getElementsByTagName(
     return Array.from(collection);
   }
 
-  // Fallback for node-html-parser
+  // Fallback for linkedom
   if ("querySelectorAll" in element) {
     return querySelectorAll(element, tagName);
   }
@@ -148,7 +177,7 @@ export function getAttributes(
         }
       }
     }
-    // node-html-parser object format
+    // linkedom object format
     else if (typeof attributes === "object") {
       for (const [name, value] of Object.entries(attributes)) {
         attrs.push({ name, value: String(value) });
@@ -237,7 +266,7 @@ export function createTreeWalker(
             ""
           ).trim();
           if (text) {
-            // Ensure parentElement is available for node-html-parser text nodes
+            // Ensure parentElement is available for linkedom text nodes
             if (!child.parentElement && node) {
               child.parentElement = node;
             }

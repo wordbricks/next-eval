@@ -1,12 +1,16 @@
 import type { TagNode } from "../interfaces/TagNode";
 
+// Define node type constants for environments where they might not be available
+const TEXT_NODE = 3;
+const ELEMENT_NODE = 1;
+
 export function buildTagTree(domNode: Node, parentElementXPath = ""): TagNode {
   if (!domNode) {
     return { tag: "text", children: [], rawText: "", xpath: "" };
   }
 
   // Handle text nodes
-  if (domNode.nodeType === Node.TEXT_NODE) {
+  if (domNode.nodeType === TEXT_NODE) {
     const textContent = (domNode.textContent || "").trim();
     let textNodeXPath = "";
 
@@ -24,7 +28,7 @@ export function buildTagTree(domNode: Node, parentElementXPath = ""): TagNode {
   }
 
   // Handle element nodes
-  if (domNode.nodeType === Node.ELEMENT_NODE) {
+  if (domNode.nodeType === ELEMENT_NODE) {
     const element = domNode as Element;
     if (!element || typeof element.tagName !== "string") {
       // Fallback for invalid element structure
@@ -36,7 +40,7 @@ export function buildTagTree(domNode: Node, parentElementXPath = ""): TagNode {
 
     const parent = element.parentNode;
     // Determine the local XPath segment (tagName[index])
-    if (!parent || parent.nodeType !== Node.ELEMENT_NODE) {
+    if (!parent || parent.nodeType !== ELEMENT_NODE) {
       // This element is the top-most in its current hierarchy or fragment root
       localXPathSegment = `${tagName}[1]`;
     } else {
@@ -65,7 +69,7 @@ export function buildTagTree(domNode: Node, parentElementXPath = ""): TagNode {
     for (const child of childNodes) {
       if (!child) continue;
 
-      if (child.nodeType === Node.TEXT_NODE) {
+      if (child.nodeType === TEXT_NODE) {
         const text = child.textContent || "";
         if (text.trim() === "") continue; // Skip if it's an effectively empty text node
       }

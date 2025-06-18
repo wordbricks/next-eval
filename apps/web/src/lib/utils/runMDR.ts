@@ -2,11 +2,11 @@ import { runRustMDR } from "@/lib/utils/wasmLoader";
 import {
   type TagNode,
   buildTagTree,
+  createDOMContext,
   removeCommentScriptStyleFromHTML,
 } from "@wordbricks/next-eval";
-import { parse } from "node-html-parser";
 
-// MDR (Mining Data Region) constants
+// MDR constants
 export const MDR_K = 10; // Maximum length of a data region pattern
 export const MDR_T = 0.3; // Similarity threshold for data region detection
 
@@ -52,16 +52,17 @@ function extractTextsFromRecords(records: DataRecord[]): string[] {
   return texts;
 }
 
-export async function runMDRWithDetails(rawHtml: string): Promise<MDRResult> {
+export async function runMDRWithDetails(
+  rawHtml: string,
+  domContext?: ReturnType<typeof createDOMContext>,
+): Promise<MDRResult> {
   const cleanedHtml = removeCommentScriptStyleFromHTML(rawHtml);
-  const rootDom = parse(cleanedHtml, {
-    lowerCaseTagName: true,
-    comment: false,
-  });
 
-  const htmlElement =
-    rootDom.querySelector("html") ||
-    rootDom.childNodes.find((node: any) => node.tagName === "html");
+  // Use provided context or create default one
+  const ctx = domContext || createDOMContext();
+  const document = ctx.parseHTML(cleanedHtml);
+
+  const htmlElement = document.documentElement;
   if (!htmlElement) {
     console.error("No HTML element found");
     return { xpaths: [], records: [], texts: [] };
@@ -97,7 +98,10 @@ export async function runMDRWithDetails(rawHtml: string): Promise<MDRResult> {
   };
 }
 
-export async function runMDR(rawHtml: string): Promise<string[][]> {
-  const result = await runMDRWithDetails(rawHtml);
+export async function runMDR(
+  rawHtml: string,
+  domContext?: ReturnType<typeof createDOMContext>,
+): Promise<string[][]> {
+  const result = await runMDRWithDetails(rawHtml, domContext);
   return result.xpaths;
 }

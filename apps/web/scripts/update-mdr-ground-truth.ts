@@ -1,8 +1,21 @@
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { runMDRWithDetails } from "@/lib/utils/runMDR";
-import { slimHtml } from "@wordbricks/next-eval";
+import {
+  type DOMParser,
+  createDOMContext,
+  slimHtml,
+} from "@wordbricks/next-eval";
 import { JSDOM } from "jsdom";
+
+// Create a jsdom parser for this script
+const jsdomParser: DOMParser = (html: string) => {
+  const dom = new JSDOM(html);
+  return dom.window.document;
+};
+
+// Create a jsdom-based DOM context for consistent parsing
+const jsdomContext = createDOMContext(jsdomParser);
 
 /**
  * Run this script when:
@@ -27,12 +40,12 @@ async function regenerateMDRExpected() {
     const path = join(samplesDir, filename);
     const content = await readFile(path, "utf-8");
 
-    // Use the same preprocessing as the test
+    // Use jsdom throughout for consistent parsing
     const dom = new JSDOM(content);
-    const slimmedHtml = slimHtml(dom.window.document);
+    const slimmedHtml = slimHtml(dom.window.document, jsdomContext);
 
-    // Run current Rust MDR implementation
-    const result = await runMDRWithDetails(slimmedHtml);
+    // Run current Rust MDR implementation with jsdom context
+    const result = await runMDRWithDetails(slimmedHtml, jsdomContext);
 
     console.log(
       `  Found ${result.xpaths.length} groups, ${result.texts.length} texts`,
