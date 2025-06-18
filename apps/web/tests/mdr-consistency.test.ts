@@ -1,11 +1,11 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { runMDRWithDetails } from "@/lib/utils/runMDR";
+import { pipe } from "@fxts/core";
 import {
   type DOMParser,
   type TagNode,
-  createDOMContext,
-  slimHtml,
+  createProcessor,
 } from "@wordbricks/next-eval";
 import { JSDOM } from "jsdom";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -15,9 +15,6 @@ const jsdomParser: DOMParser = (html: string) => {
   const dom = new JSDOM(html);
   return dom.window.document;
 };
-
-// Create a jsdom-based DOM context for consistent parsing
-const jsdomContext = createDOMContext(jsdomParser);
 
 type DataRecord = TagNode | TagNode[];
 
@@ -30,6 +27,8 @@ interface ExpectedResult {
 describe("MDR Implementation Consistency Test", () => {
   const sampleFiles: Map<string, string> = new Map();
   const expectedResults: Map<string, ExpectedResult> = new Map();
+
+  const p = createProcessor({ parser: jsdomParser });
 
   beforeAll(async () => {
     // Load sample files
@@ -77,12 +76,15 @@ describe("MDR Implementation Consistency Test", () => {
           throw new Error(`No expected results found for ${filename}`);
         }
 
-        // Preprocess HTML exactly as done in extraction script
-        const dom = new JSDOM(content);
-        const slimmedHtml = slimHtml(dom.window.document, jsdomContext);
+        const slimmedResult = pipe(
+          content,
+          p.parseHtml,
+          p.slimDocument,
+          (result) => result.slimmedHtml,
+        );
 
-        // Run MDR implementation with jsdom context
-        const result = await runMDRWithDetails(slimmedHtml, jsdomContext);
+        // Run MDR implementation with p's context
+        const result = await runMDRWithDetails(slimmedResult, p.context);
 
         console.log(
           `Expected: ${expected.xpaths.length} groups, ${expected.texts.length} texts`,
