@@ -1,36 +1,25 @@
 import type { NestedTextMap } from "../../shared/interfaces/HtmlResult";
+import { createDOMContext } from "./domParser";
 import { generateXPath } from "./generateXPath";
 
 // Helper function to extract text and build flat/hierarchical maps
 export const extractTextWithXPaths = (
   doc: Document,
+  domContext?: ReturnType<typeof createDOMContext>,
 ): { textMapFlat: Record<string, string>; textMap: NestedTextMap } => {
   const textMapFlat: Record<string, string> = {};
   const textMap: NestedTextMap = {};
-  const treeWalker = doc.createTreeWalker(
-    doc.documentElement,
-    NodeFilter.SHOW_TEXT,
-    {
-      acceptNode: (node: Node) => {
-        // Only accept non-empty text nodes that are not inside <script> or <style>
-        if (node.nodeValue && node.nodeValue.trim() !== "") {
-          let parent = node.parentElement;
-          while (parent) {
-            if (["SCRIPT", "STYLE"].includes(parent.tagName)) {
-              return NodeFilter.FILTER_REJECT;
-            }
-            parent = parent.parentElement;
-          }
-          return NodeFilter.FILTER_ACCEPT;
-        }
-        return NodeFilter.FILTER_REJECT;
-      },
-    },
-  );
+  const ctx = domContext || createDOMContext();
+  const treeWalker = ctx.createTreeWalker(doc, 0x04); // NodeFilter.SHOW_TEXT
 
   let currentNode = treeWalker.nextNode();
   while (currentNode) {
-    const textContent = currentNode.nodeValue?.trim();
+    const textContent = (
+      currentNode.nodeValue ||
+      currentNode.text ||
+      currentNode.data ||
+      ""
+    )?.trim();
     if (textContent && currentNode.parentElement) {
       const xpath = generateXPath(currentNode.parentElement);
       textMapFlat[xpath] = textContent;

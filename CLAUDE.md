@@ -96,7 +96,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=optional_supabase_key
 - **Routing**: Next.js App Router with `/next-eval` base path
 - **AI**: Google Generative AI SDK (Gemini)
 - **Evaluation**: munkres-js for Hungarian algorithm
-- **HTML Parsing**: node-html-parser
+- **HTML Parsing**: linkedom
 - **Build**: Turborepo + Bun workspaces
 
 ## Common Tasks
