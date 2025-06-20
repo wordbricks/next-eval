@@ -1,0 +1,4 @@
+bun.lock merge=ours
+
+apps/web/public/rust_mdr_pkg/** linguist-detectable=false
+apps/web/public/samples/** linguist-detectable=false
