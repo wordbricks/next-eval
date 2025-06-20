@@ -4,105 +4,113 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-NEXT-EVAL is a Turborepo monorepo for evaluating web data record extraction methods, comparing traditional algorithms with LLM-based approaches. The project is structured as:
-- **Core**: Open-source npm library (`@wordbricks/next-eval`)
-- **Web Demo**: Interactive Next.js playground (`apps/web`)
+NEXT-EVAL is a monorepo for evaluating web data extraction methods, combining traditional algorithms (MDR) with LLM-based approaches. It's an academic/research tool accompanying a NeurIPS 2025 paper.
 
-## Key Commands
+## Development Commands
 
-### Development
+### Essential Commands
 ```bash
-# Install dependencies (uses Bun)
-bun install
+# Development
+bun run dev                 # Start dev server on port 3839
+bun run build              # Build all packages
+bun run test               # Run vitest tests
+bun run test:run           # Run tests once
+bun run lint               # Run Biome linter
+bun run format             # Format code with Biome
+bun run check-types        # TypeScript type checking
 
-# Run the web playground (port 3839)
-bun run dev
+# Package Management
+bun install                # Install dependencies (uses Bun, not npm/yarn)
+bun run add:component      # Add shadcn UI components
 
-# Build all packages
-bun run build
-
-# Type checking
-bun run check-types
-
-# Linting (uses Biome)
-bun run lint
-
-# Format code
-bun run format
-
-# Run tests
-bun run test
-
-# Add UI components
-bun run add:component
+# Prompt Generation (for LLM testing)
+cd packages/next-eval && bun run prompts:gen
 ```
 
-### Turbo Tasks (run with `turbo run <task>`)
+### Testing Single Files
 ```bash
-# Preprocess HTML for LLM extraction
-turbo run preprocess
+# Run specific test file
+cd apps/web && bun run test path/to/test.spec.ts
 
-# Run LLM extraction
-turbo run runLLM
-
-# Run MDR (Model-based Data Record) algorithm
-turbo run mdr
-
-# Evaluate extraction results
-turbo run evaluate
-
-# Run benchmark tests
-turbo run test:bench
+# Run tests in watch mode for a specific file
+cd apps/web && bun run test --watch path/to/test.spec.ts
 ```
 
-## Architecture
+## Architecture & Key Concepts
 
 ### Monorepo Structure
-- **`/apps/web`**: Next.js web application
-  - Uses App Router
-  - API routes handle LLM interactions and data processing
-  - Integrates with Supabase for data storage
-  - WASM integration for MDR algorithms (`public/rust_mdr_pkg/`)
-  - Test suite with Vitest (`tests/`)
+- `/apps/web/` - Next.js 14+ web application (App Router)
+- `/packages/next-eval/` - Core library (@wordbricks/next-eval)
+- `/packages/ui/` - Shared UI components (@next-eval/ui)
+- `/packages/rust-mdr/` - Rust WASM module for MDR algorithm
 
-- **`/packages/next-eval`**: Core extraction and evaluation library
-  - Main package name: `@wordbricks/next-eval`
-  - Contains shared interfaces and utilities in `src/shared/`
-  - Supports multiple LLM providers (Google AI, OpenAI, Anthropic)
-  - MDR algorithm implementations
+### Core Processing Pipeline
+1. **HTML Processing**: Converts raw HTML into three formats:
+   - Slim HTML (cleaned, simplified)
+   - Hierarchical JSON (nested structure)
+   - Flat JSON (XPath-based key-value pairs)
 
-- **`/packages/ui`**: UI component library
-  - Reusable React components
-  - Custom hooks
-  - Based on shadcn/ui
+2. **Extraction Methods**:
+   - **LLM Tab**: Uses Google Gemini via structured prompts
+   - **MDR Tab**: Traditional Maximum Data Region algorithm (Rust/WASM)
 
-- **`/packages/rust-mdr`**: Rust WASM module for MDR algorithms
+3. **Evaluation**: Hungarian algorithm for optimal record matching, calculating precision/recall/F1
 
-- **`/packages/tsconfig`**: Shared TypeScript configurations
+### State Management
+- Uses Jotai atoms for global state (see `/apps/web/src/atoms/`)
+- Key atoms: `htmlContentAtom`, `llmResultsAtom`, `mdrResultsAtom`
 
-### Key Technologies
-- **Frontend**: Next.js (latest), React 19.1.0, Tailwind CSS v4
-- **State Management**: Jotai (atomic state management)
-- **Backend**: Hono (API framework), Supabase
-- **AI/ML**: Google Generative AI, ai SDK (@ai-sdk/google)
-- **Build**: Turborepo, Bun, TypeScript
-- **Testing**: Vitest
-- **Code Quality**: Biome (linting/formatting), Lefthook (git hooks)
+### API & Workers
+- API routes in `/apps/web/src/app/api/` using Hono framework
+- Web Workers for CPU-intensive tasks (MDR processing)
+- WASM module loaded from `/public/rust_mdr_pkg/`
 
-### Data Flow
-1. **Preprocessing**: HTML → Simplified/Hierarchical/Slim formats
-2. **Extraction**: Run MDR algorithms or LLM prompts on processed HTML
-3. **Evaluation**: Compare extracted records with ground truth using Hungarian algorithm
-4. **Metrics**: Calculate precision, recall, F1 scores at cell and schema levels
+## Environment Setup
 
-### Important Patterns
-- All packages use ESM modules (`"type": "module"`)
-- Import patterns:
-  - Core functionality: `@wordbricks/next-eval/*`
-  - UI components: `@next-eval/ui`
-  - TypeScript configs: `@next-eval/tsconfig`
-- Prompts stored in markdown files (`src/prompts/`)
-- Sample data in `apps/web/src/assets/` (JSON format)
-- HTML samples in `apps/web/public/samples/`
-- MDR state management with Jotai atoms (`apps/web/src/atoms/mdr.ts`)
-- Expected MDR outputs for testing in `apps/web/tests/expectedMdrOutputs/`
+Create `.env.local` file in `/apps/web/`:
+```env
+GOOGLE_GENERATIVE_AI_API_KEY=your_key_here
+NEXT_PUBLIC_SUPABASE_URL=optional_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=optional_supabase_key
+```
+
+## Code Style & Linting
+
+- Uses Biome (not ESLint/Prettier)
+- 2-space indentation
+- 80-character line limit
+- Run `bun run format` before committing
+- Git hooks via lefthook ensure code quality
+
+## Testing Approach
+
+- Vitest for unit/integration tests
+- Tests located in `/apps/web/tests/`
+- 3-minute timeout for long-running tests
+- JSDOM environment for React component testing
+
+## Key Dependencies & Patterns
+
+- **UI**: Tailwind CSS v4, shadcn/ui components
+- **State**: Jotai atoms (not Redux/Context)
+- **Routing**: Next.js App Router with `/next-eval` base path
+- **AI**: Google Generative AI SDK (Gemini)
+- **Evaluation**: munkres-js for Hungarian algorithm
+- **HTML Parsing**: linkedom
+- **Build**: Turborepo + Bun workspaces
+
+## Common Tasks
+
+### Adding New LLM Prompts
+1. Edit prompt templates in `/packages/next-eval/src/llm/prompts/`
+2. Run `cd packages/next-eval && bun run prompts:gen`
+3. Prompts are generated via content-collections
+
+### Modifying MDR Algorithm
+1. Edit Rust code in `/packages/rust-mdr/src/`
+2. Run `cd packages/rust-mdr && bun run build`
+3. WASM module auto-copied to `/apps/web/public/rust_mdr_pkg/`
+
+### Working with Sample Data
+- Sample HTML files in `/apps/web/public/sample-htmls/`
+- Test fixtures in `/apps/web/tests/fixtures/`

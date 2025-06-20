@@ -1,9 +1,4 @@
-import {
-  type HTMLElement,
-  type Node,
-  NodeType,
-  type TextNode,
-} from "node-html-parser";
+import { NODE_TYPES } from "../constants";
 import type { TagNode } from "../interfaces/TagNode";
 
 export function buildTagTree(domNode: Node, parentElementXPath = ""): TagNode {
@@ -12,8 +7,8 @@ export function buildTagTree(domNode: Node, parentElementXPath = ""): TagNode {
   }
 
   // Handle text nodes
-  if (domNode.nodeType === NodeType.TEXT_NODE) {
-    const textContent = ((domNode as TextNode)?.text || "").trim();
+  if (domNode.nodeType === NODE_TYPES.TEXT_NODE) {
+    const textContent = (domNode.textContent || "").trim();
     let textNodeXPath = "";
 
     // Construct XPath for text node if it has content and a parent XPath is provided
@@ -30,8 +25,8 @@ export function buildTagTree(domNode: Node, parentElementXPath = ""): TagNode {
   }
 
   // Handle element nodes
-  if (domNode.nodeType === NodeType.ELEMENT_NODE) {
-    const element = domNode as HTMLElement;
+  if (domNode.nodeType === NODE_TYPES.ELEMENT_NODE) {
+    const element = domNode as Element;
     if (!element || typeof element.tagName !== "string") {
       // Fallback for invalid element structure
       return { tag: "div", children: [], rawText: "", xpath: "" };
@@ -42,17 +37,16 @@ export function buildTagTree(domNode: Node, parentElementXPath = ""): TagNode {
 
     const parent = element.parentNode;
     // Determine the local XPath segment (tagName[index])
-    if (!parent || parent.nodeType !== NodeType.ELEMENT_NODE) {
+    if (!parent || parent.nodeType !== NODE_TYPES.ELEMENT_NODE) {
       // This element is the top-most in its current hierarchy or fragment root
       localXPathSegment = `${tagName}[1]`;
     } else {
-      const parentElement = parent as HTMLElement;
-      const siblingsWithSameTag = parentElement.childNodes.filter(
-        (siblingNode): siblingNode is HTMLElement =>
-          siblingNode.nodeType === NodeType.ELEMENT_NODE &&
-          (siblingNode as HTMLElement).tagName === element.tagName,
+      const parentElement = parent as Element;
+      const siblingsWithSameTag = Array.from(parentElement.children).filter(
+        (siblingNode): siblingNode is Element =>
+          siblingNode.tagName === element.tagName,
       );
-      // Ensure 'element' itself is an HTMLElement for indexOf
+      // Ensure 'element' itself is an Element for indexOf
       const index = siblingsWithSameTag.indexOf(element) + 1;
       localXPathSegment = `${tagName}[${index > 0 ? index : 1}]`;
     }
@@ -72,8 +66,8 @@ export function buildTagTree(domNode: Node, parentElementXPath = ""): TagNode {
     for (const child of childNodes) {
       if (!child) continue;
 
-      if (child.nodeType === NodeType.TEXT_NODE) {
-        const text = (child as TextNode)?.text || "";
+      if (child.nodeType === NODE_TYPES.TEXT_NODE) {
+        const text = child.textContent || "";
         if (text.trim() === "") continue; // Skip if it's an effectively empty text node
       }
       children.push(buildTagTree(child, currentElementXPath));

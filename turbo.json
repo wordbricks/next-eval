@@ -4,7 +4,12 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "dist/**",
+        ".content-collections/**"
+      ],
       "env": [
         "GOOGLE_GENERATIVE_AI_API_KEY",
         "NEXT_PUBLIC_SUPABASE_URL",

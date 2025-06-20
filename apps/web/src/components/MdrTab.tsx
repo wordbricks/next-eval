@@ -1,31 +1,24 @@
 "use client";
 
+import { overallLlmFetchingAtom } from "@/atoms/llm";
+import { processedDataAtom } from "@/atoms/shared";
 import CopyIcon from "@/components/icons/CopyIcon";
 import ThumbsDownIcon from "@/components/icons/ThumbsDownIcon";
 import ThumbsUpIcon from "@/components/icons/ThumbsUpIcon";
+import { useFeedback } from "@/hooks/useFeedback";
 import { useMdr } from "@/hooks/useMdr";
-import { Progress } from "@next-eval/ui/components/progress";
-import type { ExtendedHtmlResult } from "@wordbricks/next-eval";
+import { useAtomValue } from "jotai";
 import { useState } from "react";
 
 interface MdrTabProps {
-  processedData: ExtendedHtmlResult | null;
   isProcessing: boolean;
-  overallLlmFetching: boolean;
-  htmlId: string | null;
-  onFeedback: (isPositive: boolean) => void;
-  feedbackSent: { [key: string]: boolean };
 }
 
-export function MdrTab({
-  processedData,
-  isProcessing,
-  overallLlmFetching,
-  htmlId,
-  onFeedback,
-  feedbackSent,
-}: MdrTabProps) {
-  const { mdrResponse, progress, isLoading, error, runMdrAlgorithm } = useMdr();
+export function MdrTab({ isProcessing }: MdrTabProps) {
+  const { mdrResponse, isLoading, error, runMdrAlgorithm } = useMdr();
+  const { feedbackSent, handleFeedback, getCurrentFeedbackId } = useFeedback();
+  const processedData = useAtomValue(processedDataAtom);
+  const overallLlmFetching = useAtomValue(overallLlmFetchingAtom);
   const [copySuccess, setCopySuccess] = useState<string>("");
 
   // TODO use `useCopyToClipboard` hook
@@ -40,17 +33,13 @@ export function MdrTab({
     }
   };
 
-  const getCurrentFeedbackId = () => {
-    return `${htmlId}-mdr`;
-  };
-
   return (
     <div className="mt-4">
       {/* Run MDR Button */}
       <div className="mb-6 flex items-center justify-center">
         <button
           type="button"
-          onClick={() => runMdrAlgorithm(processedData)}
+          onClick={() => runMdrAlgorithm()}
           aria-label="Run MDR Algorithm on Original HTML"
           className="w-full rounded-lg bg-orange-500 px-6 py-3 font-semibold text-white shadow-md transition-colors duration-150 ease-in-out hover:bg-orange-600 focus:outline-hidden focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           disabled={
@@ -67,15 +56,9 @@ export function MdrTab({
             MDR Algorithm Response
           </h3>
           {isLoading && (
-            <div className="space-y-3">
-              <p className="animate-pulse font-medium text-blue-600 text-md">
-                Processing with MDR, please wait...
-              </p>
-              <Progress value={progress} className="w-full" />
-              <p className="text-center text-gray-600 text-sm">
-                {progress}% complete
-              </p>
-            </div>
+            <p className="animate-pulse font-medium text-blue-600 text-md">
+              Processing with MDR, please wait...
+            </p>
           )}
           {error && (
             <div
@@ -110,10 +93,10 @@ export function MdrTab({
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => onFeedback(true)}
-                          disabled={feedbackSent[getCurrentFeedbackId()]}
+                          onClick={() => handleFeedback(true, "mdr")}
+                          disabled={feedbackSent[getCurrentFeedbackId("mdr")]}
                           className={`rounded-full p-1 transition-colors duration-150 ease-in-out hover:bg-green-100 ${
-                            feedbackSent[getCurrentFeedbackId()]
+                            feedbackSent[getCurrentFeedbackId("mdr")]
                               ? "text-green-600"
                               : "text-gray-400 hover:text-green-600"
                           }`}
@@ -123,10 +106,10 @@ export function MdrTab({
                         </button>
                         <button
                           type="button"
-                          onClick={() => onFeedback(false)}
-                          disabled={feedbackSent[getCurrentFeedbackId()]}
+                          onClick={() => handleFeedback(false, "mdr")}
+                          disabled={feedbackSent[getCurrentFeedbackId("mdr")]}
                           className={`rounded-full p-1 transition-colors duration-150 ease-in-out hover:bg-red-100 ${
-                            feedbackSent[getCurrentFeedbackId()]
+                            feedbackSent[getCurrentFeedbackId("mdr")]
                               ? "text-red-600"
                               : "text-gray-400 hover:text-red-600"
                           }`}

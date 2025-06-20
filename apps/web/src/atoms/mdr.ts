@@ -14,8 +14,6 @@ export const mdrResponseAtom = atom<MdrState>({
   numPredictedRecords: null,
 });
 
-export const mdrProgressAtom = atom<number>(0);
-
 export const mdrLoadingAtom = atom<boolean>(false);
 
 export const mdrErrorAtom = atom<string | null>(null);

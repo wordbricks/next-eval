@@ -16,6 +16,7 @@ export * from "./evaluation/utils/calculateOverlap";
 export * from "./evaluation/utils/mapResponseToFullXpath";
 
 // HTML processing utilities
+export * from "./html/utils/domParser";
 export * from "./html/utils/extractTextWithXPaths";
 export * from "./html/utils/generateXPath";
 export * from "./html/utils/processHtmlContent";
@@ -29,3 +30,7 @@ export * from "./llm/constants";
 export * from "./llm/utils/compile";
 // Note: getLLMResponse is excluded as it depends on promptLoader which uses Node.js APIs
 // Import from @wordbricks/next-eval/server for server-side usage
+
+export * from "./processors/createProcessor";
+export { createClientLLMProcessor } from "./processors/createLLMProcessor";
+export type { ClientLLMProcessor } from "./processors/createLLMProcessor";

@@ -2,85 +2,45 @@
 
 import { handleDownload } from "@/app/utils/handleDownload";
 import {
-  type ValidatedXpathArray,
-  parseAndValidateXPaths,
-} from "@/app/utils/xpathValidation";
-import { MdrTab } from "@/components/MdrTab";
-import { PageHeader } from "@/components/PageHeader";
-import CopyIcon from "@/components/icons/CopyIcon";
-import DownloadIcon from "@/components/icons/DownloadIcon";
-import ThumbsDownIcon from "@/components/icons/ThumbsDownIcon";
-import ThumbsUpIcon from "@/components/icons/ThumbsUpIcon";
-import { readFileAsText } from "@/lib/utils/readFileAsText";
+  initialLlmStageResponse,
+  llmResponsesAtom,
+  overallLlmFetchingAtom,
+  selectedStageAtom,
+} from "@/atoms/llm";
+import { mdrErrorAtom, mdrLoadingAtom, mdrResponseAtom } from "@/atoms/mdr";
 import {
-  type ExtendedHtmlResult,
-  mapResponseToFullXpath,
-  processHtmlContent,
-} from "@wordbricks/next-eval";
+  feedbackSentAtom,
+  htmlIdAtom,
+  processedDataAtom,
+  randomNumberAtom,
+} from "@/atoms/shared";
+import { ContactFooter } from "@/components/ContactFooter";
+import { LlmInteractionSection } from "@/components/LlmInteractionSection";
+import { PageHeader } from "@/components/PageHeader";
+import DownloadIcon from "@/components/icons/DownloadIcon";
+import { readFileAsText } from "@/lib/utils/readFileAsText";
+import { processHtmlContent } from "@wordbricks/next-eval";
+import { useAtom, useSetAtom } from "jotai";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-interface LlmStageResponse {
-  content: string | null;
-  usage: string | null;
-  error: string | null;
-  predictXpathList: ValidatedXpathArray | null;
-  numPredictedRecords: number | null;
-  numHallucination: number | null;
-  mappedPredictionText: string[] | null;
-  isLoading: boolean;
-  isEvaluating: boolean;
-}
-
-interface LlmAllResponses {
-  html: LlmStageResponse;
-  textMap: LlmStageResponse;
-  textMapFlat: LlmStageResponse;
-}
-
-type ExtractTab = "llm" | "mdr";
-
-const initialLlmStageResponse: LlmStageResponse = {
-  content: null,
-  usage: null,
-  error: null,
-  predictXpathList: null,
-  numPredictedRecords: null,
-  numHallucination: null,
-  mappedPredictionText: null,
-  isLoading: false,
-  isEvaluating: false,
-};
-
 export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false); // For file processing
-  const [processedData, setProcessedData] = useState<ExtendedHtmlResult | null>(
-    null,
-  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null); // For file processing errors
-  const [selectedStage, setSelectedStage] =
-    useState<keyof LlmAllResponses>("textMapFlat");
-  const [randomNumber, setRandomNumber] = useState<number | null>(null);
-  const [feedbackSent, setFeedbackSent] = useState<{ [key: string]: boolean }>(
-    {},
-  );
-  const [htmlId, setHtmlId] = useState<string | null>(null);
 
-  // New state for UI tabs in extraction section
-  const [activeExtractTab, setActiveExtractTab] = useState<ExtractTab>("llm");
-  // New state for LLM model selection (though only one is enabled for now)
-  const [selectedLlmModel, setSelectedLlmModel] =
-    useState<string>("gemini-2.5-pro");
-  const [copySuccess, setCopySuccess] = useState<string>("");
-
-  const [llmResponses, setLlmResponses] = useState<LlmAllResponses>({
-    html: { ...initialLlmStageResponse },
-    textMap: { ...initialLlmStageResponse },
-    textMapFlat: { ...initialLlmStageResponse },
-  });
-  const [overallLlmFetching, setOverallLlmFetching] = useState<boolean>(false); // For the "Send All to Gemini" button
+  // Use atoms for shared state
+  const [processedData, setProcessedData] = useAtom(processedDataAtom);
+  const setRandomNumber = useSetAtom(randomNumberAtom);
+  const setHtmlId = useSetAtom(htmlIdAtom);
+  const setMdrResponse = useSetAtom(mdrResponseAtom);
+  const setMdrLoading = useSetAtom(mdrLoadingAtom);
+  const setMdrError = useSetAtom(mdrErrorAtom);
+  const setLlmResponses = useSetAtom(llmResponsesAtom);
+  const setOverallLlmFetching = useSetAtom(overallLlmFetchingAtom);
+  const setSelectedStage = useSetAtom(selectedStageAtom);
+  const setFeedbackSent = useSetAtom(feedbackSentAtom);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -148,12 +108,24 @@ export default function HomePage() {
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    setRandomNumber(null);
     if (file) {
+      // Reset states BUT preserve the file input
+      setRandomNumber(null);
       setSelectedFile(file);
       setErrorMessage(null);
       setProcessedData(null);
-      // Reset LLM responses when a new file is selected
+      setUrlInput("");
+
+      // Reset MDR states
+      setMdrResponse({
+        predictXpathList: null,
+        mappedPredictionText: null,
+        numPredictedRecords: null,
+      });
+      setMdrLoading(false);
+      setMdrError(null);
+
+      // Reset LLM states
       setLlmResponses({
         html: { ...initialLlmStageResponse },
         textMap: { ...initialLlmStageResponse },
@@ -161,6 +133,9 @@ export default function HomePage() {
       });
       setOverallLlmFetching(false);
       setSelectedStage("textMapFlat");
+
+      // Reset feedback states
+      setFeedbackSent({});
     } else {
       setSelectedFile(null);
     }
@@ -175,14 +150,11 @@ export default function HomePage() {
     setIsLoading(true);
     setErrorMessage(null);
     setProcessedData(null);
-    // Reset LLM states as well
-    setLlmResponses({
-      html: { ...initialLlmStageResponse },
-      textMap: { ...initialLlmStageResponse },
-      textMapFlat: { ...initialLlmStageResponse },
+    setMdrResponse({
+      predictXpathList: null,
+      mappedPredictionText: null,
+      numPredictedRecords: null,
     });
-    setOverallLlmFetching(false);
-    setSelectedStage("textMapFlat");
 
     try {
       const htmlString = await readFileAsText(selectedFile);
@@ -212,279 +184,61 @@ export default function HomePage() {
     }
   }, [selectedFile]);
 
-  const handleSendToLlm = async () => {
-    if (!processedData) {
-      // This should ideally not happen if button is disabled correctly
-      console.error("Processed data not available for LLM request.");
-      // Optionally set a general error message for LLM section
-      return;
-    }
-    if (!selectedStage) {
-      // Ensure a stage is selected
-      console.error("No stage selected for LLM request.");
-      // Optionally set an error message
-      return;
-    }
-
-    setOverallLlmFetching(true);
-    // Initialize/reset states for the selected stage
-    setLlmResponses((prev) => ({
-      ...prev,
-      [selectedStage]: { ...initialLlmStageResponse, isLoading: true },
-    }));
-
-    const stageKey = selectedStage;
-    let stageDataForLlm: string | Record<string, unknown> | undefined;
-    let promptTypeForLlm: string | undefined;
-
-    if (stageKey === "html") {
-      stageDataForLlm = processedData.html;
-      promptTypeForLlm = "slim";
-    } else if (stageKey === "textMap") {
-      stageDataForLlm = processedData.textMap;
-      promptTypeForLlm = "hier";
-    } else if (stageKey === "textMapFlat") {
-      stageDataForLlm = processedData.textMapFlat;
-      promptTypeForLlm = "flat";
-    } else {
-      console.error(`Unknown stage key: ${stageKey} for LLM request.`);
-      setOverallLlmFetching(false);
-      setLlmResponses((prev) => ({
-        ...prev,
-        [stageKey]: {
-          ...initialLlmStageResponse,
-          error: "Unknown stage selected",
-          isLoading: false,
-        },
-      }));
-      return;
-    }
-
-    try {
-      const requestBody = {
-        promptType: promptTypeForLlm,
-        data: JSON.stringify(stageDataForLlm, null, 2),
-        randomNumber,
-      };
-
-      const response = await fetch("/next-eval/api/llm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          message: `LLM API request for ${stageKey} failed with status ${response.status} and could not parse error.`,
-        }));
-        throw new Error(
-          errorData.message ||
-            `LLM API request for ${stageKey} failed with status ${response.status}`,
-        );
-      }
-
-      const result = await response.json();
-      if ("content" in result && "usage" in result) {
-        const validatedPredXPaths = parseAndValidateXPaths(result.content);
-        setLlmResponses((prev) => ({
-          ...prev,
-          [stageKey]: {
-            ...initialLlmStageResponse,
-            content: result.content,
-            usage: result.usage,
-            predictXpathList: validatedPredXPaths,
-            error: null,
-            isLoading: false,
-            isEvaluating: false,
-          },
-        }));
-      } else {
-        throw new Error(
-          `Unexpected response structure for ${stageKey}: ${JSON.stringify(result, null, 2)}`,
-        );
-      }
-    } catch (error) {
-      console.error(`Error sending to LLM for stage ${stageKey}:`, error);
-      setLlmResponses((prev) => ({
-        ...prev,
-        [stageKey]: {
-          ...initialLlmStageResponse,
-          error: error instanceof Error ? error.message : String(error),
-          content: null,
-          usage: null,
-          predictXpathList: null,
-          isLoading: false,
-          isEvaluating: false,
-        },
-      }));
-    } finally {
-      setOverallLlmFetching(false);
-    }
-  };
-
   useEffect(() => {
     if (selectedFile) {
       handleProcessFile();
     }
   }, [selectedFile, handleProcessFile]);
 
-  useEffect(() => {
-    if (!processedData?.textMapFlat) {
-      setLlmResponses((prev) => {
-        let needsUpdate = false;
-        const newResponses = { ...prev };
-        for (const stageKey of Object.keys(newResponses) as Array<
-          keyof LlmAllResponses
-        >) {
-          if (
-            newResponses[stageKey].numPredictedRecords !== null ||
-            newResponses[stageKey].numHallucination !== null ||
-            newResponses[stageKey].isEvaluating
-          ) {
-            needsUpdate = true;
-            newResponses[stageKey] = {
-              ...newResponses[stageKey],
-              numPredictedRecords: null,
-              numHallucination: null,
-              mappedPredictionText: null,
-              isEvaluating: false,
-            };
-          }
-        }
-        return needsUpdate ? newResponses : prev;
-      });
-      return;
-    }
-
-    const textMapFlatForEval = processedData.textMapFlat as Record<
-      string,
-      string
-    >;
-    let updateScheduled = false;
-
-    setLlmResponses((prevResponses) => {
-      const newResponses = { ...prevResponses };
-
-      for (const stageKey of Object.keys(newResponses) as Array<
-        keyof LlmAllResponses
-      >) {
-        const stageData = newResponses[stageKey];
-
-        // Step 1: If we have new XPaths, aren't loading/evaluating, and metrics are not yet computed, set to isEvaluating
-        if (
-          stageData.predictXpathList &&
-          !stageData.isLoading &&
-          !stageData.isEvaluating &&
-          stageData.numPredictedRecords === null // Only if metrics are not yet computed
-        ) {
-          newResponses[stageKey] = {
-            ...stageData,
-            isEvaluating: true,
-            error: stageData.error?.includes("Evaluation Error:")
-              ? stageData.error
-                  .split("\n")
-                  .filter((line) => !line.startsWith("Evaluation Error:"))
-                  .join("\n") || null
-              : stageData.error,
-          };
-          updateScheduled = true;
-        }
-
-        // Step 2: If isEvaluating is true, perform the evaluation
-        else if (stageData.isEvaluating && !stageData.isLoading) {
-          try {
-            if (!stageData.predictXpathList) {
-              // This case should ideally be prevented by the reset in handleSendToLlm or if LLM call fails
-              // but as a safeguard, if predictXpathList is gone while we are in isEvaluating, reset.
-              newResponses[stageKey] = {
-                ...stageData,
-                isEvaluating: false,
-                numPredictedRecords: null,
-                numHallucination: null,
-                mappedPredictionText: null,
-                error: `${stageData.error ? `${stageData.error}\n` : ""}Evaluation Error: XPaths disappeared during evaluation. Resetting metrics.`,
-              };
-              updateScheduled = true;
-              continue; // continue to next stageKey in forEach
-            }
-
-            const localNumPredictedRecords = stageData.predictXpathList.length;
-            const mappedPredRecords = mapResponseToFullXpath(
-              textMapFlatForEval,
-              stageData.predictXpathList,
-            );
-
-            const mappedPredRecordsText = mappedPredRecords.map(
-              (xpathArray: string[]) =>
-                xpathArray
-                  .map((xpath: string) => textMapFlatForEval[xpath])
-                  .join(", "),
-            );
-
-            let localNumHallucination = 0;
-            for (const record of mappedPredRecords) {
-              if (record.length === 0) {
-                localNumHallucination += 1;
-              }
-            }
-            newResponses[stageKey] = {
-              ...stageData,
-              numPredictedRecords: localNumPredictedRecords,
-              numHallucination: localNumHallucination,
-              mappedPredictionText: mappedPredRecordsText,
-              isEvaluating: false,
-              // Evaluation successful, error remains as is (or cleared in step 1 if it was an eval error)
-            };
-            updateScheduled = true;
-          } catch (evalError) {
-            console.error(
-              `Error during evaluation for ${stageKey}:`,
-              evalError,
-            );
-            newResponses[stageKey] = {
-              ...stageData,
-              error: `${stageData.error ? `${stageData.error}\n` : ""}Evaluation Error: ${evalError instanceof Error ? evalError.message : String(evalError)}`,
-              numPredictedRecords: null,
-              numHallucination: null,
-              mappedPredictionText: null,
-              isEvaluating: false,
-            };
-            updateScheduled = true;
-          }
-        } else if (
-          !stageData.predictXpathList &&
-          !stageData.isLoading &&
-          !stageData.isEvaluating &&
-          (stageData.numPredictedRecords !== null ||
-            stageData.numHallucination !== null)
-        ) {
-          newResponses[stageKey] = {
-            ...stageData,
-            numPredictedRecords: null,
-            numHallucination: null,
-            mappedPredictionText: null,
-            isEvaluating: false,
-          };
-          updateScheduled = true;
-        }
+  // Helper function to reset all states when loading new data
+  const resetAllStates = useCallback(
+    (preserveUrlInput = false) => {
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      setSelectedFile(null);
+      if (!preserveUrlInput) {
+        setUrlInput("");
       }
 
-      return updateScheduled ? newResponses : prevResponses;
-    });
-  }, [processedData?.textMapFlat, llmResponses]);
+      // Reset MDR states
+      setMdrResponse({
+        predictXpathList: null,
+        mappedPredictionText: null,
+        numPredictedRecords: null,
+      });
+      setMdrLoading(false);
+      setMdrError(null);
+
+      // Reset LLM states
+      setLlmResponses({
+        html: { ...initialLlmStageResponse },
+        textMap: { ...initialLlmStageResponse },
+        textMapFlat: { ...initialLlmStageResponse },
+      });
+      setOverallLlmFetching(false);
+      setSelectedStage("textMapFlat");
+
+      // Reset feedback states
+      setFeedbackSent({});
+    },
+    [
+      setMdrResponse,
+      setMdrLoading,
+      setMdrError,
+      setLlmResponses,
+      setOverallLlmFetching,
+      setSelectedStage,
+      setFeedbackSent,
+    ],
+  );
 
   const handleLoadSyntheticData = async () => {
     setIsLoading(true);
     setErrorMessage(null);
     setProcessedData(null);
-    setLlmResponses({
-      // Reset LLM states
-      html: { ...initialLlmStageResponse },
-      textMap: { ...initialLlmStageResponse },
-      textMapFlat: { ...initialLlmStageResponse },
-    });
-    setOverallLlmFetching(false);
-    setSelectedStage("textMapFlat");
+    resetAllStates();
 
     const newRandomNumber = Math.floor(Math.random() * 20) + 1; // Generate number between 1 and 20
     setRandomNumber(newRandomNumber); // Set the randomNumber state
@@ -524,57 +278,9 @@ export default function HomePage() {
     }
   };
 
-  const handleCopyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopySuccess("Copied!");
-      setTimeout(() => setCopySuccess(""), 2000);
-    } catch (err) {
-      console.error("Failed to copy text: ", err);
-      setCopySuccess("Failed to copy");
-    }
-  };
-
-  const getCurrentFeedbackId = () => {
-    return `${htmlId}-${activeExtractTab === "llm" ? selectedStage : "mdr"}`;
-  };
-
-  const handleFeedback = async (isPositive: boolean) => {
-    const id = getCurrentFeedbackId();
-    if (feedbackSent[id]) {
-      return; // Prevent multiple feedback for the same text
-    }
-
-    const feedbackMessage = `*Extraction Feedback*\\n${isPositive ? "👍" : "👎"} ID: ${id}`;
-
-    try {
-      const response = await fetch("/next-eval/api/feedback", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ text: feedbackMessage }),
-      });
-
-      if (response.ok) {
-        setFeedbackSent((prev) => ({ ...prev, [id]: true }));
-      } else {
-        console.error(
-          "Failed to send feedback via API. Status:",
-          response.status,
-        );
-        const responseBody = await response.text();
-        console.error("Response body:", responseBody);
-      }
-    } catch (error) {
-      console.error("Error sending feedback:", error);
-    }
-  };
-
   // Add handler for fetching and processing HTML from URL
   const handleFetchUrl = async () => {
     setUrlError(null);
-    setRandomNumber(null);
     if (!urlInput.trim()) {
       setUrlError("Please enter a URL.");
       return;
@@ -586,13 +292,8 @@ export default function HomePage() {
     setIsLoading(true);
     setErrorMessage(null);
     setProcessedData(null);
-    setLlmResponses({
-      html: { ...initialLlmStageResponse },
-      textMap: { ...initialLlmStageResponse },
-      textMapFlat: { ...initialLlmStageResponse },
-    });
-    setOverallLlmFetching(false);
-    setSelectedStage("textMapFlat");
+    resetAllStates(true); // Preserve URL input
+    setRandomNumber(null);
     try {
       const response = await fetch("/next-eval/api/fetch", {
         method: "POST",
@@ -692,7 +393,7 @@ export default function HomePage() {
                 type="button"
                 onClick={handleLoadSyntheticData}
                 className="rounded-md bg-orange-500 px-4 py-1.5 font-semibold text-white text-xs shadow-xs transition-colors duration-150 ease-in-out hover:bg-orange-600 focus:outline-hidden focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isLoading || overallLlmFetching}
+                disabled={isLoading}
                 aria-label="Load sample HTML data"
               >
                 Load sample
@@ -704,7 +405,7 @@ export default function HomePage() {
               className="block w-full rounded-md border border-gray-300 p-2 text-slate-500 text-sm shadow-xs file:mr-4 file:rounded-full file:border-0 file:bg-orange-50 file:px-4 file:py-2 file:font-semibold file:text-orange-600 file:text-sm hover:file:bg-orange-100 focus:outline-hidden focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
               accept=".html"
               onChange={handleFileChange}
-              disabled={isLoading || overallLlmFetching}
+              disabled={isLoading}
               ref={fileInputRef}
             />
           </div>
@@ -730,7 +431,7 @@ export default function HomePage() {
               className="block w-full rounded-md border border-gray-300 p-2 text-sm shadow-xs focus:border-orange-500 focus:outline-hidden focus:ring-2 focus:ring-orange-500"
               placeholder="https://example.com"
               aria-label="Web page URL"
-              disabled={isLoading || overallLlmFetching}
+              disabled={isLoading}
               autoComplete="off"
             />
             <div className="mb-2 flex flex-wrap gap-2">
@@ -741,7 +442,7 @@ export default function HomePage() {
                   className="rounded-md bg-orange-100 px-3 py-1 font-semibold text-orange-700 text-xs shadow-xs hover:bg-orange-200 focus:outline-hidden focus:ring-2 focus:ring-orange-500"
                   aria-label={`Fetch sample: ${sample.label}`}
                   tabIndex={0}
-                  disabled={isLoading || overallLlmFetching}
+                  disabled={isLoading}
                   onClick={() => handleSampleUrlClick(sample.value)}
                   onKeyDown={(e) =>
                     e.key === "Enter" && handleSampleUrlClick(sample.value)
@@ -756,7 +457,7 @@ export default function HomePage() {
                 type="button"
                 onClick={handleFetchUrl}
                 className="rounded-md bg-orange-500 px-4 py-1.5 font-semibold text-white text-xs shadow-xs transition-colors duration-150 ease-in-out hover:bg-orange-600 focus:outline-hidden focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isLoading || overallLlmFetching}
+                disabled={isLoading}
                 aria-label="Fetch HTML from URL"
               >
                 Fetch & Process
@@ -766,7 +467,7 @@ export default function HomePage() {
                 onClick={() => setUrlInput("")}
                 className="px-2 py-1 text-gray-500 text-xs hover:text-orange-600 focus:outline-hidden"
                 aria-label="Clear URL input"
-                disabled={isLoading || overallLlmFetching}
+                disabled={isLoading}
               >
                 Clear
               </button>
@@ -850,12 +551,9 @@ export default function HomePage() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {/* Stage 1: Slimmed HTML (Cleaned HTML) */}
               <div
-                className={`flex cursor-pointer flex-col justify-between rounded-lg border bg-gray-50 p-4 text-left shadow-sm transition-all duration-150 ease-in-out ${selectedStage === "html" ? "border-orange-500 ring-2 ring-orange-300" : "border-gray-200 hover:shadow-md"}`}
-                onClick={() => setSelectedStage("html")}
-                onKeyDown={(e) => e.key === "Enter" && setSelectedStage("html")}
+                className="flex cursor-pointer flex-col justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 text-left shadow-sm transition-all duration-150 ease-in-out hover:shadow-md"
                 tabIndex={0}
                 role="button"
-                aria-pressed={selectedStage === "html"}
                 aria-label="Select Slimmed HTML stage and view its content"
               >
                 <div className="mb-2 flex items-start justify-between">
@@ -890,14 +588,9 @@ export default function HomePage() {
 
               {/* Stage 2: Hierarchical JSON (Nested text map) */}
               <div
-                className={`flex cursor-pointer flex-col justify-between rounded-lg border bg-gray-50 p-4 text-left shadow-sm transition-all duration-150 ease-in-out ${selectedStage === "textMap" ? "border-orange-500 ring-2 ring-orange-300" : "border-gray-200 hover:shadow-md"}`}
-                onClick={() => setSelectedStage("textMap")}
-                onKeyDown={(e) =>
-                  e.key === "Enter" && setSelectedStage("textMap")
-                }
+                className="flex cursor-pointer flex-col justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 text-left shadow-sm transition-all duration-150 ease-in-out hover:shadow-md"
                 tabIndex={0}
                 role="button"
-                aria-pressed={selectedStage === "textMap"}
                 aria-label="Select Hierarchical JSON stage and view its content"
               >
                 <div className="mb-2 flex items-start justify-between">
@@ -932,14 +625,9 @@ export default function HomePage() {
 
               {/* Stage 3: Flat JSON (text map) */}
               <div
-                className={`flex cursor-pointer flex-col justify-between rounded-lg border bg-gray-50 p-4 text-left shadow-sm transition-all duration-150 ease-in-out ${selectedStage === "textMapFlat" ? "border-orange-500 ring-2 ring-orange-300" : "border-gray-200 hover:shadow-md"}`}
-                onClick={() => setSelectedStage("textMapFlat")}
-                onKeyDown={(e) =>
-                  e.key === "Enter" && setSelectedStage("textMapFlat")
-                }
+                className="flex cursor-pointer flex-col justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 text-left shadow-sm transition-all duration-150 ease-in-out hover:shadow-md"
                 tabIndex={0}
                 role="button"
-                aria-pressed={selectedStage === "textMapFlat"}
                 aria-label="Select Flat JSON stage and view its content"
               >
                 <div className="mb-2 flex items-start justify-between">
@@ -991,404 +679,11 @@ export default function HomePage() {
 
       {/* LLM Interaction Section */}
       {processedData && !isLoading && (
-        <section className="mt-8 rounded-lg border bg-white p-6 shadow-md">
-          <h2 className="mb-4 font-semibold text-2xl">
-            2. Extract data records
-          </h2>
-          <p className="mb-6 text-gray-600">
-            Select your extraction method—an LLM model or the traditional MDR
-            algorithm—and experiment with different HTML processing techniques
-            to find the most effective combination.
-          </p>
-
-          {/* Tab Navigation */}
-          <div className="mb-6 border-gray-200 border-b">
-            <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-              <button
-                type="button"
-                onClick={() => setActiveExtractTab("llm")}
-                className={`whitespace-nowrap border-b-2 px-1 py-3 font-medium text-sm ${
-                  activeExtractTab === "llm"
-                    ? "border-orange-500 text-orange-600"
-                    : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                } focus:outline-hidden`}
-                aria-current={activeExtractTab === "llm" ? "page" : undefined}
-              >
-                LLM
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveExtractTab("mdr")}
-                className={`whitespace-nowrap border-b-2 px-1 py-3 font-medium text-sm ${
-                  activeExtractTab === "mdr"
-                    ? "border-orange-500 text-orange-600"
-                    : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                } focus:outline-hidden`}
-                aria-current={activeExtractTab === "mdr" ? "page" : undefined}
-              >
-                MDR Algorithm
-              </button>
-            </nav>
-          </div>
-          {/* LLM Tab Content */}
-          {activeExtractTab === "llm" && (
-            <div>
-              <div className="mb-6 grid grid-cols-1 items-end gap-x-6 gap-y-4 md:grid-cols-2">
-                {/* LLM Model Selection Dropdown */}
-                <div>
-                  <label
-                    htmlFor="llmModelSelect"
-                    className="mb-1 block font-medium text-gray-700 text-sm"
-                  >
-                    LLM Model
-                  </label>
-                  <select
-                    id="llmModelSelect"
-                    name="llmModelSelect"
-                    value={selectedLlmModel}
-                    onChange={(e) => setSelectedLlmModel(e.target.value)}
-                    className="block w-full rounded-md border-gray-300 py-2 pr-10 pl-3 text-base shadow-xs focus:border-orange-500 focus:outline-hidden focus:ring-orange-500 disabled:cursor-not-allowed disabled:bg-gray-100 sm:text-sm"
-                  >
-                    <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                    <option value="claude-3-opus-disabled" disabled>
-                      Claude 3 Opus (soon)
-                    </option>
-                    <option value="gpt4-turbo-disabled" disabled>
-                      GPT-4 Turbo (soon)
-                    </option>
-                  </select>
-                </div>
-                {/* Data Source for LLM Dropdown */}
-                <div>
-                  <label
-                    htmlFor="llmDataStageSelect"
-                    className="mb-1 block font-medium text-gray-700 text-sm"
-                  >
-                    Processing method
-                  </label>
-                  <select
-                    id="llmDataStageSelect"
-                    name="llmDataStageSelect"
-                    value={selectedStage}
-                    onChange={(e) =>
-                      setSelectedStage(e.target.value as keyof LlmAllResponses)
-                    }
-                    disabled={
-                      overallLlmFetching ||
-                      llmResponses[selectedStage]?.isLoading
-                    }
-                    className="block w-full rounded-md border-gray-300 py-2 pr-10 pl-3 text-base shadow-xs focus:border-orange-500 focus:outline-hidden focus:ring-orange-500 disabled:cursor-not-allowed disabled:bg-gray-100 sm:text-sm"
-                  >
-                    <option value="html">Slimmed HTML</option>
-                    <option value="textMap">Hierarchical JSON</option>
-                    <option value="textMapFlat">Flat JSON</option>
-                  </select>
-                </div>
-              </div>
-              {/* Send to LLM Button */}
-              <div className="mb-6 flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={handleSendToLlm}
-                  aria-label={`Send ${selectedStage === "html" ? "Slimmed HTML" : selectedStage === "textMap" ? "Hierarchical JSON" : "Flat JSON"} to ${selectedLlmModel}`}
-                  className="w-full rounded-lg bg-orange-500 px-6 py-3 font-semibold text-white shadow-md transition-colors duration-150 ease-in-out hover:bg-orange-600 focus:outline-hidden focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                  disabled={
-                    !processedData ||
-                    overallLlmFetching ||
-                    !selectedStage ||
-                    llmResponses[selectedStage]?.isLoading
-                  }
-                >
-                  {overallLlmFetching && llmResponses[selectedStage]?.isLoading
-                    ? "Sending to LLM..."
-                    : "Send to LLM"}
-                </button>
-              </div>
-              {/* Display LLM Responses */}
-              {overallLlmFetching &&
-                selectedStage &&
-                llmResponses[selectedStage]?.isLoading &&
-                !llmResponses[selectedStage]?.content && (
-                  <div className="mt-6 text-center">
-                    <p className="animate-pulse font-semibold text-lg">
-                      Waiting for {selectedLlmModel} response for{" "}
-                      {selectedStage === "html"
-                        ? "Slimmed HTML"
-                        : selectedStage === "textMap"
-                          ? "Hierarchical JSON"
-                          : "Flat JSON"}
-                      ...
-                    </p>
-                  </div>
-                )}
-              {selectedStage &&
-                llmResponses[selectedStage] &&
-                (() => {
-                  const stageKey = selectedStage;
-                  const stageResponse = llmResponses[stageKey];
-                  return (
-                    <div
-                      key={stageKey}
-                      className="mt-4 flex flex-col rounded-lg border bg-gray-50 p-4 shadow-xs" // Added mt-4
-                    >
-                      <h3 className="mb-3 border-b pb-2 font-semibold text-gray-800 text-lg">
-                        LLM Response
-                      </h3>
-                      {stageResponse.isLoading && (
-                        <p className="animate-pulse font-medium text-blue-600 text-md">
-                          Loading response...
-                        </p>
-                      )}
-                      {stageResponse.error && (
-                        <div
-                          className="rounded-md border border-red-200 bg-red-50 p-3 text-red-700 text-sm"
-                          role="alert"
-                        >
-                          <p className="font-semibold">Error:</p>
-                          <pre className="whitespace-pre-wrap break-all">
-                            {stageResponse.error}
-                          </pre>
-                        </div>
-                      )}
-                      {!stageResponse.isLoading &&
-                        stageResponse.content &&
-                        !stageResponse.error && (
-                          <>
-                            {stageResponse.usage && (
-                              <div className="mb-3">
-                                <h4 className="mb-1 font-semibold text-gray-600 text-sm">
-                                  Usage:
-                                </h4>
-                                <div className="max-h-24 overflow-auto rounded-md border bg-white p-2 text-xs">
-                                  <pre className="whitespace-pre-wrap">
-                                    {typeof stageResponse.usage === "string"
-                                      ? stageResponse.usage
-                                      : JSON.stringify(
-                                          stageResponse.usage,
-                                          null,
-                                          2,
-                                        )}
-                                  </pre>
-                                </div>
-                              </div>
-                            )}
-                            <div className="mb-3">
-                              <h4 className="mb-1 font-semibold text-gray-600 text-sm">
-                                Content:
-                              </h4>
-                              <div className="h-48 overflow-auto rounded-md border bg-white p-2 text-xs">
-                                <pre className="whitespace-pre-wrap">
-                                  {stageResponse.content}
-                                </pre>
-                              </div>
-                            </div>
-                            {stageResponse.mappedPredictionText &&
-                              stageResponse.mappedPredictionText.length > 0 && (
-                                <div className="mb-3">
-                                  <div className="mb-1 flex items-center justify-between">
-                                    <h4 className="font-semibold text-gray-600 text-sm">
-                                      Predicted Text:
-                                    </h4>
-                                    <div className="flex items-center gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleFeedback(true)}
-                                        disabled={
-                                          feedbackSent[getCurrentFeedbackId()]
-                                        }
-                                        className={`rounded-full p-1 transition-colors duration-150 ease-in-out hover:bg-green-100 ${
-                                          feedbackSent[getCurrentFeedbackId()]
-                                            ? "text-green-600"
-                                            : "text-gray-400 hover:text-green-600"
-                                        }`}
-                                        aria-label="Give positive feedback"
-                                      >
-                                        <ThumbsUpIcon />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleFeedback(false)}
-                                        disabled={
-                                          feedbackSent[getCurrentFeedbackId()]
-                                        }
-                                        className={`rounded-full p-1 transition-colors duration-150 ease-in-out hover:bg-red-100 ${
-                                          feedbackSent[getCurrentFeedbackId()]
-                                            ? "text-red-600"
-                                            : "text-gray-400 hover:text-red-600"
-                                        }`}
-                                        aria-label="Give negative feedback"
-                                      >
-                                        <ThumbsDownIcon />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          handleCopyToClipboard(
-                                            stageResponse.mappedPredictionText?.join(
-                                              "\n",
-                                            ) || "",
-                                          )
-                                        }
-                                        className="group relative rounded-full p-1 text-orange-500 transition-colors duration-150 ease-in-out hover:bg-orange-100 hover:text-orange-700"
-                                        aria-label="Copy predicted text to clipboard"
-                                      >
-                                        <CopyIcon />
-                                        {copySuccess && (
-                                          <span className="-top-8 -translate-x-1/2 absolute left-1/2 transform rounded-sm bg-gray-800 px-2 py-1 text-white text-xs">
-                                            {copySuccess}
-                                          </span>
-                                        )}
-                                      </button>
-                                    </div>
-                                  </div>
-                                  <div className="h-40 overflow-auto rounded-md border bg-white p-2 text-xs">
-                                    {stageResponse.mappedPredictionText.map(
-                                      (textBlock, index) => (
-                                        <pre
-                                          key={index}
-                                          className="my-1 whitespace-pre-wrap border-gray-200 border-b py-1 last:border-b-0"
-                                        >
-                                          {textBlock}
-                                        </pre>
-                                      ),
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            <div>
-                              <h4 className="mb-1 font-semibold text-gray-600 text-sm">
-                                Evaluation Metrics:
-                              </h4>
-                              <div className="space-y-1 rounded-md border border-blue-100 bg-blue-50 p-2 text-xs">
-                                {stageResponse.isEvaluating && (
-                                  <p className="animate-pulse text-blue-500">
-                                    Calculating metrics...
-                                  </p>
-                                )}
-                                {!stageResponse.isEvaluating &&
-                                  stageResponse.predictXpathList && ( // Metrics successfully calculated
-                                    <>
-                                      <p>
-                                        <span className="font-semibold">
-                                          Predicted Records:
-                                        </span>{" "}
-                                        {stageResponse.numPredictedRecords}
-                                      </p>
-                                      {stageResponse.numHallucination !==
-                                        null && (
-                                        <p>
-                                          <span className="font-semibold">
-                                            Potential Hallucinations:
-                                          </span>{" "}
-                                          {stageResponse.numHallucination} (
-                                          {stageResponse.numPredictedRecords &&
-                                          stageResponse.numPredictedRecords > 0
-                                            ? `${((stageResponse.numHallucination / stageResponse.numPredictedRecords) * 100).toFixed(2)}%`
-                                            : "N/A"}
-                                          )
-                                        </p>
-                                      )}
-                                    </>
-                                  )}
-                                {!stageResponse.isEvaluating &&
-                                  stageResponse.predictXpathList && // XPaths were present
-                                  stageResponse.numPredictedRecords === null && // But metrics calculation failed or was reset (error should be shown by stageResponse.error)
-                                  !stageResponse.error && ( // If no specific eval error is set, this is an unexpected state.
-                                    <p className="text-orange-500">
-                                      Metrics pending or encountered an issue.
-                                      Check for errors.
-                                    </p>
-                                  )}
-
-                                {!stageResponse.isEvaluating &&
-                                  stageResponse.predictXpathList &&
-                                  stageResponse.numPredictedRecords === null &&
-                                  stageResponse.error &&
-                                  stageResponse.error.includes(
-                                    "Evaluation Error:",
-                                  ) && ( // Explicitly check if an Evaluation Error occurred
-                                    <p className="text-red-500">
-                                      Metrics calculation failed. See error
-                                      message above.
-                                    </p>
-                                  )}
-                                {!stageResponse.isEvaluating &&
-                                  !stageResponse.predictXpathList && // XPaths could not be parsed
-                                  stageResponse.content && // But LLM content was present
-                                  !stageResponse.error && ( // And no other error (like API error)
-                                    <p className="text-gray-500">
-                                      No valid XPaths parsed from LLM content.
-                                    </p>
-                                  )}
-                                {!stageResponse.isEvaluating &&
-                                  !stageResponse.content && // No LLM content at all
-                                  !stageResponse.isLoading && // And not loading
-                                  !stageResponse.error && ( // And no error
-                                    <p className="text-gray-500">
-                                      No content to evaluate.
-                                    </p>
-                                  )}
-                              </div>
-                            </div>
-                          </>
-                        )}
-                    </div>
-                  );
-                })()}
-            </div>
-          )}
-          {/* MDR Tab Content */}
-          {activeExtractTab === "mdr" && (
-            <MdrTab
-              processedData={processedData}
-              isProcessing={isLoading}
-              overallLlmFetching={overallLlmFetching}
-              htmlId={htmlId}
-              onFeedback={handleFeedback}
-              feedbackSent={feedbackSent}
-            />
-          )}
-        </section>
+        <LlmInteractionSection isLoading={isLoading} />
       )}
 
       {/* Contact Information Footer */}
-      <footer className="mt-16 rounded-lg border bg-white p-6 shadow-md">
-        <div className="space-y-4 text-center">
-          <p className="text-gray-700">
-            Have questions or ideas? We'd love to hear from you. Contact us at{" "}
-            <a
-              href="mailto:research@wordbricks.ai"
-              className="font-medium text-orange-600 transition-colors duration-150 hover:text-orange-700 focus:underline focus:outline-hidden"
-            >
-              research@wordbricks.ai
-            </a>
-          </p>
-
-          <p className="text-gray-700">
-            Inspired by our research? We are looking for innovative thinkers to
-            join our team. Please email your resume to{" "}
-            <a
-              href="mailto:hr@wordbricks.ai"
-              className="font-medium text-orange-600 transition-colors duration-150 hover:text-orange-700 focus:underline focus:outline-hidden"
-            >
-              hr@wordbricks.ai
-            </a>{" "}
-            and be sure to mention our paper.
-          </p>
-
-          <p className="text-gray-700">
-            To see what else we're building, explore our latest technologies at{" "}
-            <a
-              href="https://nextrows.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-orange-600 transition-colors duration-150 hover:text-orange-700 focus:underline focus:outline-hidden"
-            >
-              nextrows.com
-            </a>
-          </p>
-        </div>
-      </footer>
+      <ContactFooter />
     </main>
   );
 }

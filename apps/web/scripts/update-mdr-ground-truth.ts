@@ -1,7 +1,8 @@
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { runMDRWithDetails } from "@/lib/utils/runMDR";
-import { slimHtml } from "@wordbricks/next-eval";
+import { pipe } from "@fxts/core";
+import { type DOMParser, createProcessor } from "@wordbricks/next-eval";
 import { JSDOM } from "jsdom";
 
 /**
@@ -11,6 +12,13 @@ import { JSDOM } from "jsdom";
  * - You want to establish a new baseline for MDR consistency testing
  */
 async function regenerateMDRExpected() {
+  const jsdomParser: DOMParser = (html: string) => {
+    const dom = new JSDOM(html);
+    return dom.window.document;
+  };
+
+  const p = createProcessor({ parser: jsdomParser });
+
   const samplesDir = join(process.cwd(), "public", "samples");
   const outputDir = join(process.cwd(), "tests", "mdr-expected");
 
@@ -27,12 +35,14 @@ async function regenerateMDRExpected() {
     const path = join(samplesDir, filename);
     const content = await readFile(path, "utf-8");
 
-    // Use the same preprocessing as the test
-    const dom = new JSDOM(content);
-    const slimmedHtml = slimHtml(dom.window.document);
+    const slimmedHtml = pipe(
+      content,
+      p.parseHtml,
+      p.slimDocument,
+      (result) => result.slimmedHtml,
+    );
 
-    // Run current Rust MDR implementation
-    const result = await runMDRWithDetails(slimmedHtml);
+    const result = await runMDRWithDetails(slimmedHtml, p.context);
 
     console.log(
       `  Found ${result.xpaths.length} groups, ${result.texts.length} texts`,
@@ -57,5 +67,4 @@ async function regenerateMDRExpected() {
   );
 }
 
-// Run the regeneration
 regenerateMDRExpected().catch(console.error);
