@@ -358,7 +358,7 @@ export default function HomePage() {
         >
           <button
             type="button"
-            className={`rounded-t-md px-4 py-2 font-semibold transition-colors duration-150 focus:outline-hidden focus:ring-2 focus:ring-orange-500 ${inputMethod === "file" ? "text-orange-600" : "bg-gray-100 text-gray-700 hover:bg-orange-100"}`}
+            className={`rounded-t-md px-4 py-2 font-semibold transition-colors duration-150 focus:outline-hidden focus:ring-1 focus:ring-orange-500 ${inputMethod === "file" ? "border-orange-300 border-b-2 text-orange-600" : "bg-gray-100 text-gray-700 hover:bg-orange-100"}`}
             style={inputMethod === "file" ? { backgroundColor: "#FFE9CC" } : {}}
             aria-selected={inputMethod === "file"}
             aria-controls="file-upload-panel"
@@ -371,7 +371,7 @@ export default function HomePage() {
           </button>
           <button
             type="button"
-            className={`rounded-t-md px-4 py-2 font-semibold transition-colors duration-150 focus:outline-hidden focus:ring-2 focus:ring-orange-500 ${inputMethod === "url" ? "text-orange-600" : "bg-gray-100 text-gray-700 hover:bg-orange-100"}`}
+            className={`rounded-t-md px-4 py-2 font-semibold transition-colors duration-150 focus:outline-hidden focus:ring-1 focus:ring-orange-500 ${inputMethod === "url" ? "border-orange-300 border-b-2 text-orange-600" : "bg-gray-100 text-gray-700 hover:bg-orange-100"}`}
             style={inputMethod === "url" ? { backgroundColor: "#FFE9CC" } : {}}
             aria-selected={inputMethod === "url"}
             aria-controls="url-fetch-panel"
@@ -625,7 +625,7 @@ export default function HomePage() {
                         name="stage-selection"
                         checked={selectedStage === "html"}
                         onChange={() => handleStageSelection("html")}
-                        className="h-4 w-4 text-orange-600 focus:ring-orange-500"
+                        className="h-4 w-4 text-orange-600 accent-orange-500 focus:ring-orange-500"
                         aria-label="Select Slimmed HTML"
                       />
                       <h4 className="font-medium text-base">Slimmed HTML</h4>
@@ -683,7 +683,7 @@ export default function HomePage() {
                         name="stage-selection"
                         checked={selectedStage === "textMap"}
                         onChange={() => handleStageSelection("textMap")}
-                        className="h-4 w-4 text-orange-600 focus:ring-orange-500"
+                        className="h-4 w-4 text-orange-600 accent-orange-500 focus:ring-orange-500"
                         aria-label="Select Hierarchical JSON"
                       />
                       <h4 className="font-medium text-base">
@@ -743,7 +743,7 @@ export default function HomePage() {
                         name="stage-selection"
                         checked={selectedStage === "textMapFlat"}
                         onChange={() => handleStageSelection("textMapFlat")}
-                        className="h-4 w-4 text-orange-600 focus:ring-orange-500"
+                        className="h-4 w-4 text-orange-600 accent-orange-500 focus:ring-orange-500"
                         aria-label="Select Flat JSON"
                       />
                       <h4 className="font-medium text-base">Flat JSON</h4>

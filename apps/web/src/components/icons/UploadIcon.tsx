@@ -5,7 +5,7 @@ const UploadIcon = () => (
     viewBox="0 0 24 24"
     strokeWidth={1.5}
     stroke="currentColor"
-    className="h-12 w-12 text-gray-600"
+    className="h-8 w-8 text-gray-600"
   >
     <title>Upload Icon</title>
     <path
