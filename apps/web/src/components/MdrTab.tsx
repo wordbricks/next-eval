@@ -56,7 +56,7 @@ export function MdrTab({ isProcessing }: MdrTabProps) {
             MDR Algorithm Response
           </h3>
           {isLoading && (
-            <p className="animate-pulse font-medium text-blue-600 text-md">
+            <p className="animate-pulse font-medium text-gray-700 text-md">
               Processing with MDR, please wait...
             </p>
           )}

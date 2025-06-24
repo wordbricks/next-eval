@@ -2,6 +2,7 @@
 
 import { handleDownload } from "@/app/utils/handleDownload";
 import {
+  type LlmAllResponses,
   initialLlmStageResponse,
   llmResponsesAtom,
   overallLlmFetchingAtom,
@@ -18,6 +19,7 @@ import { ContactFooter } from "@/components/ContactFooter";
 import { LlmInteractionSection } from "@/components/LlmInteractionSection";
 import { PageHeader } from "@/components/PageHeader";
 import DownloadIcon from "@/components/icons/DownloadIcon";
+import UploadIcon from "@/components/icons/UploadIcon";
 import { readFileAsText } from "@/lib/utils/readFileAsText";
 import { processHtmlContent } from "@wordbricks/next-eval";
 import { useAtom, useSetAtom } from "jotai";
@@ -39,7 +41,7 @@ export default function HomePage() {
   const setMdrError = useSetAtom(mdrErrorAtom);
   const setLlmResponses = useSetAtom(llmResponsesAtom);
   const setOverallLlmFetching = useSetAtom(overallLlmFetchingAtom);
-  const setSelectedStage = useSetAtom(selectedStageAtom);
+  const [selectedStage, setSelectedStage] = useAtom(selectedStageAtom);
   const setFeedbackSent = useSetAtom(feedbackSentAtom);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -78,6 +80,10 @@ export default function HomePage() {
   ];
   const handleSampleUrlClick = (url: string) => {
     setUrlInput(url);
+  };
+
+  const handleStageSelection = (stage: keyof LlmAllResponses) => {
+    setSelectedStage(stage);
   };
 
   // useEffect(() => {
@@ -352,7 +358,8 @@ export default function HomePage() {
         >
           <button
             type="button"
-            className={`rounded-t-md px-4 py-2 font-semibold transition-colors duration-150 focus:outline-hidden focus:ring-2 focus:ring-orange-500 ${inputMethod === "file" ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-700 hover:bg-orange-100"}`}
+            className={`rounded-t-md px-4 py-2 font-semibold transition-colors duration-150 focus:outline-hidden focus:ring-2 focus:ring-orange-500 ${inputMethod === "file" ? "text-orange-600" : "bg-gray-100 text-gray-700 hover:bg-orange-100"}`}
+            style={inputMethod === "file" ? { backgroundColor: "#FFE9CC" } : {}}
             aria-selected={inputMethod === "file"}
             aria-controls="file-upload-panel"
             id="file-upload-tab"
@@ -364,7 +371,8 @@ export default function HomePage() {
           </button>
           <button
             type="button"
-            className={`rounded-t-md px-4 py-2 font-semibold transition-colors duration-150 focus:outline-hidden focus:ring-2 focus:ring-orange-500 ${inputMethod === "url" ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-700 hover:bg-orange-100"}`}
+            className={`rounded-t-md px-4 py-2 font-semibold transition-colors duration-150 focus:outline-hidden focus:ring-2 focus:ring-orange-500 ${inputMethod === "url" ? "text-orange-600" : "bg-gray-100 text-gray-700 hover:bg-orange-100"}`}
+            style={inputMethod === "url" ? { backgroundColor: "#FFE9CC" } : {}}
             aria-selected={inputMethod === "url"}
             aria-controls="url-fetch-panel"
             id="url-fetch-tab"
@@ -381,28 +389,56 @@ export default function HomePage() {
             id="file-upload-panel"
             role="tabpanel"
             aria-labelledby="file-upload-tab"
-            className="space-y-3"
+            className="space-y-4"
           >
-            {/* Main container for upload elements */}
-            {/* Combined Upload and Load Sample section */}
-            <div className="flex items-center justify-between">
-              <p className="font-medium text-gray-700 text-sm">
-                Upload your own HTML file.
-              </p>
-              <button
-                type="button"
-                onClick={handleLoadSyntheticData}
-                className="rounded-md bg-orange-500 px-4 py-1.5 font-semibold text-white text-xs shadow-xs transition-colors duration-150 ease-in-out hover:bg-orange-600 focus:outline-hidden focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isLoading}
-                aria-label="Load sample HTML data"
-              >
-                Load sample
-              </button>
+            <p className="font-medium text-gray-700 text-sm">
+              Upload your own HTML file
+            </p>
+            {/* Upload and Load Sample icons and buttons container - wrapped in larger box */}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 shadow-sm">
+              <div className="flex items-center justify-center gap-8">
+                {/* Upload File Section */}
+                <div className="flex flex-col items-center">
+                  <div className="mb-4">
+                    <UploadIcon />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="rounded-md bg-orange-50 px-4 py-1.5 font-semibold text-orange-600 text-xs shadow-xs transition-colors duration-150 ease-in-out hover:bg-orange-100 focus:outline-hidden focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={isLoading}
+                    aria-label="Upload HTML file"
+                  >
+                    Upload file
+                  </button>
+                </div>
+
+                {/* OR separator */}
+                <div className="font-medium text-gray-400 text-sm">or</div>
+
+                {/* Load Sample Section */}
+                <div className="flex flex-col items-center">
+                  <div className="mb-4">
+                    <UploadIcon />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleLoadSyntheticData}
+                    className="rounded-md bg-orange-50 px-4 py-1.5 font-semibold text-orange-600 text-xs shadow-xs transition-colors duration-150 ease-in-out hover:bg-orange-100 focus:outline-hidden focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={isLoading}
+                    aria-label="Load sample HTML data"
+                  >
+                    Load Sample
+                  </button>
+                </div>
+              </div>
             </div>
+
+            {/* Hidden file input */}
             <input
               type="file"
               aria-label="Upload HTML or MHTML file"
-              className="block w-full rounded-md border border-gray-300 p-2 text-slate-500 text-sm shadow-xs file:mr-4 file:rounded-full file:border-0 file:bg-orange-50 file:px-4 file:py-2 file:font-semibold file:text-orange-600 file:text-sm hover:file:bg-orange-100 focus:outline-hidden focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+              className="hidden"
               accept=".html"
               onChange={handleFileChange}
               disabled={isLoading}
@@ -439,7 +475,7 @@ export default function HomePage() {
                 <button
                   key={sample.value}
                   type="button"
-                  className="rounded-md bg-orange-100 px-3 py-1 font-semibold text-orange-700 text-xs shadow-xs hover:bg-orange-200 focus:outline-hidden focus:ring-2 focus:ring-orange-500"
+                  className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-3 py-1 font-semibold text-black text-xs shadow-xs hover:bg-gray-100 focus:outline-hidden focus:ring-2 focus:ring-gray-500"
                   aria-label={`Fetch sample: ${sample.label}`}
                   tabIndex={0}
                   disabled={isLoading}
@@ -449,6 +485,19 @@ export default function HomePage() {
                   }
                 >
                   {sample.label}
+                  <svg
+                    className="ml-1 size-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 15l7-7 7 7"
+                    />
+                  </svg>
                 </button>
               ))}
             </div>
@@ -545,123 +594,191 @@ export default function HomePage() {
         )}
 
         {processedData && !isLoading && (
-          <section className="my-8">
-            {" "}
-            {/* This section already has my-8 for spacing */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              {/* Stage 1: Slimmed HTML (Cleaned HTML) */}
-              <div
-                className="flex cursor-pointer flex-col justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 text-left shadow-sm transition-all duration-150 ease-in-out hover:shadow-md"
-                tabIndex={0}
-                role="button"
-                aria-label="Select Slimmed HTML stage and view its content"
-              >
-                <div className="mb-2 flex items-start justify-between">
-                  <h3 className="font-medium text-lg">1. Slimmed HTML</h3>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent stage selection when clicking download
-                      handleDownload(
-                        processedData.html,
-                        "slimmed_html.html",
-                        "text/html",
-                      );
-                    }}
-                    className="rounded-full p-1 text-orange-500 transition-colors duration-150 ease-in-out hover:bg-orange-100 hover:text-orange-700"
-                    aria-label="Download slimmed HTML"
-                  >
-                    <DownloadIcon />
-                  </button>
-                </div>
-                <div>
-                  <div className="mb-3 h-32 overflow-auto rounded-sm border bg-white p-2">
-                    <pre className="whitespace-pre-wrap text-xs">
-                      {processedData.html}
-                    </pre>
-                  </div>
-                  <p className="text-right text-gray-500 text-xs">
-                    {processedData.htmlLength.toLocaleString()} characters
-                  </p>
-                </div>
+          <div className="mt-8">
+            <div className="flex w-full flex-col justify-between rounded-lg border bg-gray-50 p-4 text-left shadow-sm">
+              <div className="mb-4 flex items-start justify-between">
+                <h3 className="font-medium text-lg">Processed HTML</h3>
               </div>
-
-              {/* Stage 2: Hierarchical JSON (Nested text map) */}
-              <div
-                className="flex cursor-pointer flex-col justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 text-left shadow-sm transition-all duration-150 ease-in-out hover:shadow-md"
-                tabIndex={0}
-                role="button"
-                aria-label="Select Hierarchical JSON stage and view its content"
-              >
-                <div className="mb-2 flex items-start justify-between">
-                  <h3 className="font-medium text-lg">2. Hierarchical JSON</h3>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownload(
-                        JSON.stringify(processedData.textMap, null, 2),
-                        "hierarchical_map.json",
-                        "application/json",
-                      );
-                    }}
-                    className="rounded-full p-1 text-orange-500 transition-colors duration-150 ease-in-out hover:bg-orange-100 hover:text-orange-700"
-                    aria-label="Download hierarchical JSON map"
-                  >
-                    <DownloadIcon />
-                  </button>
-                </div>
-                <div>
-                  <div className="mb-3 h-32 overflow-auto rounded-sm border bg-white p-2">
-                    <pre className="whitespace-pre-wrap text-xs">
-                      {JSON.stringify(processedData.textMap, null, 2)}
-                    </pre>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                {/* Slimmed HTML (Cleaned HTML) */}
+                <div
+                  className={`flex cursor-pointer flex-col justify-between rounded-lg border p-4 text-left shadow-sm transition-all duration-150 ease-in-out hover:shadow-md ${
+                    selectedStage === "html"
+                      ? "border-orange-500 bg-orange-50"
+                      : "border-gray-200 bg-white"
+                  }`}
+                  tabIndex={0}
+                  role="button"
+                  aria-label="Select Slimmed HTML stage and view its content"
+                  onClick={() => handleStageSelection("html")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleStageSelection("html");
+                    }
+                  }}
+                >
+                  <div className="mb-2 flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="stage-selection"
+                        checked={selectedStage === "html"}
+                        onChange={() => handleStageSelection("html")}
+                        className="h-4 w-4 text-orange-600 focus:ring-orange-500"
+                        aria-label="Select Slimmed HTML"
+                      />
+                      <h4 className="font-medium text-base">Slimmed HTML</h4>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent stage selection when clicking download
+                        handleDownload(
+                          processedData.html,
+                          "slimmed_html.html",
+                          "text/html",
+                        );
+                      }}
+                      className="rounded-full p-1 text-orange-500 transition-colors duration-150 ease-in-out hover:bg-orange-100 hover:text-orange-700"
+                      aria-label="Download slimmed HTML"
+                    >
+                      <DownloadIcon />
+                    </button>
                   </div>
-                  <p className="text-right text-gray-500 text-xs">
-                    {processedData.textMapLength.toLocaleString()} characters
-                  </p>
-                </div>
-              </div>
-
-              {/* Stage 3: Flat JSON (text map) */}
-              <div
-                className="flex cursor-pointer flex-col justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 text-left shadow-sm transition-all duration-150 ease-in-out hover:shadow-md"
-                tabIndex={0}
-                role="button"
-                aria-label="Select Flat JSON stage and view its content"
-              >
-                <div className="mb-2 flex items-start justify-between">
-                  <h3 className="font-medium text-lg">3. Flat JSON</h3>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownload(
-                        JSON.stringify(processedData.textMapFlat, null, 2),
-                        "flat_map.json",
-                        "application/json",
-                      );
-                    }}
-                    className="rounded-full p-1 text-orange-500 transition-colors duration-150 ease-in-out hover:bg-orange-100 hover:text-orange-700"
-                    aria-label="Download flat JSON map"
-                  >
-                    <DownloadIcon />
-                  </button>
-                </div>
-                <div>
-                  <div className="mb-3 h-32 overflow-auto rounded-sm border bg-white p-2">
-                    <pre className="whitespace-pre-wrap text-xs">
-                      {JSON.stringify(processedData.textMapFlat, null, 2)}
-                    </pre>
+                  <div>
+                    <div className="mb-3 h-32 overflow-auto rounded-sm border bg-white p-2">
+                      <pre className="whitespace-pre-wrap text-xs">
+                        {processedData.html}
+                      </pre>
+                    </div>
+                    <p className="text-right text-gray-500 text-xs">
+                      {processedData.htmlLength.toLocaleString()} characters
+                    </p>
                   </div>
-                  <p className="text-right text-gray-500 text-xs">
-                    {processedData.textMapFlatLength.toLocaleString()}{" "}
-                    characters
-                  </p>
+                </div>
+
+                {/* Hierarchical JSON (Nested text map) */}
+                <div
+                  className={`flex cursor-pointer flex-col justify-between rounded-lg border p-4 text-left shadow-sm transition-all duration-150 ease-in-out hover:shadow-md ${
+                    selectedStage === "textMap"
+                      ? "border-orange-500 bg-orange-50"
+                      : "border-gray-200 bg-white"
+                  }`}
+                  tabIndex={0}
+                  role="button"
+                  aria-label="Select Hierarchical JSON stage and view its content"
+                  onClick={() => handleStageSelection("textMap")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleStageSelection("textMap");
+                    }
+                  }}
+                >
+                  <div className="mb-2 flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="stage-selection"
+                        checked={selectedStage === "textMap"}
+                        onChange={() => handleStageSelection("textMap")}
+                        className="h-4 w-4 text-orange-600 focus:ring-orange-500"
+                        aria-label="Select Hierarchical JSON"
+                      />
+                      <h4 className="font-medium text-base">
+                        Hierarchical JSON
+                      </h4>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(
+                          JSON.stringify(processedData.textMap, null, 2),
+                          "hierarchical_map.json",
+                          "application/json",
+                        );
+                      }}
+                      className="rounded-full p-1 text-orange-500 transition-colors duration-150 ease-in-out hover:bg-orange-100 hover:text-orange-700"
+                      aria-label="Download hierarchical JSON map"
+                    >
+                      <DownloadIcon />
+                    </button>
+                  </div>
+                  <div>
+                    <div className="mb-3 h-32 overflow-auto rounded-sm border bg-white p-2">
+                      <pre className="whitespace-pre-wrap text-xs">
+                        {JSON.stringify(processedData.textMap, null, 2)}
+                      </pre>
+                    </div>
+                    <p className="text-right text-gray-500 text-xs">
+                      {processedData.textMapLength.toLocaleString()} characters
+                    </p>
+                  </div>
+                </div>
+
+                {/* Flat JSON (text map) */}
+                <div
+                  className={`flex cursor-pointer flex-col justify-between rounded-lg border p-4 text-left shadow-sm transition-all duration-150 ease-in-out hover:shadow-md ${
+                    selectedStage === "textMapFlat"
+                      ? "border-orange-500 bg-orange-50"
+                      : "border-gray-200 bg-white"
+                  }`}
+                  tabIndex={0}
+                  role="button"
+                  aria-label="Select Flat JSON stage and view its content"
+                  onClick={() => handleStageSelection("textMapFlat")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleStageSelection("textMapFlat");
+                    }
+                  }}
+                >
+                  <div className="mb-2 flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="stage-selection"
+                        checked={selectedStage === "textMapFlat"}
+                        onChange={() => handleStageSelection("textMapFlat")}
+                        className="h-4 w-4 text-orange-600 focus:ring-orange-500"
+                        aria-label="Select Flat JSON"
+                      />
+                      <h4 className="font-medium text-base">Flat JSON</h4>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(
+                          JSON.stringify(processedData.textMapFlat, null, 2),
+                          "flat_map.json",
+                          "application/json",
+                        );
+                      }}
+                      className="rounded-full p-1 text-orange-500 transition-colors duration-150 ease-in-out hover:bg-orange-100 hover:text-orange-700"
+                      aria-label="Download flat JSON map"
+                    >
+                      <DownloadIcon />
+                    </button>
+                  </div>
+                  <div>
+                    <div className="mb-3 h-32 overflow-auto rounded-sm border bg-white p-2">
+                      <pre className="whitespace-pre-wrap text-xs">
+                        {JSON.stringify(processedData.textMapFlat, null, 2)}
+                      </pre>
+                    </div>
+                    <p className="text-right text-gray-500 text-xs">
+                      {processedData.textMapFlatLength.toLocaleString()}{" "}
+                      characters
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </section>
+          </div>
         )}
 
         {/* Loading Indicator - more prominent */}

@@ -152,7 +152,7 @@ export function LlmTab({ isProcessing }: LlmTabProps) {
                 LLM Response
               </h3>
               {stageResponse.isLoading && (
-                <p className="animate-pulse font-medium text-blue-600 text-md">
+                <p className="animate-pulse font-medium text-gray-700 text-md">
                   Loading response...
                 </p>
               )}
