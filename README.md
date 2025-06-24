@@ -19,6 +19,12 @@ Welcome to **NEXT-EVAL**, a comprehensive toolkit for the rigorous evaluation an
 
 This library provides tools for generating web-to-table datasets, applying extraction techniques (both traditional and LLM-based), and evaluating them with a standardized framework. It is intended to advance benchmarking and reproducibility in web data extraction research.
 
+## 🌐 Try the Web Demo
+
+Experience NEXT-EVAL in action! Try our interactive web demo where you can upload HTML files or fetch live URLs to preprocess HTML in three different ways (Slim HTML, Hierarchical JSON, and Flat JSON) and compare traditional algorithms with LLM-based extraction methods:
+
+**[Launch Web Demo](https://nextrows.com/next-eval)**
+
 ---
 
 ## 🏁 Getting Started
