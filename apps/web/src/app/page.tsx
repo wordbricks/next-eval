@@ -620,14 +620,29 @@ export default function HomePage() {
                 >
                   <div className="mb-2 flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="stage-selection"
-                        checked={selectedStage === "html"}
-                        onChange={() => handleStageSelection("html")}
-                        className="h-4 w-4 text-orange-600 accent-orange-500 focus:ring-orange-500"
-                        aria-label="Select Slimmed HTML"
-                      />
+                      <div className="relative">
+                        <input
+                          type="radio"
+                          name="stage-selection"
+                          checked={selectedStage === "html"}
+                          onChange={() => handleStageSelection("html")}
+                          className="sr-only"
+                          aria-label="Select Slimmed HTML"
+                        />
+                        <div
+                          className={`h-5 w-5 rounded-full border-2 transition-all duration-200 ${
+                            selectedStage === "html"
+                              ? "border-orange-500 bg-orange-500 shadow-sm"
+                              : "border-gray-300 bg-white hover:border-orange-300"
+                          }`}
+                        >
+                          {selectedStage === "html" && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="h-2 w-2 rounded-full bg-white"></div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                       <h4 className="font-medium text-base">Slimmed HTML</h4>
                     </div>
                     <button
@@ -678,14 +693,29 @@ export default function HomePage() {
                 >
                   <div className="mb-2 flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="stage-selection"
-                        checked={selectedStage === "textMap"}
-                        onChange={() => handleStageSelection("textMap")}
-                        className="h-4 w-4 text-orange-600 accent-orange-500 focus:ring-orange-500"
-                        aria-label="Select Hierarchical JSON"
-                      />
+                      <div className="relative">
+                        <input
+                          type="radio"
+                          name="stage-selection"
+                          checked={selectedStage === "textMap"}
+                          onChange={() => handleStageSelection("textMap")}
+                          className="sr-only"
+                          aria-label="Select Hierarchical JSON"
+                        />
+                        <div
+                          className={`h-5 w-5 rounded-full border-2 transition-all duration-200 ${
+                            selectedStage === "textMap"
+                              ? "border-orange-500 bg-orange-500 shadow-sm"
+                              : "border-gray-300 bg-white hover:border-orange-300"
+                          }`}
+                        >
+                          {selectedStage === "textMap" && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="h-2 w-2 rounded-full bg-white"></div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                       <h4 className="font-medium text-base">
                         Hierarchical JSON
                       </h4>
@@ -738,14 +768,29 @@ export default function HomePage() {
                 >
                   <div className="mb-2 flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="stage-selection"
-                        checked={selectedStage === "textMapFlat"}
-                        onChange={() => handleStageSelection("textMapFlat")}
-                        className="h-4 w-4 text-orange-600 accent-orange-500 focus:ring-orange-500"
-                        aria-label="Select Flat JSON"
-                      />
+                      <div className="relative">
+                        <input
+                          type="radio"
+                          name="stage-selection"
+                          checked={selectedStage === "textMapFlat"}
+                          onChange={() => handleStageSelection("textMapFlat")}
+                          className="sr-only"
+                          aria-label="Select Flat JSON"
+                        />
+                        <div
+                          className={`h-5 w-5 rounded-full border-2 transition-all duration-200 ${
+                            selectedStage === "textMapFlat"
+                              ? "border-orange-500 bg-orange-500 shadow-sm"
+                              : "border-gray-300 bg-white hover:border-orange-300"
+                          }`}
+                        >
+                          {selectedStage === "textMapFlat" && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="h-2 w-2 rounded-full bg-white"></div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                       <h4 className="font-medium text-base">Flat JSON</h4>
                     </div>
                     <button
