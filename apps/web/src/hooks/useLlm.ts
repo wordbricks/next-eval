@@ -87,14 +87,11 @@ export const useLlm = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
-
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          message: `LLM API request for ${stageKey} failed with status ${response.status} and could not parse error.`,
-        }));
+        const errorData = await response.json();
         throw new Error(
-          errorData.message ||
-            `LLM API request for ${stageKey} failed with status ${response.status}`,
+          errorData.error ||
+            `LLM API request for ${stageKey} failed with status ${response.status}.`,
         );
       }
 

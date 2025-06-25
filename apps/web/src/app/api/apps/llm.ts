@@ -71,6 +71,11 @@ llmApp.post("/", async (c) => {
     }
     const temperature = 1.0;
     const { text, usage } = await getLLMResponse(data, promptType, temperature);
+    if (!usage.completionTokens) {
+      throw new Error(
+        `Input HTML has too many promptTokens ${usage.promptTokens}`,
+      );
+    }
     const responsePayload: LLMResponse = {
       content: text || "```json[]```",
       usage: usage
