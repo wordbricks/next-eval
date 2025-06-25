@@ -25,6 +25,12 @@ Experience NEXT-EVAL in action! Try our interactive web demo where you can uploa
 
 **[Launch Web Demo](https://nextrows.com/next-eval)**
 
+## 📺 Video Explanation
+
+Watch our comprehensive video explanation to understand how NEXT-EVAL works and see it in action:
+
+**[NEXT-EVAL Video Tutorial](https://www.youtube.com/watch?v=1TIeY08pX4I)**
+
 ---
 
 ## 🏁 Getting Started
