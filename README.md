@@ -15,17 +15,19 @@ Welcome to **NEXT-EVAL**, a comprehensive toolkit for the rigorous evaluation an
 > 📄 **NEXT-EVAL: Next Evaluation of Traditional and LLM Web Data Record Extraction** [\[https://arxiv.org/abs/2505.17125\]](https://arxiv.org/abs/2505.17125)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-brightgreen.svg?style=flat)](CONTRIBUTING.md)
-[![Paper](https://img.shields.io/badge/Read%20the%20Paper-blue)](https://arxiv.org/abs/2505.17125) 
+[![Paper](https://img.shields.io/badge/Read%20the%20Paper-blue)](https://arxiv.org/abs/2505.17125) [![Web Demo](https://img.shields.io/badge/Try%20Web%20Demo-green)](https://nextrows.com/next-eval)
+
+## 🎥 Demo Video
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=1TIeY08pX4I">
+    <img src="https://img.youtube.com/vi/1TIeY08pX4I/maxresdefault.jpg" alt="NEXT-EVAL Demo Video" width="600">
+  </a>
+</p>
+
+Experience NEXT-EVAL in action! Try our interactive web demo where you can upload HTML files or fetch live URLs to preprocess HTML in three different ways and compare extraction methods.
 
 This library provides tools for generating web-to-table datasets, applying extraction techniques (both traditional and LLM-based), and evaluating them with a standardized framework. It is intended to advance benchmarking and reproducibility in web data extraction research.
-
-## 🌐 Try the Web Demo
-
-Experience NEXT-EVAL in action! Try our interactive web demo where you can upload HTML files or fetch live URLs to preprocess HTML in three different ways (Slim HTML, Hierarchical JSON, and Flat JSON) and compare traditional algorithms with LLM-based extraction methods:
-
-[![Launch Web Demo](https://img.shields.io/badge/Launch%20Web%20Demo-brightgreen?style=for-the-badge)](https://nextrows.com/next-eval)
-
----
 
 ## 🏁 Getting Started
 
@@ -181,10 +183,6 @@ If you use NEXT-EVAL in your research, please cite:
 We welcome contributions to improve tool coverage, add datasets, or refine evaluation metrics. Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
 ---
-
-# Gallery / Demo
-
-https://github.com/user-attachments/assets/a09ab8af-13d1-46bc-8ad1-8a114e1bb3db
 
 ## 📬 Contact
 
