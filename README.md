@@ -15,7 +15,7 @@ Welcome to **NEXT-EVAL**, a comprehensive toolkit for the rigorous evaluation an
 > 📄 **NEXT-EVAL: Next Evaluation of Traditional and LLM Web Data Record Extraction** [\[https://arxiv.org/abs/2505.17125\]](https://arxiv.org/abs/2505.17125)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-brightgreen.svg?style=flat)](CONTRIBUTING.md)
-[![Paper](https://img.shields.io/badge/Read%20the%20Paper-blue)](https://arxiv.org/abs/2505.17125) [![Web Demo](https://img.shields.io/badge/Try%20Web%20Demo-green)](https://nextrows.com/next-eval)
+[![Paper](https://img.shields.io/badge/Read%20the%20Paper-blue)](https://arxiv.org/abs/2505.17125) [![Web Demo](https://img.shields.io/badge/Try%20Web%20Demo-purple)](https://nextrows.com/next-eval)
 
 ## 🎥 Demo Video
 
@@ -24,10 +24,6 @@ Welcome to **NEXT-EVAL**, a comprehensive toolkit for the rigorous evaluation an
     <img src="https://img.youtube.com/vi/1TIeY08pX4I/maxresdefault.jpg" alt="NEXT-EVAL Demo Video" width="600">
   </a>
 </p>
-
-Experience NEXT-EVAL in action! Try our interactive web demo where you can upload HTML files or fetch live URLs to preprocess HTML in three different ways and compare extraction methods.
-
-This library provides tools for generating web-to-table datasets, applying extraction techniques (both traditional and LLM-based), and evaluating them with a standardized framework. It is intended to advance benchmarking and reproducibility in web data extraction research.
 
 ## 🏁 Getting Started
 
