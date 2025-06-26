@@ -29,7 +29,7 @@ Experience NEXT-EVAL in action! Try our interactive web demo where you can uploa
 
 Watch our comprehensive video explanation to understand how NEXT-EVAL works and see it in action:
 
-**[NEXT-EVAL Video Tutorial](https://www.youtube.com/watch?v=1TIeY08pX4I)**
+[![NEXT-EVAL Video Tutorial](https://img.youtube.com/vi/1TIeY08pX4I/0.jpg)](https://www.youtube.com/watch?v=1TIeY08pX4I)
 
 ---
 
