@@ -23,13 +23,7 @@ This library provides tools for generating web-to-table datasets, applying extra
 
 Experience NEXT-EVAL in action! Try our interactive web demo where you can upload HTML files or fetch live URLs to preprocess HTML in three different ways (Slim HTML, Hierarchical JSON, and Flat JSON) and compare traditional algorithms with LLM-based extraction methods:
 
-**[Launch Web Demo](https://nextrows.com/next-eval)**
-
-## 📺 Video Explanation
-
-Watch our comprehensive video explanation to understand how NEXT-EVAL works and see it in action:
-
-[![NEXT-EVAL Video Tutorial](https://img.youtube.com/vi/1TIeY08pX4I/0.jpg)](https://www.youtube.com/watch?v=1TIeY08pX4I)
+[![Launch Web Demo](https://img.shields.io/badge/Launch%20Web%20Demo-brightgreen?style=for-the-badge)](https://nextrows.com/next-eval)
 
 ---
 
@@ -187,6 +181,10 @@ If you use NEXT-EVAL in your research, please cite:
 We welcome contributions to improve tool coverage, add datasets, or refine evaluation metrics. Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
 ---
+
+# Gallery / Demo
+
+https://github.com/user-attachments/assets/a09ab8af-13d1-46bc-8ad1-8a114e1bb3db
 
 ## 📬 Contact
 
