@@ -1,0 +1,151 @@
+name: rebase-command
+
+on:
+  repository_dispatch:
+    types: [rebase-command]
+
+jobs:
+  # For PRs that GitHub considers rebaseable,
+  # perform a standard rebase without extra conflict handling.
+  rebase:
+    if: github.event.client_payload.pull_request.rebaseable == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PAT }}
+          repository: ${{ github.event.client_payload.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.client_payload.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Create local branch
+        run: |
+          echo "Creating and switching to local branch '${{ github.event.client_payload.pull_request.head.ref }}'"
+          git checkout -B ${{ github.event.client_payload.pull_request.head.ref }}
+
+      - name: Rebase
+        run: |
+          # Set a generic user for commit config
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Disable interactive editor for all rebase/commit operations
+          export GIT_EDITOR=true
+
+          echo "Adding base remote and fetching target branch..."
+          git remote add base https://x-access-token:${{ secrets.PAT }}@github.com/${{ github.event.client_payload.pull_request.base.repo.full_name }}.git
+          git fetch base ${{ github.event.client_payload.pull_request.base.ref }}
+
+          echo "Starting rebase onto base/${{ github.event.client_payload.pull_request.base.ref }}..."
+          git rebase base/${{ github.event.client_payload.pull_request.base.ref }}
+
+          echo "Pushing changes forcefully..."
+          git push --force-with-lease
+
+      - name: Update comment
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          token: ${{ secrets.PAT }}
+          repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
+          comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
+          body: |
+            >Pull request successfully rebased
+          reactions: hooray
+
+  # For PRs that are NOT rebaseable by GitHub,
+  # perform a custom conflict resolution for lockfiles.
+  notRebaseable:
+    if: github.event.client_payload.pull_request.rebaseable != true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PAT }}
+          repository: ${{ github.event.client_payload.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.client_payload.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Setup Bun (if required)
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: ".bun-version"
+
+      - name: Rebase with lock conflict handling
+        id: rebase
+        run: |
+          # Set a generic user for commit config
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Disable interactive editor for all rebase/commit operations
+          export GIT_EDITOR=true
+
+          echo "Adding base remote and fetching target branch..."
+          git remote add base https://x-access-token:${{ secrets.PAT }}@github.com/${{ github.event.client_payload.pull_request.base.repo.full_name }}.git
+          git fetch base ${{ github.event.client_payload.pull_request.base.ref }}
+
+          # Helper function: Check if only lockfiles are in conflict.
+          check_only_lock_files() {
+            conflicts=$(git diff --name-only --diff-filter=U)
+            if [ -z "$conflicts" ]; then
+              return 0
+            fi
+            for file in $conflicts; do
+              if [ "$file" != "bun.lock" ]; then
+                return 1
+              fi
+            done
+            return 0
+          }
+
+          # Helper function: Resolve lockfile conflicts by keeping our version.
+          handle_lock_conflicts() {
+            echo "Resolving lockfile conflicts using our version..."
+            for file in $(git diff --name-only --diff-filter=U); do
+              if [ "$file" = "bun.lock" ]; then
+                echo "Resolving binary lockfile: $file"
+                git show :2:"$file" > "$file"
+              fi
+              git add "$file"
+            done
+          }
+
+          # Rebase Loop Explanation:
+          #   - Attempt the rebase.
+          #   - If conflicts occur and they involve only lockfiles, resolve them
+          #     and continue the rebase.
+          #   - Loop until the rebase completes or a non-lockfile conflict is encountered.
+          echo "Starting rebase onto base/${{ github.event.client_payload.pull_request.base.ref }}..."
+          git rebase base/${{ github.event.client_payload.pull_request.base.ref }} || true
+
+          while [ -d ".git/rebase-merge" ] || [ -d ".git/rebase-apply" ]; do
+            if check_only_lock_files; then
+              handle_lock_conflicts
+              git rebase --continue || true
+            else
+              echo "Non-lockfile conflicts detected. Aborting rebase."
+              git rebase --abort
+              exit 1
+            fi
+
+            # If rebase is complete, no need to continue the loop
+            if [ ! -d ".git/rebase-merge" ] && [ ! -d ".git/rebase-apply" ]; then
+              break
+            fi
+          done
+
+          echo "Rebase completed or no more conflicts. Force pushing..."
+          git push --force-with-lease
+
+      - name: Update comment
+        if: steps.rebase.outcome != 'failure'
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          token: ${{ secrets.PAT }}
+          repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
+          comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
+          body: |
+            >Pull request successfully rebased
+          reactions: hooray

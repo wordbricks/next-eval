@@ -1,0 +1,22 @@
+name: Remove Stale Branches
+
+on:
+  schedule:
+    # Every 9AM on Monday KST
+    - cron: "0 0 * * 1"
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  remove-stale-branches:
+    name: Remove Stale Branches
+    runs-on: ubuntu-latest
+    steps:
+      - uses: fpicalausa/remove-stale-branches@master
+        with:
+          days-before-branch-stale: 60
+          days-before-branch-delete: 0

@@ -1,0 +1,40 @@
+name: Evergreen
+
+# env:
+
+on:
+  schedule:
+    # Every 6AM on Monday KST
+    - cron: "0 21 * * 0"
+
+  workflow_dispatch:
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@main
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: ".bun-version"
+
+      - run: bun install -g @antfu/ni
+      - run: rm bun.lock
+      - run: ni --ignore-scripts
+
+      - name: Update dependencies concurrently
+        run: nr pkg:bump
+
+      - run: ni --no-frozen-lockfile
+      - run: nr format
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@main
+        with:
+          title: Bump dependencies
+          token: ${{ secrets.EVERGREEN_TOKEN }}
