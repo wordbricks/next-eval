@@ -57,12 +57,7 @@ const peerDepBanGroup: VersionGroup = {
 };
 
 // Will be ignored in `syncpack update --check`
-const pinnedVersionGroup: VersionGroup[] = [
-  {
-    dependencies: ["syncpack"],
-    pinVersion: "14.0.0-alpha.12",
-  },
-].map((group: VersionGroup) => ({
+const pinnedVersionGroup: VersionGroup[] = [].map((group: VersionGroup) => ({
   label: "Pinned versions",
   ...group,
 }));
